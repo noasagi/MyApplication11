@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "784460475101",
+    "project_id": "noas-firebase",
+    "storage_bucket": "noas-firebase.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:784460475101:android:a23db4fd623adac1724934",
+        "android_client_info": {
+          "package_name": "com.example.myapplication"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBTrWzPJ1LadI-2kukwmni5y4MppUsEik0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
