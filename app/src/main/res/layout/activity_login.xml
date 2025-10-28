@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".LoginActivity"
-    android:padding="24dp">
+    android:padding="24dp"
+    android:background="#FAFAFA"
+    tools:context=".LoginActivity">
 
     <!-- שדה קלט לאימייל -->
     <EditText
@@ -15,10 +17,15 @@
         android:layout_height="wrap_content"
         android:hint="Email"
         android:inputType="textEmailAddress"
+        android:padding="16dp"
+        android:textColor="#212121"
+        android:textColorHint="#757575"
+        android:textSize="16sp"
+        android:background="@android:drawable/edit_text"
+        android:layout_marginTop="100dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="100dp"
         android:layout_marginHorizontal="32dp" />
 
     <!-- שדה קלט לסיסמה -->
@@ -28,6 +35,11 @@
         android:layout_height="wrap_content"
         android:hint="Password"
         android:inputType="textPassword"
+        android:padding="16dp"
+        android:textColor="#212121"
+        android:textColorHint="#757575"
+        android:textSize="16sp"
+        android:background="@android:drawable/edit_text"
         app:layout_constraintTop_toBottomOf="@id/eTEmail"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -35,49 +47,75 @@
         android:layout_marginHorizontal="32dp" />
 
     <!-- ✅ CheckBox להישאר מחובר -->
+
+    <!-- כפתור התחברות -->
     <CheckBox
         android:id="@+id/cBStayConnect"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="108dp"
+        android:layout_marginTop="16dp"
         android:text="Stay connected"
+        android:textColor="#212121"
         android:textSize="16sp"
-        app:layout_constraintTop_toBottomOf="@id/eTPass"
         app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginTop="12dp" />
+        app:layout_constraintTop_toBottomOf="@id/eTPass" />
 
-    <!-- כפתור התחברות -->
     <Button
         android:id="@+id/loginUser"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="Login"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:backgroundTint="#3F51B5"
+        android:padding="16dp"
+        android:layout_marginHorizontal="32dp"
+        android:layout_marginTop="24dp"
+        android:clipToOutline="true"
         app:layout_constraintTop_toBottomOf="@id/cBStayConnect"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="24dp" />
+        />
 
     <!-- תיבת טקסט להודעות תוצאה -->
     <TextView
         android:id="@+id/tVMsg"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text=""
         android:textSize="16sp"
-        android:textColor="@android:color/black"
+        android:textColor="#D32F2F"
+        android:gravity="center"
         app:layout_constraintTop_toBottomOf="@id/loginUser"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="24dp" />
+        android:layout_marginTop="24dp"
+        android:layout_marginHorizontal="32dp" />
 
     <!-- ✅ כפתור מעבר להרשמה -->
     <Button
         android:id="@+id/btnGoToRegister"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="Not registered? Sign up"
+        android:textColor="#3F51B5"
+        android:background="@android:color/transparent"
+        android:textSize="16sp"
         app:layout_constraintTop_toBottomOf="@id/tVMsg"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="20dp" />
+        android:layout_marginTop="20dp"
+        android:layout_marginHorizontal="32dp" />
+
+    <TextView
+        android:id="@+id/textView"
+        android:layout_width="123dp"
+        android:layout_height="24dp"
+        android:text="WELCOME BACK"
+        app:layout_constraintBottom_toTopOf="@+id/eTEmail"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
