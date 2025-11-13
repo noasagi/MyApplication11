@@ -12,20 +12,18 @@ import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 import com.google.firebase.FirebaseNetworkException;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
 import com.google.firebase.auth.FirebaseAuthInvalidUserException;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -33,6 +31,7 @@ public class LoginActivity extends AppCompatActivity {
     private TextView tVMsg;
     private CheckBox cBStayConnect;
     private FirebaseAuth refAuth;
+    private FirebaseFirestore db;
     private SharedPreferences sharedPref;
 
     @Override
@@ -46,9 +45,10 @@ public class LoginActivity extends AppCompatActivity {
         tVMsg = findViewById(R.id.tVMsg);
         cBStayConnect = findViewById(R.id.cBStayConnect);
         Button loginUser = findViewById(R.id.loginUser);
-        Button btnGoToRegister = findViewById(R.id.btnGoToRegister); // כפתור הרשמה חדש
+        Button btnGoToRegister = findViewById(R.id.btnGoToRegister);
 
         refAuth = FirebaseAuth.getInstance();
+        db = FirebaseFirestore.getInstance();
         sharedPref = getSharedPreferences("MyPref", MODE_PRIVATE);
 
         loginUser.setOnClickListener(this::loginUser);
@@ -71,9 +71,7 @@ public class LoginActivity extends AppCompatActivity {
         boolean isChecked = sharedPref.getBoolean("stayConnect", false);
         FirebaseUser user = refAuth.getCurrentUser();
         if (user != null && isChecked) {
-            Intent si = new Intent(LoginActivity.this, MainActivity.class);
-            startActivity(si);
-            finish();
+            redirectUser(user.getUid());
         }
     }
 
@@ -100,9 +98,9 @@ public class LoginActivity extends AppCompatActivity {
                         editor.putBoolean("stayConnect", cBStayConnect.isChecked());
                         editor.apply();
 
-                        Intent si = new Intent(LoginActivity.this, MainActivity.class);
-                        startActivity(si);
-                        finish();
+                        if (user != null) {
+                            redirectUser(user.getUid());
+                        }
                     } else {
                         Exception exp = task.getException();
                         if (exp instanceof FirebaseAuthInvalidUserException) {
@@ -117,5 +115,25 @@ public class LoginActivity extends AppCompatActivity {
                         Log.w("LoginActivity", "signInWithEmailAndPassword: failure", exp);
                     }
                 });
+    }
+
+    private void redirectUser(String uid) {
+        db.collection("users").document(uid).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if(documentSnapshot.exists()) {
+                        String userType = documentSnapshot.getString("type");
+                        Intent intent;
+                        if ("בעל עסק".equals(userType)) {
+                            intent = new Intent(LoginActivity.this, BusinessMainActivity.class);
+                        } else {
+                            intent = new Intent(LoginActivity.this, ClientMainActivity.class);
+                        }
+                        startActivity(intent);
+                        finish();
+                    } else {
+                        tVMsg.setText("User data not found.");
+                    }
+                })
+                .addOnFailureListener(e -> tVMsg.setText("Error fetching user data: " + e.getMessage()));
     }
 }

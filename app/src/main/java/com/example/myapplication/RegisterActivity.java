@@ -7,7 +7,10 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -15,20 +18,23 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 import com.google.firebase.FirebaseNetworkException;
-import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthUserCollisionException;
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class RegisterActivity extends AppCompatActivity {
 
     private EditText eTEmail, eTPass;
     private TextView tVMsg;
+    private RadioGroup radioGroupType;
     private FirebaseAuth refAuth;
+    private FirebaseFirestore db;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,9 +45,11 @@ public class RegisterActivity extends AppCompatActivity {
         eTEmail = findViewById(R.id.eTEmail);
         eTPass = findViewById(R.id.eTPass);
         tVMsg = findViewById(R.id.tVMsg);
+        radioGroupType = findViewById(R.id.radioGroupType);
         Button createUser = findViewById(R.id.createUser);
 
         refAuth = FirebaseAuth.getInstance();
+        db = FirebaseFirestore.getInstance();
 
         createUser.setOnClickListener(this::createUser);
 
@@ -56,10 +64,14 @@ public class RegisterActivity extends AppCompatActivity {
         String email = eTEmail.getText().toString();
         String pass = eTPass.getText().toString();
 
-        if (email.isEmpty() || pass.isEmpty()) {
-            tVMsg.setText("Please fill all fields");
+        int selectedId = radioGroupType.getCheckedRadioButtonId();
+        if (email.isEmpty() || pass.isEmpty() || selectedId == -1) {
+            tVMsg.setText("אנא מלא את כל השדות ובחר סוג משתמש");
             return;
         }
+
+        RadioButton selectedRadio = findViewById(selectedId);
+        String userType = selectedRadio.getText().toString();
 
         ProgressDialog pd = new ProgressDialog(this);
         pd.setTitle("Connecting");
@@ -71,19 +83,40 @@ public class RegisterActivity extends AppCompatActivity {
                     pd.dismiss();
                     if (task.isSuccessful()) {
                         FirebaseUser user = refAuth.getCurrentUser();
-                        Intent si = new Intent(RegisterActivity.this, MainActivity.class);
-                        startActivity(si);
-                        finish();
+                        if (user != null) {
+                            Map<String, Object> userData = new HashMap<>();
+                            userData.put("email", email);
+                            userData.put("type", userType);
+
+                            db.collection("users")
+                                    .document(user.getUid())
+                                    .set(userData)
+                                    .addOnSuccessListener(aVoid -> {
+                                        Toast.makeText(this, "נרשמת בהצלחה!", Toast.LENGTH_SHORT).show();
+                                        // ננתב למסך מתאים לפי סוג משתמש
+                                        Intent intent;
+                                        if (userType.equals("בעל עסק")) {
+                                            intent = new Intent(RegisterActivity.this, BusinessMainActivity.class);
+                                        } else {
+                                            intent = new Intent(RegisterActivity.this, ClientMainActivity.class);
+                                        }
+                                        startActivity(intent);
+                                        finish();
+                                    })
+                                    .addOnFailureListener(e -> {
+                                        tVMsg.setText("שגיאה בשמירת הנתונים: " + e.getMessage());
+                                    });
+                        }
                     } else {
                         Exception exp = task.getException();
                         if (exp instanceof FirebaseAuthWeakPasswordException) {
-                            tVMsg.setText("Password too weak.");
+                            tVMsg.setText("סיסמה חלשה מדי");
                         } else if (exp instanceof FirebaseAuthUserCollisionException) {
-                            tVMsg.setText("User already exists.");
+                            tVMsg.setText("המשתמש כבר קיים");
                         } else if (exp instanceof FirebaseNetworkException) {
-                            tVMsg.setText("Network error. Please check your connection.");
+                            tVMsg.setText("שגיאת רשת");
                         } else {
-                            tVMsg.setText("An error occurred. Please try again later.");
+                            tVMsg.setText("שגיאה לא צפויה");
                         }
                         Log.w("RegisterActivity", "createUserWithEmailAndPassword: failure", exp);
                     }
