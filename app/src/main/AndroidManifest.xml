@@ -12,6 +12,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
         <activity
+            android:name=".MyBusinessMainActivity"
+            android:exported="false" />
+        <activity
             android:name=".SetProfileActivity"
             android:exported="false"
             android:theme="@style/Theme.MyApplication" />

@@ -25,24 +25,38 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
+
     buildFeatures {
         viewBinding true
     }
 }
 
 dependencies {
+    // Android UI
     implementation libs.appcompat
     implementation libs.material
     implementation libs.activity
     implementation libs.constraintlayout
-    implementation libs.firebase.auth
-    implementation 'com.google.firebase:firebase-firestore:25.0.0'
+
+    // Navigation
     implementation libs.navigation.fragment
     implementation libs.navigation.ui
+
+    // Firebase Auth
+    implementation libs.firebase.auth
+
+    // Firebase Firestore
+    implementation 'com.google.firebase:firebase-firestore:25.0.0'
+
+    // ⭐ NEW – Firebase Storage (תיקון הבעיה אצלך)
+    implementation 'com.google.firebase:firebase-storage:21.0.0'
+
+    // Test libs
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
