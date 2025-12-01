@@ -1,16 +1,18 @@
 package com.example.myapplication;
 
 import android.app.ProgressDialog;
-import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
-import androidx.annotation.Nullable;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.firebase.auth.FirebaseAuth;
@@ -20,10 +22,12 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
 import java.util.UUID;
+import java.util.HashMap;
+import java.util.Map; // הוספת ייבוא עבור Map אם עדיין חסר
 
 public class MyBusinessMainActivity extends AppCompatActivity {
 
-    private static final int PICK_IMAGE_REQUEST = 1001;
+    // הקבוע PICK_IMAGE_REQUEST נמחק
 
     private ImageView imgBusinessMain;
     private Button btnChooseImage, btnSaveBusiness;
@@ -32,9 +36,28 @@ public class MyBusinessMainActivity extends AppCompatActivity {
     private Uri imageUri;
 
     private FirebaseAuth auth;
-    private FirebaseFirestore db;
-    private FirebaseStorage storage;
+    private FirebaseFirestore firebaseFirestore;
+    private FirebaseStorage firebaseStorage;
     private StorageReference storageRef;
+
+    // המשתנים ownerId ו-businessId יוגדרו בתוך saveBusiness()
+
+    // הגדרת ה-Launcher כמשתנה חבר (Field) כדי שיהיה נגיש ב-onCreate
+    private ActivityResultLauncher<String> mGetContent = registerForActivityResult(
+            new ActivityResultContracts.GetContent(),
+            new ActivityResultCallback<Uri>() {
+                @Override
+                public void onActivityResult(Uri result) {
+                    if (result != null) {
+                        imgBusinessMain.setImageURI(result);
+                        imageUri = result;
+                    } else {
+                        Log.d("ImagePicker", "Selection cancelled");
+                    }
+                }
+            }
+    );
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,6 +65,7 @@ public class MyBusinessMainActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_my_business_main);
 
+        // אתחול רכיבי UI
         imgBusinessMain = findViewById(R.id.imgBusinessMain);
         btnChooseImage = findViewById(R.id.btnChooseImage);
         btnSaveBusiness = findViewById(R.id.btnSaveBusiness);
@@ -49,30 +73,25 @@ public class MyBusinessMainActivity extends AppCompatActivity {
         eTBusinessPhone = findViewById(R.id.eTBusinessPhone);
         eTBusinessDescription = findViewById(R.id.eTBusinessDescription);
 
+        // אתחול Firebase
         auth = FirebaseAuth.getInstance();
-        db = FirebaseFirestore.getInstance();
-        storage = FirebaseStorage.getInstance();
-        storageRef = storage.getReference();
+        firebaseFirestore = FirebaseFirestore.getInstance();
+        firebaseStorage = FirebaseStorage.getInstance();
+        storageRef = firebaseStorage.getReference();
 
-        btnChooseImage.setOnClickListener(v -> openImagePicker());
+        // -------------------------------------------------------------
+        // תיקון: הגדרת ה-Listener בצורה נקייה וקריאה ל-Launcher המודרני
+        btnChooseImage.setOnClickListener(v -> mGetContent.launch("image/*"));
         btnSaveBusiness.setOnClickListener(v -> saveBusiness());
+        // -------------------------------------------------------------
+
+        // כל בלוק הקוד שהיה כאן (יצירת מסמך/UploadTask) נמחק - הוא נמצא כעת ב-saveBusiness!
     }
 
-    private void openImagePicker() {
-        Intent intent = new Intent(Intent.ACTION_PICK);
-        intent.setType("image/*");
-        startActivityForResult(intent, PICK_IMAGE_REQUEST);
-    }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
+    // המתודה openImagePicker() נמחקה
+    // המתודה onActivityResult() נמחקה
 
-        if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null) {
-            imageUri = data.getData();
-            imgBusinessMain.setImageURI(imageUri);
-        }
-    }
 
     private void saveBusiness() {
         String name = eTBusinessName.getText().toString().trim();
@@ -96,10 +115,13 @@ public class MyBusinessMainActivity extends AppCompatActivity {
         pd.setCancelable(false);
         pd.show();
 
+        // הגדרת המשתנים בתוך המתודה, כדי למנוע בעיות טווח
         String ownerId = user.getUid();
-        String businessId = UUID.randomUUID().toString();
+        String businessId = UUID.randomUUID().toString(); // יצירת ID ייחודי לעסק
 
-        // Upload the image
+        // ----------------------------------------------------------------------------------
+        // הלוגיקה של העלאת התמונה ושמירת הנתונים ב-Firestore (הלוגיקה הנכונה)
+        // ----------------------------------------------------------------------------------
         StorageReference imgRef = storageRef.child("business_images/" + ownerId + "/main_" + businessId + ".jpg");
 
         imgRef.putFile(imageUri)
@@ -107,18 +129,18 @@ public class MyBusinessMainActivity extends AppCompatActivity {
                         imgRef.getDownloadUrl().addOnSuccessListener(uri -> {
                             String imageUrl = uri.toString();
 
-                            Business business = new Business(
-                                    businessId,
-                                    ownerId,
-                                    name,
-                                    description,
-                                    phone,
-                                    imageUrl
-                            );
+                            // יצירת מפת נתונים לשמירה ב-Firestore
+                            Map<String, Object> businessData = new HashMap<>();
+                            businessData.put("businessId", businessId);
+                            businessData.put("ownerId", ownerId);
+                            businessData.put("name", name);
+                            businessData.put("description", description);
+                            businessData.put("phone", phone);
+                            businessData.put("imageUrl", imageUrl);
 
-                            db.collection("businesses")
+                            firebaseFirestore.collection("businesses")
                                     .document(businessId)
-                                    .set(business)
+                                    .set(businessData)
                                     .addOnSuccessListener(aVoid -> {
                                         pd.dismiss();
                                         Toast.makeText(this, "העסק נשמר בהצלחה!", Toast.LENGTH_SHORT).show();
