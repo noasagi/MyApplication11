@@ -47,4 +47,28 @@
         libero vel nunc consequat, quis tincidunt nisl eleifend. Cras bibendum enim a justo luctus
         vestibulum. Fusce dictum libero quis erat maximus, vitae volutpat diam dignissim.
     </string>
+
+    <!-- סוגי עסקים לבחירה ב-Spinner -->
+    <string-array name="business_types">
+        <item>אינסטלטור</item>
+        <item>שיפוצניק</item>
+        <item>טכנאי מזגנים</item>
+        <item>טכנאי מקררים</item>
+        <item>מנקה</item>
+        <item>מוסכניק</item>
+        <item>בייביסיטר</item>
+        <item>מורה פרטית</item>
+        <item>דוגיסיטר</item>
+        <item>חשמלאי</item>
+        <item>גנן/ית</item>
+        <item>מאמן/ת כושר</item>
+        <item>ספר/ספרית</item>
+        <item>קוסמטיקאית</item>
+        <item>צלם/ת אירועים</item>
+        <item>מורה לנהיגה</item>
+        <item>מטפל/ת לקשישים</item>
+        <item>מאלף כלבים</item>
+        <item>אחר</item>
+    </string-array>
+
 </resources>
