@@ -18,14 +18,13 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.google.firebase.FirebaseNetworkException;
-import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
 import com.google.firebase.auth.FirebaseAuthInvalidUserException;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 
-public class LoginActivity extends AppCompatActivity {
+public class LoginActivity extends AppCompatActivity { // כאן לא צריך BaseActivity כי אין תפריט בלוגין
 
     private EditText eTEmail, eTPass;
     private TextView tVMsg;
@@ -34,11 +33,17 @@ public class LoginActivity extends AppCompatActivity {
     private FirebaseFirestore db;
     private SharedPreferences sharedPref;
 
+    // 1. הוספת משתנה לקלאס העזר שלנו
+    private UserHelper userHelper;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_login);
+
+        // 2. אתחול UserHelper
+        userHelper = new UserHelper(this);
 
         eTEmail = findViewById(R.id.eTEmail);
         eTPass = findViewById(R.id.eTPass);
@@ -122,8 +127,17 @@ public class LoginActivity extends AppCompatActivity {
                 .addOnSuccessListener(documentSnapshot -> {
                     if(documentSnapshot.exists()) {
                         String userType = documentSnapshot.getString("type");
+
+                        // *** 3. החלק החשוב: עדכון התפריט! ***
+                        // אנחנו שומרים בזיכרון המקומי את הסוג שהגיע מ-Firebase
+                        if (userType != null) {
+                            userHelper.setRole(userType);
+                        }
+                        // *************************************
+
                         Intent intent;
-                        if ("בעל עסק".equals(userType)) {
+                        // שימוש בקבועים מתוך UserHelper למניעת טעויות כתיב
+                        if (UserHelper.ROLE_BUSINESS.equals(userType)) {
                             intent = new Intent(LoginActivity.this, BusinessMainActivity.class);
                         } else {
                             intent = new Intent(LoginActivity.this, ClientMainActivity.class);

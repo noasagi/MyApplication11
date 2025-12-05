@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_home"
+        android:title="דף הבית"
+        app:showAsAction="never"/>
+
+    <item
+        android:id="@+id/action_business_page"
+        android:title="ניהול העסק שלי"
+        android:visible="false"
+        app:showAsAction="never"/>
+
+    <item
+        android:id="@+id/action_login"
+        android:title="התחברות"
+        android:visible="false"
+        app:showAsAction="never"/>
+
+    <item
+        android:id="@+id/action_logout"
+        android:title="יציאה"
+        android:visible="false"
+        app:showAsAction="never"/>
+
+</menu>
