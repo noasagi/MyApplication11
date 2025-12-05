@@ -44,6 +44,17 @@
         app:layout_constraintTop_toBottomOf="@id/imgBusinessMain"
         app:layout_constraintStart_toStartOf="parent" />
 
+
+    <Button
+        android:id="@+id/btnTakePhoto"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:text="צלם תמונה"
+        app:layout_constraintStart_toEndOf="@+id/btnChooseImage"
+        app:layout_constraintTop_toBottomOf="@+id/imgBusinessMain" />
+
     <EditText
         android:id="@+id/eTBusinessName"
         android:layout_width="0dp"

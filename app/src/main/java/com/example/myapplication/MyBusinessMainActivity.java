@@ -1,6 +1,8 @@
 package com.example.myapplication;
 
+import android.Manifest;
 import android.app.ProgressDialog;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
@@ -14,10 +16,12 @@ import android.widget.AutoCompleteTextView;
 import android.widget.ArrayAdapter;
 
 import androidx.activity.EdgeToEdge;
-import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -32,27 +36,43 @@ import java.util.UUID;
 public class MyBusinessMainActivity extends AppCompatActivity {
 
     private ImageView imgBusinessMain;
-    private Button btnChooseImage, btnSaveBusiness;
+    private Button btnChooseImage, btnTakePhoto, btnSaveBusiness;
     private EditText eTBusinessName, eTBusinessPhone, eTBusinessDescription;
     private AutoCompleteTextView autoBusinessType;
 
     private Uri imageUri;
+    private Bitmap currentBitmap;
 
     private FirebaseAuth auth;
     private FirebaseFirestore firebaseFirestore;
 
-    // בחירת תמונה
+    private final int REQUEST_CAMERA_PERMISSION = 100;
+    private final int REQUEST_STORAGE_PERMISSION = 101;
+
+    // --- בחירת תמונה מהגלריה ---
     private ActivityResultLauncher<String> mGetContent = registerForActivityResult(
             new ActivityResultContracts.GetContent(),
-            new ActivityResultCallback<Uri>() {
-                @Override
-                public void onActivityResult(Uri result) {
-                    if (result != null) {
-                        imgBusinessMain.setImageURI(result);
-                        imageUri = result;
-                    } else {
-                        Log.d("ImagePicker", "Selection cancelled");
-                    }
+            result -> {
+                if (result != null) {
+                    imgBusinessMain.setImageURI(result);
+                    imageUri = result;
+                    currentBitmap = null; // ביטול Bitmap קודם
+                } else {
+                    Log.d("ImagePicker", "Selection cancelled");
+                }
+            }
+    );
+
+    // --- צילום תמונה מהמצלמה ---
+    private ActivityResultLauncher<Void> mTakePhoto = registerForActivityResult(
+            new ActivityResultContracts.TakePicturePreview(),
+            result -> {
+                if (result != null) {
+                    imgBusinessMain.setImageBitmap(result);
+                    currentBitmap = result;
+                    imageUri = null; // ביטול Uri קודם
+                } else {
+                    Log.d("Camera", "צילום בוטל");
                 }
             }
     );
@@ -65,6 +85,7 @@ public class MyBusinessMainActivity extends AppCompatActivity {
 
         imgBusinessMain = findViewById(R.id.imgBusinessMain);
         btnChooseImage = findViewById(R.id.btnChooseImage);
+        btnTakePhoto = findViewById(R.id.btnTakePhoto);
         btnSaveBusiness = findViewById(R.id.btnSaveBusiness);
         eTBusinessName = findViewById(R.id.eTBusinessName);
         eTBusinessPhone = findViewById(R.id.eTBusinessPhone);
@@ -78,37 +99,89 @@ public class MyBusinessMainActivity extends AppCompatActivity {
                 getResources().getStringArray(R.array.business_types)
         );
         autoBusinessType.setAdapter(adapter);
-
-        // להציע גם בלי להקליד כלום
         autoBusinessType.setThreshold(0);
-
-        // כשלוחצים על השדה – לפתוח מיד את הרשימה
         autoBusinessType.setOnClickListener(v -> autoBusinessType.showDropDown());
-
-        // כשמקבל פוקוס (למשל מעבר עם טאץ' או טאב) – גם לפתוח
         autoBusinessType.setOnFocusChangeListener((v, hasFocus) -> {
-            if (hasFocus) {
-                autoBusinessType.showDropDown();
-            }
+            if (hasFocus) autoBusinessType.showDropDown();
         });
 
         auth = FirebaseAuth.getInstance();
         firebaseFirestore = FirebaseFirestore.getInstance();
 
-        btnChooseImage.setOnClickListener(v -> mGetContent.launch("image/*"));
+        // --- לחצנים ---
+        btnChooseImage.setOnClickListener(v -> {
+            if (checkStoragePermission()) {
+                mGetContent.launch("image/*");
+            } else {
+                requestStoragePermission();
+            }
+        });
+
+        btnTakePhoto.setOnClickListener(v -> {
+            if (checkCameraPermission()) {
+                mTakePhoto.launch(null);
+            } else {
+                requestCameraPermission();
+            }
+        });
+
         btnSaveBusiness.setOnClickListener(v -> saveBusiness());
     }
 
-    private void saveBusiness() {
+    // בדיקה של הרשאת מצלמה
+    private boolean checkCameraPermission() {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
+    }
 
+    private void requestCameraPermission() {
+        ActivityCompat.requestPermissions(this,
+                new String[]{Manifest.permission.CAMERA},
+                REQUEST_CAMERA_PERMISSION);
+    }
+
+    // בדיקה של הרשאת אחסון
+    private boolean checkStoragePermission() {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void requestStoragePermission() {
+        ActivityCompat.requestPermissions(this,
+                new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                REQUEST_STORAGE_PERMISSION);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == REQUEST_CAMERA_PERMISSION) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                mTakePhoto.launch(null);
+            } else {
+                Toast.makeText(this, "הרשאת מצלמה נחוצה לצילום תמונה", Toast.LENGTH_SHORT).show();
+            }
+        }
+
+        if (requestCode == REQUEST_STORAGE_PERMISSION) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                mGetContent.launch("image/*");
+            } else {
+                Toast.makeText(this, "הרשאת אחסון נחוצה לבחירת תמונה מהגלריה", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void saveBusiness() {
         String name = eTBusinessName.getText().toString().trim();
         String phone = eTBusinessPhone.getText().toString().trim();
         String description = eTBusinessDescription.getText().toString().trim();
         String businessType = autoBusinessType.getText().toString().trim();
 
         if (name.isEmpty() || phone.isEmpty() || description.isEmpty() ||
-                imageUri == null || businessType.isEmpty()) {
-            Toast.makeText(this, "נא למלא את כל השדות, לבחור תמונה וסוג עסק", Toast.LENGTH_SHORT).show();
+                (imageUri == null && currentBitmap == null) || businessType.isEmpty()) {
+            Toast.makeText(this, "נא למלא את כל השדות, לבחור תמונה או לצלם תמונה וסוג עסק", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -128,32 +201,34 @@ public class MyBusinessMainActivity extends AppCompatActivity {
         String businessId = UUID.randomUUID().toString();
 
         try {
-            // --- המרת URI ל-Bitmap ---
-            Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), imageUri);
+            Bitmap bitmapToSave;
 
-            // --- כיווץ התמונה ל-JPEG 60% ---
+            if (currentBitmap != null) {
+                bitmapToSave = currentBitmap;
+            } else {
+                bitmapToSave = MediaStore.Images.Media.getBitmap(getContentResolver(), imageUri);
+            }
+
+            // כיווץ התמונה ל-JPEG 60%
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 60, baos);
+            bitmapToSave.compress(Bitmap.CompressFormat.JPEG, 60, baos);
             byte[] imageBytes = baos.toByteArray();
 
-            // בדיקת גודל למסמך Firestore (מקסימום ~1MB)
-            if (imageBytes.length > 900 * 1024) { // 900 KB
+            if (imageBytes.length > 900 * 1024) {
                 pd.dismiss();
                 Toast.makeText(this, "התמונה גדולה מדי. נסי לבחור תמונה קטנה יותר.", Toast.LENGTH_LONG).show();
                 return;
             }
 
-            // --- המרה ל-Blob ---
             Blob imageBlob = Blob.fromBytes(imageBytes);
 
-            // --- יצירת המסמך ---
             Map<String, Object> businessData = new HashMap<>();
             businessData.put("businessId", businessId);
             businessData.put("ownerId", ownerId);
             businessData.put("name", name);
             businessData.put("description", description);
             businessData.put("phone", phone);
-            businessData.put("businessType", businessType); // שמירת סוג העסק
+            businessData.put("businessType", businessType);
             businessData.put("imageBlob", imageBlob);
 
             firebaseFirestore.collection("businesses")
