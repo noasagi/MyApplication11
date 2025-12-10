@@ -1,44 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="24dp"
-    android:background="#FAFAFA"
-    tools:context=".MainActivity">
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="32dp">
 
-    <!-- כותרת ברוך הבא -->
     <TextView
-        android:id="@+id/tVWelcome"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="ברוך הבא"
-        android:textSize="28sp"
-        android:textStyle="bold"
-        android:textColor="#212121"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="100dp"/>
+        android:text="ברוכים הבאים לאפליקציית JOBSY!"
+        android:textSize="24sp"
+        android:gravity="center"
+        android:layout_marginBottom="50dp"/>
 
-    <!-- כפתור התנתקות -->
-    <Button
-        android:id="@+id/btnLogout"
-        android:layout_width="0dp"
+    <TextView
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="התנתק"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp"
-        android:backgroundTint="#805CC1"
-        android:padding="16dp"
-        android:layout_marginHorizontal="32dp"
-        android:layout_marginTop="50dp"
-        android:clipToOutline="true"
-        app:layout_constraintTop_toBottomOf="@id/tVWelcome"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        android:text="מצא/י עסקים מקומיים או נהל/י את העסק שלך בקלות."
+        android:gravity="center"
+        android:textSize="18sp"
+        android:layout_marginBottom="50dp"/>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <Button
+        android:id="@+id/btnStart"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="התחבר/י או הרשמ/י"/>
+</LinearLayout>

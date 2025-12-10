@@ -33,7 +33,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class MyBusinessMainActivity extends AppCompatActivity {
+public class MyBusinessMainActivity extends BaseActivity {
 
     private ImageView imgBusinessMain;
     private Button btnChooseImage, btnTakePhoto, btnSaveBusiness;

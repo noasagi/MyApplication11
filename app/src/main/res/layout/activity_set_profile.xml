@@ -1,69 +1,88 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="24dp"
-    android:background="#FAFAFA">
+    android:orientation="vertical"
+    android:background="#FAFAFA"
+    tools:context=".SetProfileActivity">
 
-    <LinearLayout
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        android:theme="@style/ThemeOverlay.AppCompat.ActionBar"
+        app:popupTheme="@style/ThemeOverlay.AppCompat.Light"/>
 
-        <EditText
-            android:id="@+id/eTName"
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp">
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="שם מלא"
-            android:padding="16dp"
-            android:layout_marginTop="16dp"/>
+            android:orientation="vertical">
 
-        <EditText
-            android:id="@+id/eTBirthDate"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="תאריך לידה"
-            android:focusable="false"
-            android:clickable="true"
-            android:padding="16dp"
-            android:layout_marginTop="16dp"/>
+            <EditText
+                android:id="@+id/eTName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="שם מלא"
+                android:padding="16dp"
+                android:layout_marginTop="16dp"/>
+            <EditText
+                android:id="@+id/eTBirthDate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="תאריך לידה"
+                android:focusable="false"
+                android:clickable="true"
+                android:padding="16dp"
+                android:layout_marginTop="16dp"/>
 
-        <EditText
-            android:id="@+id/eTAddress"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="כתובת"
-            android:padding="16dp"
-            android:layout_marginTop="16dp"/>
+            <EditText
+                android:id="@+id/eTAddress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="כתובת"
+                android:padding="16dp"
+                android:layout_marginTop="16dp"/>
 
-        <EditText
-            android:id="@+id/eTPhone"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="טלפון"
-            android:inputType="phone"
-            android:padding="16dp"
-            android:layout_marginTop="16dp"/>
+            <EditText
+                android:id="@+id/eTPhone"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="טלפון"
+                android:inputType="phone"
+                android:padding="16dp"
+                android:layout_marginTop="16dp"/>
 
-        <Button
-            android:id="@+id/btnSaveProfile"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="שמור פרופיל"
-            android:backgroundTint="#3F51B5"
-            android:textColor="#FFFFFF"
-            android:layout_marginTop="24dp"
-            android:padding="16dp"/>
+            <Button
+                android:id="@+id/btnSaveProfile"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="שמור פרופיל"
+                android:backgroundTint="#3F51B5"
+                android:textColor="#FFFFFF"
+                android:layout_marginTop="24dp"
+                android:padding="16dp"/>
 
-        <TextView
-            android:id="@+id/tVMsg"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text=""
-            android:textColor="#D32F2F"
-            android:gravity="center"
-            android:layout_marginTop="16dp"/>
+            <TextView
+                android:id="@+id/tVMsg"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#D32F2F"
+                android:gravity="center"
+                android:layout_marginTop="16dp"/>
 
-    </LinearLayout>
-</ScrollView>
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

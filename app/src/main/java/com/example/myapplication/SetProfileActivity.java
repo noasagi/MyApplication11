@@ -8,8 +8,7 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AppCompatActivity;
-
+import androidx.appcompat.widget.Toolbar; // ✅ חובה לייבא Toolbar
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -18,7 +17,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 
-public class SetProfileActivity extends AppCompatActivity {
+public class SetProfileActivity extends BaseActivity {
 
     private EditText eTName, eTBirthDate, eTAddress, eTPhone;
     private TextView tVMsg;
@@ -32,6 +31,7 @@ public class SetProfileActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_set_profile);
 
+        // 1. קישור לרכיבים
         eTName = findViewById(R.id.eTName);
         eTBirthDate = findViewById(R.id.eTBirthDate);
         eTAddress = findViewById(R.id.eTAddress);
@@ -39,14 +39,20 @@ public class SetProfileActivity extends AppCompatActivity {
         tVMsg = findViewById(R.id.tVMsg);
         btnSaveProfile = findViewById(R.id.btnSaveProfile);
 
+        // 2. אתחול Firebase
         refAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
 
+        // 3. הגדרת מאזינים (Listeners)
         eTBirthDate.setOnClickListener(v -> showDatePicker());
-
         btnSaveProfile.setOnClickListener(v -> saveProfile());
-    }
 
+        // 4. ✅ הגדרת ה-Toolbar כדף משני עם חץ חזרה
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setupSecondaryToolbar(toolbar, true);
+    } // ✅ הסוגר של onCreate צריך להיות כאן!
+
+    // הפונקציות הנוספות מתחילות כאן
     private void showDatePicker() {
         Calendar c = Calendar.getInstance();
         int year = c.get(Calendar.YEAR);
@@ -104,4 +110,4 @@ public class SetProfileActivity extends AppCompatActivity {
                     tVMsg.setText("שגיאה בשמירת הנתונים: " + e.getMessage());
                 });
     }
-}
+} // ✅ הסוגר של המחלקה SetProfileActivity צריך להיות כאן!

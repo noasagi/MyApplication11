@@ -2,11 +2,23 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
-        android:id="@+id/nav_set_profile"
-        android:title="Set Profile" />
+        android:id="@+id/action_home"
+        android:title="דף הבית" />
 
     <item
-        android:id="@+id/nav_logout"
-        android:title="Logout" />
+        android:id="@+id/action_business_page"
+        android:title="ניהול העסק שלי" />
+
+    <item
+        android:id="@+id/action_set_profile"
+        android:title="הגדרות פרופיל" />
+
+    <item
+        android:id="@+id/action_login"
+        android:title="התחברות" />
+
+    <item
+        android:id="@+id/action_logout"
+        android:title="יציאה" />
 
 </menu>

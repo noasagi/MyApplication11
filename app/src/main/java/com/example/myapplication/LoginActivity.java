@@ -24,7 +24,7 @@ import com.google.firebase.auth.FirebaseAuthInvalidUserException;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 
-public class LoginActivity extends AppCompatActivity { // כאן לא צריך BaseActivity כי אין תפריט בלוגין
+public class LoginActivity extends BaseActivity { // כאן לא צריך BaseActivity כי אין תפריט בלוגין
 
     private EditText eTEmail, eTPass;
     private TextView tVMsg;
@@ -149,5 +149,30 @@ public class LoginActivity extends AppCompatActivity { // כאן לא צריך B
                     }
                 })
                 .addOnFailureListener(e -> tVMsg.setText("Error fetching user data: " + e.getMessage()));
+
+
+
+    }
+
+
+    // בתוך LoginActivity.java, בפונקציה שמטפלת בהתחברות מוצלחת
+    private void handleSuccessfulLogin(String role) {
+
+        UserHelper userHelper = new UserHelper(this);
+        userHelper.setRole(role);
+
+        Intent intent;
+
+        // ניווט בהתאם לתפקיד:
+        if (role.equals(UserHelper.ROLE_BUSINESS)) {
+            // בעל עסק עובר לדאשבורד
+            intent = new Intent(this, BusinessMainActivity.class);
+        } else {
+            // משתמש רגיל עובר לדף חיפוש
+            intent = new Intent(this, ClientMainActivity.class);
+        }
+
+        startActivity(intent);
+        finish();
     }
 }

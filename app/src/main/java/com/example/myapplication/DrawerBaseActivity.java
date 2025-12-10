@@ -1,0 +1,79 @@
+package com.example.myapplication;
+
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
+
+import androidx.activity.OnBackPressedCallback;
+import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
+
+import com.google.android.material.navigation.NavigationView;
+
+public abstract class DrawerBaseActivity extends BaseActivity {
+
+    protected DrawerLayout drawerLayout;
+    protected NavigationView navigationView;
+    protected Toolbar toolbar;
+
+    protected void setupDrawer(Toolbar toolbar, DrawerLayout drawerLayout, NavigationView navigationView) {
+        this.toolbar = toolbar;
+        this.drawerLayout = drawerLayout;
+        this.navigationView = navigationView;
+
+        if (toolbar != null) {
+            setSupportActionBar(toolbar);
+        }
+
+        // הגדרת המבורגר (Toggle)
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                this,
+                drawerLayout,
+                toolbar,
+                R.string.navigation_drawer_open,
+                R.string.navigation_drawer_close
+        );
+        drawerLayout.addDrawerListener(toggle);
+        toggle.syncState();
+
+        // רישום Callback לטיפול במחוות חזרה
+        OnBackPressedCallback callback = new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (drawerLayout != null && drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                    drawerLayout.closeDrawer(GravityCompat.START);
+                } else {
+                    setEnabled(false);
+                    onBackPressed();
+                    setEnabled(true);
+                }
+            }
+        };
+        getOnBackPressedDispatcher().addCallback(this, callback);
+
+        // לוגיקת טיפול בפריטי הניווט
+        navigationView.setNavigationItemSelectedListener(item -> {
+            // קריאה לשיטה הציבורית handleNavigationItemSelection
+            boolean handled = handleNavigationItemSelection(item);
+
+            if (handled) {
+                drawerLayout.closeDrawer(GravityCompat.START);
+                return true;
+            } else {
+                // טיפול בפריטים ספציפיים למגירה (כגון SetProfile)
+                if (item.getItemId() == R.id.action_set_profile) {
+                    startActivity(new Intent(this, SetProfileActivity.class));
+                    drawerLayout.closeDrawer(GravityCompat.START);
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        // סינון פריטי המגירה מיד לאחר האתחול
+        filterMenuItems(navigationView.getMenu());
+    }
+}

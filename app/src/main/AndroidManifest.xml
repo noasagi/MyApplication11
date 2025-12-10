@@ -5,7 +5,6 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.CAMERA" />
-
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
@@ -19,7 +18,7 @@
         android:theme="@style/Theme.MyApplication">
 
         <activity
-            android:name=".LoginActivity"
+            android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -27,12 +26,12 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".MyBusinessMainActivity" android:exported="false" />
+        <activity android:name=".LoginActivity" android:exported="false" />
 
+        <activity android:name=".MyBusinessMainActivity" android:exported="false" />
         <activity android:name=".SetProfileActivity" android:exported="false" android:theme="@style/Theme.MyApplication" />
         <activity android:name=".BusinessMainActivity" android:exported="false" />
         <activity android:name=".ClientMainActivity" android:exported="false" />
-        <activity android:name=".MainActivity" android:exported="false" />
         <activity android:name=".RegisterActivity" android:exported="false" />
 
     </application>

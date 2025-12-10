@@ -1,65 +1,33 @@
 package com.example.myapplication;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.Button;
-import android.widget.TextView;
-
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-
+// שימי לב: מסך הפתיחה לא חייב לרשת מ-BaseActivity
 public class MainActivity extends AppCompatActivity {
-
-    private TextView tVWelcome;
-    private Button btnLogout;
-    private FirebaseAuth refAuth;
-    private SharedPreferences sharedPref;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
+        // ודאי שיש לך קובץ layout מתאים, למשל activity_main.xml
         setContentView(R.layout.activity_main);
 
-        tVWelcome = findViewById(R.id.tVWelcome);
-        btnLogout = findViewById(R.id.btnLogout);
+        // נניח שיש כפתור "התחל" או "התחבר" ב-activity_main.xml
+        Button btnStart = findViewById(R.id.btnStart);
 
-        refAuth = FirebaseAuth.getInstance();
-        sharedPref = getSharedPreferences("MyPref", MODE_PRIVATE);
-
-        FirebaseUser user = refAuth.getCurrentUser();
-        if (user != null) {
-            tVWelcome.setText("ברוך הבא " + user.getEmail());
-        }
-
-        btnLogout.setOnClickListener(v -> logoutUser());
-
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
+        btnStart.setOnClickListener(v -> {
+            navigateToLogin();
         });
+
+        // --- אפשרות נוספת: ניווט אוטומטי לאחר X שניות (כמו Splash Screen) ---
+        // new android.os.Handler().postDelayed(this::navigateToLogin, 3000); // 3 שניות
     }
 
-    private void logoutUser() {
-        // התנתקות מ-Firebase
-        refAuth.signOut();
-
-        // איפוס SharedPreferences
-        SharedPreferences.Editor editor = sharedPref.edit();
-        editor.putBoolean("stayConnect", false);
-        editor.apply();
-
-        // חזרה ל-LoginActivity
-        Intent si = new Intent(MainActivity.this, LoginActivity.class);
-        startActivity(si);
-        finish();
+    private void navigateToLogin() {
+        Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+        startActivity(intent);
+        finish(); // סגירת MainActivity כדי שלא יהיה ניתן לחזור אליו אחורה
     }
 }
