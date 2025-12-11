@@ -2,10 +2,9 @@ package com.example.myapplication;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
 
 import androidx.activity.OnBackPressedCallback;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.GravityCompat;
@@ -19,7 +18,29 @@ public abstract class DrawerBaseActivity extends BaseActivity {
     protected NavigationView navigationView;
     protected Toolbar toolbar;
 
-    protected void setupDrawer(Toolbar toolbar, DrawerLayout drawerLayout, NavigationView navigationView) {
+    @Override
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
+        // חשוב! עדיין קוראים ל-onCreate של BaseActivity/AppCompatActivity
+        super.onCreate(savedInstanceState);
+    }
+
+    /**
+     * API חדש ונקי – זו הפונקציה שנקרא אליה מה-Activities
+     */
+    protected void initDrawer(Toolbar toolbar,
+                              DrawerLayout drawerLayout,
+                              NavigationView navigationView) {
+        // פשוט מעבירה הלאה לפונקציה הקיימת שלך
+        setupDrawer(toolbar, drawerLayout, navigationView);
+    }
+
+    /**
+     * הפונקציה המקורית שלך – לא נוגעים בלוגיקה בפנים
+     */
+    protected void setupDrawer(Toolbar toolbar,
+                               DrawerLayout drawerLayout,
+                               NavigationView navigationView) {
+
         this.toolbar = toolbar;
         this.drawerLayout = drawerLayout;
         this.navigationView = navigationView;
@@ -28,7 +49,6 @@ public abstract class DrawerBaseActivity extends BaseActivity {
             setSupportActionBar(toolbar);
         }
 
-        // הגדרת המבורגר (Toggle)
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this,
                 drawerLayout,
@@ -39,7 +59,7 @@ public abstract class DrawerBaseActivity extends BaseActivity {
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
 
-        // רישום Callback לטיפול במחוות חזרה
+        // טיפול בכפתור Back כשהמגירה פתוחה
         OnBackPressedCallback callback = new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
@@ -54,16 +74,13 @@ public abstract class DrawerBaseActivity extends BaseActivity {
         };
         getOnBackPressedDispatcher().addCallback(this, callback);
 
-        // לוגיקת טיפול בפריטי הניווט
         navigationView.setNavigationItemSelectedListener(item -> {
-            // קריאה לשיטה הציבורית handleNavigationItemSelection
             boolean handled = handleNavigationItemSelection(item);
 
             if (handled) {
                 drawerLayout.closeDrawer(GravityCompat.START);
                 return true;
             } else {
-                // טיפול בפריטים ספציפיים למגירה (כגון SetProfile)
                 if (item.getItemId() == R.id.action_set_profile) {
                     startActivity(new Intent(this, SetProfileActivity.class));
                     drawerLayout.closeDrawer(GravityCompat.START);
@@ -73,7 +90,7 @@ public abstract class DrawerBaseActivity extends BaseActivity {
             }
         });
 
-        // סינון פריטי המגירה מיד לאחר האתחול
+        // סינון פריטי מגירה
         filterMenuItems(navigationView.getMenu());
     }
 }

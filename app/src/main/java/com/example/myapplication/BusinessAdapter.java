@@ -1,13 +1,19 @@
 package com.example.myapplication;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.firebase.firestore.Blob;
+
 import java.util.List;
 
 public class BusinessAdapter extends RecyclerView.Adapter<BusinessAdapter.BusinessViewHolder> {
@@ -20,54 +26,75 @@ public class BusinessAdapter extends RecyclerView.Adapter<BusinessAdapter.Busine
         this.businessesList = businessesList;
     }
 
-    // פונקציה לעדכון הרשימה (בשימוש ע"י ClientMainActivity לסינון)
+    // לעדכן את הרשימה אחרי טעינה מ-Firestore
     public void setBusinesses(List<BusinessModel> newBusinessesList) {
         this.businessesList = newBusinessesList;
+        notifyDataSetChanged();
     }
 
     @NonNull
     @Override
     public BusinessViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // מנפח את העיצוב של item_business_card.xml
         View view = LayoutInflater.from(context).inflate(R.layout.item_business_card, parent, false);
         return new BusinessViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull BusinessViewHolder holder, int position) {
+        if (businessesList == null || businessesList.isEmpty()) return;
+
         BusinessModel currentBusiness = businessesList.get(position);
 
-        // עדכון הטקסטים בכרטיס
-        holder.tvBusinessName.setText(currentBusiness.getName());
-        holder.tvBusinessType.setText("סוג: " + currentBusiness.getBusinessType());
+        // טקסטים
+        holder.tvBusinessName.setText(currentBusiness.getName() != null ? currentBusiness.getName() : "");
+        holder.tvBusinessType.setText("סוג: " + (currentBusiness.getBusinessType() != null ? currentBusiness.getBusinessType() : ""));
+        holder.tvBusinessDescription.setText(currentBusiness.getDescription() != null ? currentBusiness.getDescription() : "");
 
-        // TODO: אם בעתיד תטעיני תמונות, תצטרכי להשתמש כאן בספרייה כמו Glide או Picasso
-        //holder.imgBusiness.setImageResource(R.drawable.default_business_icon);
+        // תמונה – ניקח את התמונה הראשונה מתוך imageBlobs
+        boolean imageSet = false;
+        if (currentBusiness.getImageBlobs() != null &&
+                !currentBusiness.getImageBlobs().isEmpty()) {
 
-        // פתיחת פרטי העסק בלחיצה
+            Blob firstBlob = currentBusiness.getImageBlobs().get(0);
+            if (firstBlob != null) {
+                byte[] bytes = firstBlob.toBytes();
+                Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+                if (bitmap != null) {
+                    holder.imgBusiness.setImageBitmap(bitmap);
+                    imageSet = true;
+                }
+            }
+        }
+
+        // אם אין תמונות – אייקון ברירת מחדל
+        if (!imageSet) {
+            holder.imgBusiness.setImageResource(R.drawable.ic_baseline_store_24);
+        }
+
+        // קליק על כרטיס – בהמשך נוסיף מסך פרטי עסק
         holder.itemView.setOnClickListener(v -> {
-            // כרגע רק מדפיסים הודעה, בהמשך נעבור למסך פרטי עסק
-            // Intent intent = new Intent(context, BusinessDetailsActivity.class);
-            // context.startActivity(intent);
+            // TODO: Intent ל-BusinessDetailsActivity
         });
     }
 
     @Override
     public int getItemCount() {
-        return businessesList.size();
+        return (businessesList == null) ? 0 : businessesList.size();
     }
 
-    // מחלקה פנימית שמחזיקה את האלמנטים של העיצוב
     public static class BusinessViewHolder extends RecyclerView.ViewHolder {
+
+        ImageView imgBusiness;
         TextView tvBusinessName;
         TextView tvBusinessType;
-        ImageView imgBusiness;
+        TextView tvBusinessDescription;
 
         public BusinessViewHolder(@NonNull View itemView) {
             super(itemView);
+            imgBusiness = itemView.findViewById(R.id.imgBusiness);
             tvBusinessName = itemView.findViewById(R.id.tvBusinessName);
             tvBusinessType = itemView.findViewById(R.id.tvBusinessType);
-            imgBusiness = itemView.findViewById(R.id.imgBusiness);
+            tvBusinessDescription = itemView.findViewById(R.id.tvBusinessDescription);
         }
     }
 }

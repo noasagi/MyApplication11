@@ -7,11 +7,7 @@
         android:title="דף הבית"
         app:showAsAction="never"/>
 
-    <item
-        android:id="@+id/action_business_page"
-        android:title="ניהול העסק שלי"
-        android:visible="false"
-        app:showAsAction="never"/>
+    <!-- נמחק את action_business_page לגמרי -->
 
     <item
         android:id="@+id/action_login"
@@ -22,6 +18,20 @@
     <item
         android:id="@+id/action_logout"
         android:title="יציאה"
+        android:visible="false"
+        app:showAsAction="never"/>
+
+    <!-- נשאיר רק אחד: "העסק שלי" שמפנה למסך ניהול העסק -->
+    <item
+        android:id="@+id/action_my_business"
+        android:icon="@drawable/ic_baseline_store_24"
+        android:title="העסק שלי"
+        android:visible="false"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_set_profile"
+        android:title="עריכת פרופיל"
         android:visible="false"
         app:showAsAction="never"/>
 

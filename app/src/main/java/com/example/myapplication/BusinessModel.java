@@ -2,41 +2,89 @@ package com.example.myapplication;
 
 import com.google.firebase.firestore.Blob;
 
-// מודל לייצוג נתוני עסק מ-Firestore
+import java.util.List;
+
 public class BusinessModel {
+
     private String businessId;
     private String ownerId;
-    private  String name;
+    private String name;
     private String description;
     private String phone;
     private String businessType;
-    private Blob imageBlob;
 
-    // Constructor ריק נחוץ ל-Firestore
-    public BusinessModel() {}
+    // ✅ כמה תמונות – רשימת Blob
+    private List<Blob> imageBlobs;
 
-    // Getters and Setters (חובה כדי ש-Firestore ידע לקרוא ולכתוב את השדות)
+    public BusinessModel() {
+        // דרוש ל-Firestore
+    }
 
-    public String getBusinessId() { return businessId; }
-    public void setBusinessId(String businessId) { this.businessId = businessId; }
+    public BusinessModel(String businessId, String ownerId, String name,
+                         String description, String phone, String businessType,
+                         List<Blob> imageBlobs) {
+        this.businessId = businessId;
+        this.ownerId = ownerId;
+        this.name = name;
+        this.description = description;
+        this.phone = phone;
+        this.businessType = businessType;
+        this.imageBlobs = imageBlobs;
+    }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public String getBusinessId() {
+        return businessId;
+    }
 
-    public String getBusinessType() { return businessType; }
-    public void setBusinessType(String businessType) { this.businessType = businessType; }
+    public void setBusinessId(String businessId) {
+        this.businessId = businessId;
+    }
 
-    public Blob getImageBlob() { return imageBlob; }
-    public void setImageBlob(Blob imageBlob) { this.imageBlob = imageBlob; }
+    public String getOwnerId() {
+        return ownerId;
+    }
 
-    // הוסיפי את שאר ה-Getters וה-Setters עבור ownerId, description, ו-phone...
-    // לדוגמה:
-    public String getOwnerId() { return ownerId; }
-    public void setOwnerId(String ownerId) { this.ownerId = ownerId; }
+    public void setOwnerId(String ownerId) {
+        this.ownerId = ownerId;
+    }
 
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
+    public String getName() {
+        return name;
+    }
 
-    public String getPhone() { return phone; }
-    public void setPhone(String phone) { this.phone = phone; }
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getBusinessType() {
+        return businessType;
+    }
+
+    public void setBusinessType(String businessType) {
+        this.businessType = businessType;
+    }
+
+    public List<Blob> getImageBlobs() {
+        return imageBlobs;
+    }
+
+    public void setImageBlobs(List<Blob> imageBlobs) {
+        this.imageBlobs = imageBlobs;
+    }
 }

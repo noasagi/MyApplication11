@@ -8,7 +8,8 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.widget.Toolbar; // ✅ חובה לייבא Toolbar
+import androidx.appcompat.widget.Toolbar;
+
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -31,7 +32,6 @@ public class SetProfileActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_set_profile);
 
-        // 1. קישור לרכיבים
         eTName = findViewById(R.id.eTName);
         eTBirthDate = findViewById(R.id.eTBirthDate);
         eTAddress = findViewById(R.id.eTAddress);
@@ -39,20 +39,16 @@ public class SetProfileActivity extends BaseActivity {
         tVMsg = findViewById(R.id.tVMsg);
         btnSaveProfile = findViewById(R.id.btnSaveProfile);
 
-        // 2. אתחול Firebase
         refAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
 
-        // 3. הגדרת מאזינים (Listeners)
         eTBirthDate.setOnClickListener(v -> showDatePicker());
         btnSaveProfile.setOnClickListener(v -> saveProfile());
 
-        // 4. ✅ הגדרת ה-Toolbar כדף משני עם חץ חזרה
         Toolbar toolbar = findViewById(R.id.toolbar);
         setupSecondaryToolbar(toolbar, true);
-    } // ✅ הסוגר של onCreate צריך להיות כאן!
+    }
 
-    // הפונקציות הנוספות מתחילות כאן
     private void showDatePicker() {
         Calendar c = Calendar.getInstance();
         int year = c.get(Calendar.YEAR);
@@ -71,18 +67,18 @@ public class SetProfileActivity extends BaseActivity {
     }
 
     private void saveProfile() {
-        String name = eTName.getText().toString();
-        String birthDate = eTBirthDate.getText().toString();
-        String address = eTAddress.getText().toString();
-        String phone = eTPhone.getText().toString();
+        String name = eTName.getText().toString().trim();
+        String birthDate = eTBirthDate.getText().toString().trim();
+        String address = eTAddress.getText().toString().trim();
+        String phone = eTPhone.getText().toString().trim();
 
-        if(name.isEmpty() || birthDate.isEmpty() || address.isEmpty() || phone.isEmpty()) {
+        if (name.isEmpty() || birthDate.isEmpty() || address.isEmpty() || phone.isEmpty()) {
             tVMsg.setText("אנא מלא את כל השדות");
             return;
         }
 
         FirebaseUser user = refAuth.getCurrentUser();
-        if(user == null) {
+        if (user == null) {
             tVMsg.setText("שגיאה, המשתמש לא מחובר");
             return;
         }
@@ -110,4 +106,4 @@ public class SetProfileActivity extends BaseActivity {
                     tVMsg.setText("שגיאה בשמירת הנתונים: " + e.getMessage());
                 });
     }
-} // ✅ הסוגר של המחלקה SetProfileActivity צריך להיות כאן!
+}

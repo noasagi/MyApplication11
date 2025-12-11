@@ -24,7 +24,7 @@ import com.google.firebase.auth.FirebaseAuthInvalidUserException;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
 
-public class LoginActivity extends BaseActivity { // כאן לא צריך BaseActivity כי אין תפריט בלוגין
+public class LoginActivity extends AppCompatActivity {
 
     private EditText eTEmail, eTPass;
     private TextView tVMsg;
@@ -33,7 +33,6 @@ public class LoginActivity extends BaseActivity { // כאן לא צריך BaseAc
     private FirebaseFirestore db;
     private SharedPreferences sharedPref;
 
-    // 1. הוספת משתנה לקלאס העזר שלנו
     private UserHelper userHelper;
 
     @Override
@@ -42,7 +41,6 @@ public class LoginActivity extends BaseActivity { // כאן לא צריך BaseAc
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_login);
 
-        // 2. אתחול UserHelper
         userHelper = new UserHelper(this);
 
         eTEmail = findViewById(R.id.eTEmail);
@@ -81,8 +79,8 @@ public class LoginActivity extends BaseActivity { // כאן לא צריך BaseAc
     }
 
     public void loginUser(View view) {
-        String email = eTEmail.getText().toString();
-        String pass = eTPass.getText().toString();
+        String email = eTEmail.getText().toString().trim();
+        String pass = eTPass.getText().toString().trim();
 
         if (email.isEmpty() || pass.isEmpty()) {
             tVMsg.setText("Please fill all fields");
@@ -125,18 +123,17 @@ public class LoginActivity extends BaseActivity { // כאן לא צריך BaseAc
     private void redirectUser(String uid) {
         db.collection("users").document(uid).get()
                 .addOnSuccessListener(documentSnapshot -> {
-                    if(documentSnapshot.exists()) {
+                    if (documentSnapshot.exists()) {
                         String userType = documentSnapshot.getString("type");
 
-                        // *** 3. החלק החשוב: עדכון התפריט! ***
-                        // אנחנו שומרים בזיכרון המקומי את הסוג שהגיע מ-Firebase
+                        // שמירת תפקיד בזיכרון המקומי
                         if (userType != null) {
                             userHelper.setRole(userType);
+                        } else {
+                            userHelper.setRole(UserHelper.ROLE_CLIENT);
                         }
-                        // *************************************
 
                         Intent intent;
-                        // שימוש בקבועים מתוך UserHelper למניעת טעויות כתיב
                         if (UserHelper.ROLE_BUSINESS.equals(userType)) {
                             intent = new Intent(LoginActivity.this, BusinessMainActivity.class);
                         } else {
@@ -149,30 +146,5 @@ public class LoginActivity extends BaseActivity { // כאן לא צריך BaseAc
                     }
                 })
                 .addOnFailureListener(e -> tVMsg.setText("Error fetching user data: " + e.getMessage()));
-
-
-
-    }
-
-
-    // בתוך LoginActivity.java, בפונקציה שמטפלת בהתחברות מוצלחת
-    private void handleSuccessfulLogin(String role) {
-
-        UserHelper userHelper = new UserHelper(this);
-        userHelper.setRole(role);
-
-        Intent intent;
-
-        // ניווט בהתאם לתפקיד:
-        if (role.equals(UserHelper.ROLE_BUSINESS)) {
-            // בעל עסק עובר לדאשבורד
-            intent = new Intent(this, BusinessMainActivity.class);
-        } else {
-            // משתמש רגיל עובר לדף חיפוש
-            intent = new Intent(this, ClientMainActivity.class);
-        }
-
-        startActivity(intent);
-        finish();
     }
 }

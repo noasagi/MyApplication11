@@ -19,7 +19,6 @@ import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
@@ -29,7 +28,9 @@ import com.google.firebase.firestore.Blob;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -40,42 +41,53 @@ public class MyBusinessMainActivity extends BaseActivity {
     private EditText eTBusinessName, eTBusinessPhone, eTBusinessDescription;
     private AutoCompleteTextView autoBusinessType;
 
-    private Uri imageUri;
-    private Bitmap currentBitmap;
-
     private FirebaseAuth auth;
     private FirebaseFirestore firebaseFirestore;
 
     private final int REQUEST_CAMERA_PERMISSION = 100;
     private final int REQUEST_STORAGE_PERMISSION = 101;
 
-    // --- בחירת תמונה מהגלריה ---
-    private ActivityResultLauncher<String> mGetContent = registerForActivityResult(
-            new ActivityResultContracts.GetContent(),
-            result -> {
-                if (result != null) {
-                    imgBusinessMain.setImageURI(result);
-                    imageUri = result;
-                    currentBitmap = null; // ביטול Bitmap קודם
-                } else {
-                    Log.d("ImagePicker", "Selection cancelled");
-                }
-            }
-    );
+    // ✅ רשימות לתמונות מרובות
+    private List<Uri> selectedImageUris = new ArrayList<>();        // תמונות מהגלריה
+    private List<Bitmap> selectedCameraBitmaps = new ArrayList<>(); // תמונות מהמצלמה
+
+    // --- בחירת כמה תמונות מהגלריה ---
+    private final ActivityResultLauncher<String> mGetMultipleContent =
+            registerForActivityResult(
+                    new ActivityResultContracts.GetMultipleContents(),
+                    result -> {
+                        if (result != null && !result.isEmpty()) {
+                            selectedImageUris.clear();
+                            selectedCameraBitmaps.clear(); // אם בוחרים גלריה, ננקה תמונות מצלמה
+
+                            selectedImageUris.addAll(result);
+
+                            // מציגים כתמונה ראשונה ב-ImageView
+                            imgBusinessMain.setImageURI(result.get(0));
+                            Log.d("ImagePicker", "Selected " + result.size() + " images from gallery");
+                        } else {
+                            Log.d("ImagePicker", "Selection cancelled or empty");
+                        }
+                    }
+            );
 
     // --- צילום תמונה מהמצלמה ---
-    private ActivityResultLauncher<Void> mTakePhoto = registerForActivityResult(
-            new ActivityResultContracts.TakePicturePreview(),
-            result -> {
-                if (result != null) {
-                    imgBusinessMain.setImageBitmap(result);
-                    currentBitmap = result;
-                    imageUri = null; // ביטול Uri קודם
-                } else {
-                    Log.d("Camera", "צילום בוטל");
-                }
-            }
-    );
+    private final ActivityResultLauncher<Void> mTakePhoto =
+            registerForActivityResult(
+                    new ActivityResultContracts.TakePicturePreview(),
+                    result -> {
+                        if (result != null) {
+                            // אם מצלמים – ננקה גלריה ונשמור רק ביטמאפים מצולמים
+                            selectedImageUris.clear();
+                            selectedCameraBitmaps.add(result);
+
+                            imgBusinessMain.setImageBitmap(result);
+                            Log.d("Camera", "Captured photo, total camera images: " + selectedCameraBitmaps.size());
+                        } else {
+                            Log.d("Camera", "צילום בוטל");
+                        }
+                    }
+            );
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -111,7 +123,7 @@ public class MyBusinessMainActivity extends BaseActivity {
         // --- לחצנים ---
         btnChooseImage.setOnClickListener(v -> {
             if (checkStoragePermission()) {
-                mGetContent.launch("image/*");
+                mGetMultipleContent.launch("image/*");
             } else {
                 requestStoragePermission();
             }
@@ -166,7 +178,7 @@ public class MyBusinessMainActivity extends BaseActivity {
 
         if (requestCode == REQUEST_STORAGE_PERMISSION) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                mGetContent.launch("image/*");
+                mGetMultipleContent.launch("image/*");
             } else {
                 Toast.makeText(this, "הרשאת אחסון נחוצה לבחירת תמונה מהגלריה", Toast.LENGTH_SHORT).show();
             }
@@ -180,8 +192,9 @@ public class MyBusinessMainActivity extends BaseActivity {
         String businessType = autoBusinessType.getText().toString().trim();
 
         if (name.isEmpty() || phone.isEmpty() || description.isEmpty() ||
-                (imageUri == null && currentBitmap == null) || businessType.isEmpty()) {
-            Toast.makeText(this, "נא למלא את כל השדות, לבחור תמונה או לצלם תמונה וסוג עסק", Toast.LENGTH_SHORT).show();
+                (selectedImageUris.isEmpty() && selectedCameraBitmaps.isEmpty()) ||
+                businessType.isEmpty()) {
+            Toast.makeText(this, "נא למלא את כל השדות ולבחור לפחות תמונה אחת", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -201,26 +214,38 @@ public class MyBusinessMainActivity extends BaseActivity {
         String businessId = UUID.randomUUID().toString();
 
         try {
-            Bitmap bitmapToSave;
+            List<Blob> imageBlobs = new ArrayList<>();
+            int totalBytes = 0;
 
-            if (currentBitmap != null) {
-                bitmapToSave = currentBitmap;
-            } else {
-                bitmapToSave = MediaStore.Images.Media.getBitmap(getContentResolver(), imageUri);
+            // תמונות מהגלריה
+            for (Uri uri : selectedImageUris) {
+                Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
+                if (bitmap != null) {
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 60, baos);
+                    byte[] imageBytes = baos.toByteArray();
+                    totalBytes += imageBytes.length;
+                    imageBlobs.add(Blob.fromBytes(imageBytes));
+                }
             }
 
-            // כיווץ התמונה ל-JPEG 60%
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            bitmapToSave.compress(Bitmap.CompressFormat.JPEG, 60, baos);
-            byte[] imageBytes = baos.toByteArray();
+            // תמונות מהמצלמה
+            for (Bitmap cameraBitmap : selectedCameraBitmaps) {
+                if (cameraBitmap != null) {
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    cameraBitmap.compress(Bitmap.CompressFormat.JPEG, 60, baos);
+                    byte[] imageBytes = baos.toByteArray();
+                    totalBytes += imageBytes.length;
+                    imageBlobs.add(Blob.fromBytes(imageBytes));
+                }
+            }
 
-            if (imageBytes.length > 900 * 1024) {
+            // בדיקת גודל כולל
+            if (totalBytes > 900 * 1024) {
                 pd.dismiss();
-                Toast.makeText(this, "התמונה גדולה מדי. נסי לבחור תמונה קטנה יותר.", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "התמונות יחד גדולות מדי. נסי לבחור פחות תמונות או תמונות קטנות יותר.", Toast.LENGTH_LONG).show();
                 return;
             }
-
-            Blob imageBlob = Blob.fromBytes(imageBytes);
 
             Map<String, Object> businessData = new HashMap<>();
             businessData.put("businessId", businessId);
@@ -229,7 +254,7 @@ public class MyBusinessMainActivity extends BaseActivity {
             businessData.put("description", description);
             businessData.put("phone", phone);
             businessData.put("businessType", businessType);
-            businessData.put("imageBlob", imageBlob);
+            businessData.put("imageBlobs", imageBlobs);
 
             firebaseFirestore.collection("businesses")
                     .document(businessId)
@@ -245,7 +270,7 @@ public class MyBusinessMainActivity extends BaseActivity {
 
         } catch (Exception e) {
             pd.dismiss();
-            Toast.makeText(this, "שגיאה בעיבוד התמונה: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "שגיאה בעיבוד התמונות: " + e.getMessage(), Toast.LENGTH_LONG).show();
             e.printStackTrace();
         }
     }

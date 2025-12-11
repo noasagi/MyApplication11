@@ -5,43 +5,39 @@ import android.content.SharedPreferences;
 
 public class UserHelper {
 
-    private static final String PREF_NAME = "AppPrefs";
-    private static final String KEY_USER_ROLE = "userRole";
-
-    // הקבועים חייבים להיות זהים למה שכתוב ב-RadioButtons שלך בדף ההרשמה
-    public static final String ROLE_REGULAR = "משתמש רגיל";
-    public static final String ROLE_BUSINESS = "בעל עסק";
+    public static final String ROLE_BUSINESS = "business";
+    public static final String ROLE_CLIENT = "client";
     public static final String ROLE_GUEST = "guest";
 
-    private SharedPreferences sharedPreferences;
+    private static final String PREF_NAME = "user_prefs";
+    private static final String KEY_ROLE = "user_role";
+
+    private final SharedPreferences prefs;
 
     public UserHelper(Context context) {
-        sharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+        prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
     }
 
-    // שמירת תפקיד המשתמש
     public void setRole(String role) {
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString(KEY_USER_ROLE, role);
-        editor.apply();
+        prefs.edit().putString(KEY_ROLE, role).apply();
     }
 
-    // קבלת תפקיד המשתמש
-    public String getUserRole() {
-        return sharedPreferences.getString(KEY_USER_ROLE, ROLE_GUEST);
+    public String getRole() {
+        return prefs.getString(KEY_ROLE, ROLE_GUEST);
     }
 
-    // האם המשתמש הוא בעל עסק?
     public boolean isBusinessOwner() {
-        return getUserRole().equals(ROLE_BUSINESS);
+        return ROLE_BUSINESS.equals(getRole());
     }
 
-    // האם המשתמש הוא אורח (לא מחובר)?
+    public boolean isClient() {
+        return ROLE_CLIENT.equals(getRole());
+    }
+
     public boolean isGuest() {
-        return getUserRole().equals(ROLE_GUEST);
+        return ROLE_GUEST.equals(getRole());
     }
 
-    // התנתקות
     public void logout() {
         setRole(ROLE_GUEST);
     }

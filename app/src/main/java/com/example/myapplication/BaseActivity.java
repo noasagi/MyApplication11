@@ -7,13 +7,14 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+
 import com.google.firebase.auth.FirebaseAuth;
 
 public abstract class BaseActivity extends AppCompatActivity {
 
     protected UserHelper userHelper;
 
-    // ✅ 1. משתנה חדש שיעקוב אם חץ החזרה מופעל
+    // האם מופעל חץ חזרה (Up Button) – כדי לא להציג תפריט עם 3 נקודות
     private boolean isUpButtonEnabled = false;
 
     @Override
@@ -24,40 +25,44 @@ public abstract class BaseActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * הגדרת Toolbar רגיל (ללא חץ חזרה)
+     */
     protected void setupToolbar(Toolbar toolbar) {
         if (toolbar != null) {
             setSupportActionBar(toolbar);
         }
     }
 
-    // ✅ 2. עדכון: מגדירה Toolbar עבור דפים משניים, עם אפשרות לחץ חזרה
+    /**
+     * Toolbar לדפים משניים עם חץ חזרה (ללא תפריט 3 נקודות)
+     */
     protected void setupSecondaryToolbar(Toolbar toolbar, boolean showBackButton) {
         setupToolbar(toolbar);
 
         if (showBackButton && getSupportActionBar() != null) {
-            // מציג חץ חזרה (Back/Up button)
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setDisplayShowHomeEnabled(true);
-
-            // ✅ הפעלת המשתנה החדש
             isUpButtonEnabled = true;
         }
     }
 
-    // פונקציית סינון הפריטים
+    /**
+     * סינון פריטי תפריט (גם לתפריט העליון וגם ל-Drawer)
+     */
     public void filterMenuItems(Menu menu) {
         if (userHelper == null) userHelper = new UserHelper(this);
-        // ... (השאר את הלוגיקה של הסינון כפי שהיא) ...
         boolean isBusiness = userHelper.isBusinessOwner();
         boolean isGuest = userHelper.isGuest();
 
-        MenuItem itemBusiness = menu.findItem(R.id.action_business_page);
+        MenuItem itemHome = menu.findItem(R.id.action_home);
         MenuItem itemLogin = menu.findItem(R.id.action_login);
         MenuItem itemLogout = menu.findItem(R.id.action_logout);
         MenuItem itemSetProfile = menu.findItem(R.id.action_set_profile);
+        MenuItem itemMyBusiness = menu.findItem(R.id.action_my_business);
 
-        if (itemBusiness != null) {
-            itemBusiness.setVisible(isBusiness);
+        if (itemHome != null) {
+            itemHome.setVisible(true); // דף הבית תמיד קיים
         }
         if (itemLogin != null) {
             itemLogin.setVisible(isGuest);
@@ -68,16 +73,22 @@ public abstract class BaseActivity extends AppCompatActivity {
         if (itemSetProfile != null) {
             itemSetProfile.setVisible(!isGuest);
         }
+        if (itemMyBusiness != null) {
+            // "העסק שלי" יוצג רק לבעלי עסקים
+            itemMyBusiness.setVisible(isBusiness);
+        }
     }
 
-    // הניווט הכללי
+    /**
+     * ניווט כללי בפריטי תפריט (גם Drawer וגם תפריט עליון)
+     */
     public boolean handleNavigationItemSelection(MenuItem item) {
         int id = item.getItemId();
-        // ... (השאר את הלוגיקה של הניווט כפי שהיא) ...
         if (userHelper == null) userHelper = new UserHelper(this);
         boolean isBusiness = userHelper.isBusinessOwner();
 
         if (id == R.id.action_home) {
+            // דף הבית – לבעל עסק: BusinessMainActivity, ללקוח: ClientMainActivity
             if (isBusiness) {
                 Intent intent = new Intent(this, BusinessMainActivity.class);
                 startActivity(intent);
@@ -88,17 +99,21 @@ public abstract class BaseActivity extends AppCompatActivity {
             return true;
         }
 
-        else if (id == R.id.action_business_page) {
-            Intent intent = new Intent(this, BusinessMainActivity.class);
+        else if (id == R.id.action_my_business) {
+            // ניהול העסק שלי – מגיע תמיד ל-MyBusinessMainActivity
+            Toast.makeText(this, "פותחת את ניהול העסק שלי", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(this, MyBusinessMainActivity.class);
             startActivity(intent);
             return true;
         }
 
         else if (id == R.id.action_logout) {
+            // התנתקות
             FirebaseAuth.getInstance().signOut();
             userHelper.logout();
             Toast.makeText(this, "התנתקת בהצלחה", Toast.LENGTH_SHORT).show();
 
+            // ריענון תפריט רק אם זה לא מסך עם Drawer
             if (!(this instanceof DrawerBaseActivity)) {
                 invalidateOptionsMenu();
             }
@@ -115,17 +130,18 @@ public abstract class BaseActivity extends AppCompatActivity {
             return true;
         }
 
+        // פעולות שלא טופלו כאן
         return false;
     }
 
-    // ✅ 3. עדכון: משתמש במשתנה החדש כדי למנוע הצגת 3 נקודות
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+        // למסכים עם Drawer אין תפריט עליון (3 נקודות)
         if (this instanceof DrawerBaseActivity) {
             return false;
         }
 
-        // 🔴 התיקון לשגיאת הקומפילציה: בדיקה אם המשתנה הופעל במקום השיטה החסרה
+        // למסכים עם חץ חזרה – לא מציגים 3 נקודות
         if (isUpButtonEnabled) {
             return false;
         }
@@ -144,7 +160,7 @@ public abstract class BaseActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
 
-        // טיפול בלחיצה על חץ החזרה בדפים משניים
+        // טיפול בלחיצה על חץ חזרה ב-Toolbar
         if (id == android.R.id.home) {
             onBackPressed();
             return true;
