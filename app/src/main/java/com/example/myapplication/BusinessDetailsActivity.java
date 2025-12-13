@@ -1,7 +1,9 @@
 package com.example.myapplication;
 
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Bundle;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -35,14 +37,14 @@ public class BusinessDetailsActivity extends AppCompatActivity {
 
         db = FirebaseFirestore.getInstance();
 
-        // קבלת ה-ID מה-Intent (מהדף הקודם)
+        // קבלת ה-ID מהדף הקודם
         String businessId = getIntent().getStringExtra("BUSINESS_ID");
 
         if (businessId != null) {
             loadBusinessData(businessId);
         } else {
             Toast.makeText(this, "שגיאה בטעינת העסק", Toast.LENGTH_SHORT).show();
-            finish(); // סגור את הדף אם אין ID
+            finish();
         }
     }
 
@@ -56,7 +58,7 @@ public class BusinessDetailsActivity extends AppCompatActivity {
                             updateUI(business);
                         }
                     } else {
-                        Toast.makeText(this, "העסק לא נמצא במערכת", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "העסק לא נמצא", Toast.LENGTH_SHORT).show();
                     }
                 })
                 .addOnFailureListener(e -> {
@@ -70,7 +72,24 @@ public class BusinessDetailsActivity extends AppCompatActivity {
         tvPhone.setText(business.getPhone());
         tvDescription.setText(business.getDescription());
 
-        // הצגת כל התמונות בגלריה
+        // --- הופכים את הטלפון ללחיץ (חייגן) ---
+        tvPhone.setOnClickListener(v -> {
+            String phoneNumber = business.getPhone();
+            if (phoneNumber != null && !phoneNumber.isEmpty()) {
+                Intent intent = new Intent(Intent.ACTION_DIAL);
+                intent.setData(Uri.parse("tel:" + phoneNumber));
+                try {
+                    startActivity(intent);
+                } catch (Exception e) {
+                    Toast.makeText(this, "לא ניתן לפתוח חייגן", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        // איפוס הגלריה
+        galleryContainer.removeAllViews();
+
+        // טעינת תמונות
         List<Blob> blobs = business.getImageBlobs();
         if (blobs != null && !blobs.isEmpty()) {
             for (Blob blob : blobs) {
@@ -79,25 +98,19 @@ public class BusinessDetailsActivity extends AppCompatActivity {
         }
     }
 
-    // פונקציה שיוצרת תמונה בקוד ומוסיפה למסך
     private void addImageToGallery(Blob blob) {
         byte[] bytes = blob.toBytes();
         Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
 
         ImageView imageView = new ImageView(this);
-
-        // הגדרות גודל לתמונה
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                600 // גובה בפיקסלים
+                600 // גובה התמונה בפיקסלים
         );
         params.setMargins(0, 0, 0, 30); // רווח בין תמונות
-
         imageView.setLayoutParams(params);
         imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
         imageView.setImageBitmap(bitmap);
-
-        // הוספה לרשימה במסך
         galleryContainer.addView(imageView);
     }
 }
