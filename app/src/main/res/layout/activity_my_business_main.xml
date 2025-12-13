@@ -14,7 +14,7 @@
         android:id="@+id/tVTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="העסק שלי"
+        android:text="ניהול העסק שלי"
         android:textSize="24sp"
         android:textStyle="bold"
         android:textColor="#212121"
@@ -25,13 +25,12 @@
         android:id="@+id/tvPhotosLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="תמונות העסק (ניתן לגלול)"
+        android:text="תמונות העסק"
         android:textSize="14sp"
         android:layout_marginTop="16dp"
         app:layout_constraintTop_toBottomOf="@id/tVTitle"
         app:layout_constraintStart_toStartOf="parent"/>
 
-    <!-- שינוי: במקום תמונה אחת, גלילה אופקית של תמונות -->
     <HorizontalScrollView
         android:id="@+id/hsvImages"
         android:layout_width="0dp"
@@ -50,14 +49,12 @@
             android:gravity="center_vertical"
             android:padding="8dp">
 
-            <!-- כאן יתווספו התמונות שנבחרו באופן דינמי -->
             <TextView
                 android:id="@+id/tvNoImages"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="לא נבחרו תמונות"
                 android:layout_margin="16dp"/>
-
         </LinearLayout>
     </HorizontalScrollView>
 
@@ -147,18 +144,41 @@
         app:layout_constraintTop_toBottomOf="@id/autoBusinessType"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/btnSaveBusiness" />
+        app:layout_constraintBottom_toTopOf="@id/buttonsContainer" />
 
-    <Button
-        android:id="@+id/btnSaveBusiness"
+    <!-- מיכל לכפתורי השמירה והמחיקה -->
+    <LinearLayout
+        android:id="@+id/buttonsContainer"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="שמור את העסק"
-        android:backgroundTint="#3F51B5"
-        android:textColor="#FFFFFF"
-        android:padding="12dp"
+        android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <Button
+            android:id="@+id/btnDeleteBusiness"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="מחק עסק"
+            android:backgroundTint="#D32F2F"
+            android:textColor="#FFFFFF"
+            android:padding="12dp"
+            android:visibility="gone"
+            android:layout_marginEnd="8dp"/>
+        <!-- visibility="gone" אומר שהוא מוסתר כברירת מחדל -->
+
+        <Button
+            android:id="@+id/btnSaveBusiness"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="2"
+            android:text="שמור עסק"
+            android:backgroundTint="#3F51B5"
+            android:textColor="#FFFFFF"
+            android:padding="12dp" />
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
