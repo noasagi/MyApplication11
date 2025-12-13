@@ -8,12 +8,15 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.AutoCompleteTextView;
-import android.widget.ArrayAdapter;
 
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
@@ -36,7 +39,8 @@ import java.util.UUID;
 
 public class MyBusinessMainActivity extends BaseActivity {
 
-    private ImageView imgBusinessMain;
+    private LinearLayout previewContainer; // המיכל של התמונות הקטנות
+    private TextView tvNoImages;
     private Button btnChooseImage, btnTakePhoto, btnSaveBusiness;
     private EditText eTBusinessName, eTBusinessPhone, eTBusinessDescription;
     private AutoCompleteTextView autoBusinessType;
@@ -47,44 +51,37 @@ public class MyBusinessMainActivity extends BaseActivity {
     private final int REQUEST_CAMERA_PERMISSION = 100;
     private final int REQUEST_STORAGE_PERMISSION = 101;
 
-    // ✅ רשימות לתמונות מרובות
-    private List<Uri> selectedImageUris = new ArrayList<>();        // תמונות מהגלריה
-    private List<Bitmap> selectedCameraBitmaps = new ArrayList<>(); // תמונות מהמצלמה
+    // רשימות לתמונות
+    private List<Uri> selectedImageUris = new ArrayList<>();
+    private List<Bitmap> selectedCameraBitmaps = new ArrayList<>();
 
-    // --- בחירת כמה תמונות מהגלריה ---
+    // --- בחירת תמונות מהגלריה ---
     private final ActivityResultLauncher<String> mGetMultipleContent =
             registerForActivityResult(
                     new ActivityResultContracts.GetMultipleContents(),
                     result -> {
                         if (result != null && !result.isEmpty()) {
-                            selectedImageUris.clear();
-                            selectedCameraBitmaps.clear(); // אם בוחרים גלריה, ננקה תמונות מצלמה
-
+                            // אפשר להחליט אם רוצים להוסיף לרשימה הקיימת או לדרוס אותה.
+                            // כאן אנחנו מוסיפים לרשימה הקיימת:
                             selectedImageUris.addAll(result);
 
-                            // מציגים כתמונה ראשונה ב-ImageView
-                            imgBusinessMain.setImageURI(result.get(0));
-                            Log.d("ImagePicker", "Selected " + result.size() + " images from gallery");
-                        } else {
-                            Log.d("ImagePicker", "Selection cancelled or empty");
+                            // עדכון התצוגה למשתמש
+                            refreshImagePreviews();
+
+                            Log.d("ImagePicker", "Selected " + result.size() + " images");
                         }
                     }
             );
 
-    // --- צילום תמונה מהמצלמה ---
+    // --- צילום תמונה ---
     private final ActivityResultLauncher<Void> mTakePhoto =
             registerForActivityResult(
                     new ActivityResultContracts.TakePicturePreview(),
                     result -> {
                         if (result != null) {
-                            // אם מצלמים – ננקה גלריה ונשמור רק ביטמאפים מצולמים
-                            selectedImageUris.clear();
                             selectedCameraBitmaps.add(result);
-
-                            imgBusinessMain.setImageBitmap(result);
-                            Log.d("Camera", "Captured photo, total camera images: " + selectedCameraBitmaps.size());
-                        } else {
-                            Log.d("Camera", "צילום בוטל");
+                            refreshImagePreviews();
+                            Log.d("Camera", "Captured photo");
                         }
                     }
             );
@@ -95,7 +92,10 @@ public class MyBusinessMainActivity extends BaseActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_my_business_main);
 
-        imgBusinessMain = findViewById(R.id.imgBusinessMain);
+        // קישור לרכיבי ה-XML
+        previewContainer = findViewById(R.id.previewContainer);
+        tvNoImages = findViewById(R.id.tvNoImages);
+
         btnChooseImage = findViewById(R.id.btnChooseImage);
         btnTakePhoto = findViewById(R.id.btnTakePhoto);
         btnSaveBusiness = findViewById(R.id.btnSaveBusiness);
@@ -104,7 +104,7 @@ public class MyBusinessMainActivity extends BaseActivity {
         eTBusinessDescription = findViewById(R.id.eTBusinessDescription);
         autoBusinessType = findViewById(R.id.autoBusinessType);
 
-        // הגדרת AutoCompleteTextView עם רשימת סוגי העסקים
+        // הגדרת AutoCompleteTextView
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
                 this,
                 android.R.layout.simple_dropdown_item_1line,
@@ -140,50 +140,69 @@ public class MyBusinessMainActivity extends BaseActivity {
         btnSaveBusiness.setOnClickListener(v -> saveBusiness());
     }
 
-    // בדיקה של הרשאת מצלמה
+    /**
+     * פונקציה שמרעננת את שורת התמונות בתצוגה.
+     * היא מוחקת את כל מה שיש ב-LinearLayout ויוצרת את התמונות מחדש לפי הרשימות.
+     */
+    private void refreshImagePreviews() {
+        previewContainer.removeAllViews(); // ניקוי תצוגה קודמת
+
+        boolean hasImages = !selectedImageUris.isEmpty() || !selectedCameraBitmaps.isEmpty();
+
+        if (!hasImages) {
+            previewContainer.addView(tvNoImages);
+            return;
+        }
+
+        // הצגת תמונות מהגלריה
+        for (Uri uri : selectedImageUris) {
+            addImageToPreview(uri, null);
+        }
+
+        // הצגת תמונות מהמצלמה
+        for (Bitmap bitmap : selectedCameraBitmaps) {
+            addImageToPreview(null, bitmap);
+        }
+    }
+
+    /**
+     * פונקציית עזר להוספת תמונה בודדת לפס הגלילה
+     */
+    private void addImageToPreview(Uri uri, Bitmap bitmap) {
+        ImageView imageView = new ImageView(this);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(250, 250); // גודל ריבוע התמונה
+        params.setMargins(8, 0, 8, 0);
+        imageView.setLayoutParams(params);
+        imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+
+        if (uri != null) {
+            imageView.setImageURI(uri);
+        } else if (bitmap != null) {
+            imageView.setImageBitmap(bitmap);
+        }
+
+        previewContainer.addView(imageView);
+    }
+
+    // --- הרשאות ---
+
     private boolean checkCameraPermission() {
         return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
     }
 
     private void requestCameraPermission() {
-        ActivityCompat.requestPermissions(this,
-                new String[]{Manifest.permission.CAMERA},
-                REQUEST_CAMERA_PERMISSION);
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
     }
 
-    // בדיקה של הרשאת אחסון
     private boolean checkStoragePermission() {
         return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
     }
 
     private void requestStoragePermission() {
-        ActivityCompat.requestPermissions(this,
-                new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
-                REQUEST_STORAGE_PERMISSION);
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_STORAGE_PERMISSION);
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
-        if (requestCode == REQUEST_CAMERA_PERMISSION) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                mTakePhoto.launch(null);
-            } else {
-                Toast.makeText(this, "הרשאת מצלמה נחוצה לצילום תמונה", Toast.LENGTH_SHORT).show();
-            }
-        }
-
-        if (requestCode == REQUEST_STORAGE_PERMISSION) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                mGetMultipleContent.launch("image/*");
-            } else {
-                Toast.makeText(this, "הרשאת אחסון נחוצה לבחירת תמונה מהגלריה", Toast.LENGTH_SHORT).show();
-            }
-        }
-    }
+    // --- שמירה לפיירבייס ---
 
     private void saveBusiness() {
         String name = eTBusinessName.getText().toString().trim();
@@ -199,79 +218,88 @@ public class MyBusinessMainActivity extends BaseActivity {
         }
 
         FirebaseUser user = auth.getCurrentUser();
-        if (user == null) {
-            Toast.makeText(this, "משתמש לא מחובר", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        if (user == null) return;
 
         ProgressDialog pd = new ProgressDialog(this);
         pd.setTitle("שומר את העסק");
-        pd.setMessage("אנא המתן...");
+        pd.setMessage("מעבד תמונות...");
         pd.setCancelable(false);
         pd.show();
 
         String ownerId = user.getUid();
         String businessId = UUID.randomUUID().toString();
 
-        try {
-            List<Blob> imageBlobs = new ArrayList<>();
-            int totalBytes = 0;
+        new Thread(() -> {
+            try {
+                List<Blob> imageBlobs = new ArrayList<>();
+                long totalBytes = 0;
 
-            // תמונות מהגלריה
-            for (Uri uri : selectedImageUris) {
-                Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
-                if (bitmap != null) {
-                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 60, baos);
-                    byte[] imageBytes = baos.toByteArray();
-                    totalBytes += imageBytes.length;
-                    imageBlobs.add(Blob.fromBytes(imageBytes));
+                // עיבוד תמונות גלריה
+                for (Uri uri : selectedImageUris) {
+                    Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
+                    if (bitmap != null) {
+                        // הקטנת תמונה כדי לחסוך מקום (אופציונלי אך מומלץ)
+                        Bitmap scaled = Bitmap.createScaledBitmap(bitmap, 800, 800, true);
+                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                        scaled.compress(Bitmap.CompressFormat.JPEG, 70, baos); // איכות 70%
+                        byte[] data = baos.toByteArray();
+                        totalBytes += data.length;
+                        imageBlobs.add(Blob.fromBytes(data));
+                    }
                 }
-            }
 
-            // תמונות מהמצלמה
-            for (Bitmap cameraBitmap : selectedCameraBitmaps) {
-                if (cameraBitmap != null) {
-                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    cameraBitmap.compress(Bitmap.CompressFormat.JPEG, 60, baos);
-                    byte[] imageBytes = baos.toByteArray();
-                    totalBytes += imageBytes.length;
-                    imageBlobs.add(Blob.fromBytes(imageBytes));
+                // עיבוד תמונות מצלמה
+                for (Bitmap cameraBitmap : selectedCameraBitmaps) {
+                    if (cameraBitmap != null) {
+                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                        cameraBitmap.compress(Bitmap.CompressFormat.JPEG, 70, baos);
+                        byte[] data = baos.toByteArray();
+                        totalBytes += data.length;
+                        imageBlobs.add(Blob.fromBytes(data));
+                    }
                 }
-            }
 
-            // בדיקת גודל כולל
-            if (totalBytes > 900 * 1024) {
-                pd.dismiss();
-                Toast.makeText(this, "התמונות יחד גדולות מדי. נסי לבחור פחות תמונות או תמונות קטנות יותר.", Toast.LENGTH_LONG).show();
-                return;
-            }
-
-            Map<String, Object> businessData = new HashMap<>();
-            businessData.put("businessId", businessId);
-            businessData.put("ownerId", ownerId);
-            businessData.put("name", name);
-            businessData.put("description", description);
-            businessData.put("phone", phone);
-            businessData.put("businessType", businessType);
-            businessData.put("imageBlobs", imageBlobs);
-
-            firebaseFirestore.collection("businesses")
-                    .document(businessId)
-                    .set(businessData)
-                    .addOnSuccessListener(aVoid -> {
+                // בדיקת גודל (Firestore מגביל מסמך ל-1MB)
+                if (totalBytes > 950 * 1024) {
+                    runOnUiThread(() -> {
                         pd.dismiss();
-                        Toast.makeText(this, "העסק נשמר בהצלחה!", Toast.LENGTH_SHORT).show();
-                    })
-                    .addOnFailureListener(e -> {
-                        pd.dismiss();
-                        Toast.makeText(this, "שגיאה בשמירת העסק: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, "התמונות גדולות מדי! נסי לבחור פחות תמונות.", Toast.LENGTH_LONG).show();
                     });
+                    return;
+                }
 
-        } catch (Exception e) {
-            pd.dismiss();
-            Toast.makeText(this, "שגיאה בעיבוד התמונות: " + e.getMessage(), Toast.LENGTH_LONG).show();
-            e.printStackTrace();
-        }
+                Map<String, Object> businessData = new HashMap<>();
+                businessData.put("businessId", businessId);
+                businessData.put("ownerId", ownerId);
+                businessData.put("name", name);
+                businessData.put("description", description);
+                businessData.put("phone", phone);
+                businessData.put("businessType", businessType);
+                businessData.put("imageBlobs", imageBlobs);
+
+                firebaseFirestore.collection("businesses")
+                        .document(businessId)
+                        .set(businessData)
+                        .addOnSuccessListener(aVoid -> {
+                            runOnUiThread(() -> {
+                                pd.dismiss();
+                                Toast.makeText(this, "העסק נשמר בהצלחה!", Toast.LENGTH_SHORT).show();
+                                finish(); // סגירת הדף לאחר שמירה
+                            });
+                        })
+                        .addOnFailureListener(e -> {
+                            runOnUiThread(() -> {
+                                pd.dismiss();
+                                Toast.makeText(this, "שגיאה: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            });
+                        });
+
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    pd.dismiss();
+                    Toast.makeText(this, "שגיאה בעיבוד: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+            }
+        }).start();
     }
 }

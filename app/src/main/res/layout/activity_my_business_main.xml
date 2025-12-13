@@ -21,29 +21,54 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <ImageView
-        android:id="@+id/imgBusinessMain"
-        android:layout_width="0dp"
-        android:layout_height="180dp"
+    <TextView
+        android:id="@+id/tvPhotosLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="תמונות העסק (ניתן לגלול)"
+        android:textSize="14sp"
         android:layout_marginTop="16dp"
-        android:background="#E0E0E0"
-        android:scaleType="centerCrop"
-        android:contentDescription="תמונת העסק"
-        android:clickable="true"
-        android:focusable="true"
         app:layout_constraintTop_toBottomOf="@id/tVTitle"
+        app:layout_constraintStart_toStartOf="parent"/>
+
+    <!-- שינוי: במקום תמונה אחת, גלילה אופקית של תמונות -->
+    <HorizontalScrollView
+        android:id="@+id/hsvImages"
+        android:layout_width="0dp"
+        android:layout_height="140dp"
+        android:layout_marginTop="8dp"
+        android:background="#E0E0E0"
+        app:layout_constraintTop_toBottomOf="@id/tvPhotosLabel"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:id="@+id/previewContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:padding="8dp">
+
+            <!-- כאן יתווספו התמונות שנבחרו באופן דינמי -->
+            <TextView
+                android:id="@+id/tvNoImages"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="לא נבחרו תמונות"
+                android:layout_margin="16dp"/>
+
+        </LinearLayout>
+    </HorizontalScrollView>
 
     <Button
         android:id="@+id/btnChooseImage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="בחר תמונה"
+        android:text="בחר מהגלריה"
         android:layout_marginTop="8dp"
-        app:layout_constraintTop_toBottomOf="@id/imgBusinessMain"
+        app:layout_constraintTop_toBottomOf="@id/hsvImages"
         app:layout_constraintStart_toStartOf="parent" />
-
 
     <Button
         android:id="@+id/btnTakePhoto"
@@ -53,7 +78,7 @@
         android:layout_marginTop="8dp"
         android:text="צלם תמונה"
         app:layout_constraintStart_toEndOf="@+id/btnChooseImage"
-        app:layout_constraintTop_toBottomOf="@+id/imgBusinessMain" />
+        app:layout_constraintTop_toBottomOf="@+id/hsvImages" />
 
     <EditText
         android:id="@+id/eTBusinessName"
@@ -82,7 +107,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- תווית לסוג העסק -->
     <TextView
         android:id="@+id/tVBusinessTypeLabel"
         android:layout_width="wrap_content"
@@ -93,7 +117,6 @@
         app:layout_constraintTop_toBottomOf="@id/eTBusinessPhone"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <!-- שדה חיפוש עם השלמה אוטומטית לסוג העסק -->
     <AutoCompleteTextView
         android:id="@+id/autoBusinessType"
         android:layout_width="0dp"
