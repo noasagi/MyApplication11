@@ -1,6 +1,7 @@
 package com.example.myapplication;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.view.LayoutInflater;
@@ -26,7 +27,6 @@ public class BusinessAdapter extends RecyclerView.Adapter<BusinessAdapter.Busine
         this.businessesList = businessesList;
     }
 
-    // לעדכן את הרשימה אחרי טעינה מ-Firestore
     public void setBusinesses(List<BusinessModel> newBusinessesList) {
         this.businessesList = newBusinessesList;
         notifyDataSetChanged();
@@ -45,16 +45,14 @@ public class BusinessAdapter extends RecyclerView.Adapter<BusinessAdapter.Busine
 
         BusinessModel currentBusiness = businessesList.get(position);
 
-        // טקסטים
+        // הצגת טקסטים
         holder.tvBusinessName.setText(currentBusiness.getName() != null ? currentBusiness.getName() : "");
         holder.tvBusinessType.setText("סוג: " + (currentBusiness.getBusinessType() != null ? currentBusiness.getBusinessType() : ""));
         holder.tvBusinessDescription.setText(currentBusiness.getDescription() != null ? currentBusiness.getDescription() : "");
 
-        // תמונה – ניקח את התמונה הראשונה מתוך imageBlobs
+        // הצגת תמונה ראשית בלבד בכרטיס
         boolean imageSet = false;
-        if (currentBusiness.getImageBlobs() != null &&
-                !currentBusiness.getImageBlobs().isEmpty()) {
-
+        if (currentBusiness.getImageBlobs() != null && !currentBusiness.getImageBlobs().isEmpty()) {
             Blob firstBlob = currentBusiness.getImageBlobs().get(0);
             if (firstBlob != null) {
                 byte[] bytes = firstBlob.toBytes();
@@ -66,14 +64,15 @@ public class BusinessAdapter extends RecyclerView.Adapter<BusinessAdapter.Busine
             }
         }
 
-        // אם אין תמונות – אייקון ברירת מחדל
         if (!imageSet) {
-            holder.imgBusiness.setImageResource(R.drawable.ic_baseline_store_24);
+            holder.imgBusiness.setImageResource(android.R.drawable.ic_menu_gallery);
         }
 
-        // קליק על כרטיס – בהמשך נוסיף מסך פרטי עסק
+        // --- כאן השינוי: לחיצה על הכרטיס מעבירה לדף העסק המלא ---
         holder.itemView.setOnClickListener(v -> {
-            // TODO: Intent ל-BusinessDetailsActivity
+            Intent intent = new Intent(context, BusinessDetailsActivity.class);
+            intent.putExtra("BUSINESS_ID", currentBusiness.getBusinessId());
+            context.startActivity(intent);
         });
     }
 
@@ -83,7 +82,6 @@ public class BusinessAdapter extends RecyclerView.Adapter<BusinessAdapter.Busine
     }
 
     public static class BusinessViewHolder extends RecyclerView.ViewHolder {
-
         ImageView imgBusiness;
         TextView tvBusinessName;
         TextView tvBusinessType;

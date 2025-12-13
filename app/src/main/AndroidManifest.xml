@@ -19,8 +19,9 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
-
-
+        <activity
+            android:name=".BusinessDetailsActivity"
+            android:exported="false" />
         <activity
             android:name=".BrowseBusinessesActivity"
             android:exported="false" />
