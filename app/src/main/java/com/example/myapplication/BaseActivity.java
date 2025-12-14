@@ -60,6 +60,8 @@ public abstract class BaseActivity extends AppCompatActivity {
         MenuItem itemLogout = menu.findItem(R.id.action_logout);
         MenuItem itemSetProfile = menu.findItem(R.id.action_set_profile);
         MenuItem itemMyBusiness = menu.findItem(R.id.action_my_business);
+        MenuItem itemFavorites = menu.findItem(R.id.action_favorites);
+
 
         if (itemHome != null) {
             itemHome.setVisible(true); // דף הבית תמיד קיים
@@ -76,6 +78,11 @@ public abstract class BaseActivity extends AppCompatActivity {
         if (itemMyBusiness != null) {
             // "העסק שלי" יוצג רק לבעלי עסקים
             itemMyBusiness.setVisible(isBusiness);
+        }
+
+        // מציג את הכפתור רק אם המשתמש הוא לקוח (ולא בעל עסק או אורח)
+        if (itemFavorites != null) {
+            itemFavorites.setVisible(userHelper.isClient());
         }
     }
 
@@ -126,6 +133,12 @@ public abstract class BaseActivity extends AppCompatActivity {
 
         else if (id == R.id.action_login) {
             Intent intent = new Intent(this, LoginActivity.class);
+            startActivity(intent);
+            return true;
+        }
+
+        else if (id == R.id.action_favorites) {
+            Intent intent = new Intent(this, FavoritesActivity.class);
             startActivity(intent);
             return true;
         }

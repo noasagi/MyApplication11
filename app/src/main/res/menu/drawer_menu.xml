@@ -18,6 +18,13 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/action_favorites"
+        android:title="מועדפים"
+        android:icon="@android:drawable/btn_star"
+        android:visible="false"
+        app:showAsAction="never"/>
+
+    <item
         android:id="@+id/action_set_profile"
         android:title="עריכת פרופיל"
         android:visible="false"
