@@ -73,6 +73,23 @@
                     android:textStyle="bold"
                     android:textSize="16sp" />
 
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnWhatsApp"
+                    android:layout_width="match_parent"
+                    android:layout_height="60dp"
+                    android:layout_marginTop="24dp"
+                    android:layout_marginBottom="16dp"
+                    android:layout_marginHorizontal="32dp"
+                    android:text="שלח הודעה ב-WhatsApp"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    app:icon="@android:drawable/stat_sys_speakerphone"
+                    app:iconGravity="textStart"
+                    app:iconPadding="12dp"
+                    android:backgroundTint="#25D366"
+                    app:cornerRadius="30dp"
+                    android:elevation="6dp"/>
+
                 <TextView
                     android:id="@+id/tvDetailDescription"
                     android:layout_width="match_parent"
@@ -81,6 +98,32 @@
                     android:text="תיאור העסק..."
                     android:textSize="16sp"
                     android:lineSpacingExtra="4dp" />
+
+                <Button
+                    android:id="@+id/btnAddReview"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="דרג את העסק"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginHorizontal="32dp"
+                    android:backgroundTint="#A2ECF8"
+                    android:textColor="#FFFFFF"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="ביקורות אחרונות"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="24dp"
+                    android:layout_marginBottom="8dp"/>
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvReviewsList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"/>
             </LinearLayout>
 
             <View

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:background="@android:color/white">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="כתוב ביקורת"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp"
+            android:textColor="#333333"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="מקצועיות"
+            android:layout_marginTop="8dp"/>
+        <RatingBar
+            android:id="@+id/rbProfessionalism"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            style="?android:attr/ratingBarStyleIndicator"
+            android:numStars="5"
+            android:stepSize="1"
+            android:isIndicator="false"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="אמינות"
+            android:layout_marginTop="8dp"/>
+        <RatingBar
+            android:id="@+id/rbReliability"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            style="?android:attr/ratingBarStyleIndicator"
+            android:numStars="5"
+            android:stepSize="1"
+            android:isIndicator="false"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="מחיר הוגן"
+            android:layout_marginTop="8dp"/>
+        <RatingBar
+            android:id="@+id/rbPrice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            style="?android:attr/ratingBarStyleIndicator"
+            android:numStars="5"
+            android:stepSize="1"
+            android:isIndicator="false"/>
+
+        <EditText
+            android:id="@+id/etComment"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:hint="ספר על החוויה שלך..."
+            android:gravity="top"
+            android:background="@android:drawable/edit_text"
+            android:layout_marginTop="16dp"/>
+
+        <Button
+            android:id="@+id/btnSubmitReview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="פרסם ביקורת"
+            android:layout_marginTop="24dp"
+            android:backgroundTint="#000000"/>
+
+    </LinearLayout>
+</ScrollView>
