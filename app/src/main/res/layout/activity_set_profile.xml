@@ -6,14 +6,15 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#FAFAFA"
+    android:background="@color/backgroundColor"
     tools:context=".SetProfileActivity">
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorPrimary"
+        android:background="@color/colorPrimary"
+        app:titleTextColor="@android:color/white"
         android:theme="@style/ThemeOverlay.AppCompat.ActionBar"
         app:popupTheme="@style/ThemeOverlay.AppCompat.Light"/>
 
@@ -30,7 +31,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-
             <androidx.cardview.widget.CardView
                 android:layout_width="120dp"
                 android:layout_height="120dp"
@@ -38,7 +38,7 @@
                 android:layout_marginTop="24dp"
                 android:layout_marginBottom="16dp"
                 app:cardCornerRadius="60dp"
-                app:cardElevation="4dp">
+                app:cardElevation="8dp">
 
                 <ImageView
                     android:id="@+id/imgProfile"
@@ -46,7 +46,7 @@
                     android:layout_height="match_parent"
                     android:scaleType="centerCrop"
                     android:src="@android:drawable/ic_menu_camera"
-                    android:background="#E0E0E0"
+                    android:background="#EFEBE9"
                     android:clickable="true"
                     android:focusable="true"/>
 
@@ -57,16 +57,22 @@
                 android:layout_height="wrap_content"
                 android:text="לחץ להוספת תמונה"
                 android:layout_gravity="center_horizontal"
-                android:textColor="#757575"
-                android:textSize="12sp"
-                android:layout_marginBottom="16dp"/>
+                android:textColor="@color/colorAccent"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:layout_marginBottom="24dp"/>
+
             <EditText
                 android:id="@+id/eTName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="שם מלא"
                 android:padding="16dp"
+                android:textColor="@color/textColor"
+                android:textColorHint="#9E9E9E"
+                android:backgroundTint="@color/colorPrimary"
                 android:layout_marginTop="16dp"/>
+
             <EditText
                 android:id="@+id/eTBirthDate"
                 android:layout_width="match_parent"
@@ -75,6 +81,9 @@
                 android:focusable="false"
                 android:clickable="true"
                 android:padding="16dp"
+                android:textColor="@color/textColor"
+                android:textColorHint="#9E9E9E"
+                android:backgroundTint="@color/colorPrimary"
                 android:layout_marginTop="16dp"/>
 
             <EditText
@@ -83,6 +92,9 @@
                 android:layout_height="wrap_content"
                 android:hint="כתובת"
                 android:padding="16dp"
+                android:textColor="@color/textColor"
+                android:textColorHint="#9E9E9E"
+                android:backgroundTint="@color/colorPrimary"
                 android:layout_marginTop="16dp"/>
 
             <EditText
@@ -92,6 +104,9 @@
                 android:hint="טלפון"
                 android:inputType="phone"
                 android:padding="16dp"
+                android:textColor="@color/textColor"
+                android:textColorHint="#9E9E9E"
+                android:backgroundTint="@color/colorPrimary"
                 android:layout_marginTop="16dp"/>
 
             <Button
@@ -99,10 +114,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="שמור פרופיל"
-                android:backgroundTint="#3F51B5"
-                android:textColor="#FFFFFF"
-                android:layout_marginTop="24dp"
-                android:padding="16dp"/>
+                android:backgroundTint="@color/colorPrimary"
+                android:textColor="@android:color/white"
+                android:textStyle="bold"
+                android:layout_marginTop="32dp"
+                android:padding="16dp"
+                app:cornerRadius="24dp"/>
 
             <TextView
                 android:id="@+id/tVMsg"

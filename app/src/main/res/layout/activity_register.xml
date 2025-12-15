@@ -7,10 +7,9 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="24dp"
-    android:background="#FAFAFA"
+    android:background="@color/backgroundColor"
     tools:context=".RegisterActivity">
 
-    <!-- שדה קלט לאימייל -->
     <EditText
         android:id="@+id/eTEmail"
         android:layout_width="0dp"
@@ -18,17 +17,16 @@
         android:hint="הכנס אימייל"
         android:inputType="textEmailAddress"
         android:padding="16dp"
-        android:textColor="#212121"
-        android:textColorHint="#757575"
+        android:textColor="@color/textColor"
+        android:textColorHint="#9E9E9E"
         android:textSize="16sp"
-        android:background="@android:drawable/edit_text"
+        android:backgroundTint="@color/colorPrimary"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="100dp"
-        android:layout_marginHorizontal="32dp" />
+        android:layout_marginTop="80dp"
+        android:layout_marginHorizontal="16dp" />
 
-    <!-- שדה קלט לסיסמה -->
     <EditText
         android:id="@+id/eTPass"
         android:layout_width="0dp"
@@ -36,28 +34,28 @@
         android:hint="הכנס סיסמה"
         android:inputType="textPassword"
         android:padding="16dp"
-        android:textColor="#212121"
-        android:textColorHint="#757575"
+        android:textColor="@color/textColor"
+        android:textColorHint="#9E9E9E"
         android:textSize="16sp"
-        android:background="@android:drawable/edit_text"
+        android:backgroundTint="@color/colorPrimary"
         app:layout_constraintTop_toBottomOf="@id/eTEmail"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="16dp"
-        android:layout_marginHorizontal="32dp" />
+        android:layout_marginHorizontal="16dp" />
 
-    <!-- סוג המשתמש -->
     <TextView
         android:id="@+id/tVTypeTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="בחר סוג משתמש:"
-        android:textColor="#212121"
-        android:textSize="16sp"
+        android:textColor="@color/textColor"
+        android:textSize="18sp"
+        android:textStyle="bold"
         app:layout_constraintTop_toBottomOf="@id/eTPass"
         app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginTop="20dp"
-        android:layout_marginStart="32dp" />
+        android:layout_marginTop="32dp"
+        android:layout_marginStart="16dp" />
 
     <RadioGroup
         android:id="@+id/radioGroupType"
@@ -66,49 +64,52 @@
         app:layout_constraintTop_toBottomOf="@id/tVTypeTitle"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginHorizontal="32dp">
+        android:layout_marginTop="8dp"
+        android:layout_marginHorizontal="16dp">
 
         <RadioButton
             android:id="@+id/rbBusiness"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="בעל עסק" />
+            android:text="בעל עסק"
+            android:textColor="@color/textColor"
+            android:buttonTint="@color/colorAccent"
+            android:layout_marginBottom="8dp"/>
 
         <RadioButton
             android:id="@+id/rbClient"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="משתמש רגיל" />
+            android:text="משתמש רגיל"
+            android:textColor="@color/textColor"
+            android:buttonTint="@color/colorAccent"/>
 
     </RadioGroup>
 
-
-    <!-- לחצן לרישום משתמש -->
-
-    <!-- תיבת טקסט להודעת תוצאה -->
 
     <Button
         android:id="@+id/createUser"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="32dp"
-        android:layout_marginTop="148dp"
-        android:backgroundTint="#3F51B5"
-        android:clipToOutline="true"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="48dp"
+        android:backgroundTint="@color/colorPrimary"
         android:padding="16dp"
         android:text="צור משתמש"
         android:textColor="#FFFFFF"
         android:textSize="16sp"
+        android:textStyle="bold"
+        app:cornerRadius="24dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/eTPass" />
+        app:layout_constraintTop_toBottomOf="@id/radioGroupType" />
 
     <TextView
         android:id="@+id/tVMsg"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="32dp"
-        android:layout_marginTop="204dp"
+        android:layout_marginTop="24dp"
         android:gravity="center"
         android:text=""
         android:textColor="#D32F2F"

@@ -5,33 +5,30 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FAFAFA"
+    android:background="@color/backgroundColor"
     tools:context=".BrowseBusinessesActivity">
 
-    <!-- סרגל כלים עליון -->
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorPrimary"
+        android:background="@color/colorPrimary"
         android:elevation="4dp"
         android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- שורת חיפוש -->
     <androidx.appcompat.widget.SearchView
         android:id="@+id/searchView"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_margin="12dp"
-        android:background="@drawable/abc_popup_background_mtrl_mult"
+        android:background="@color/cardColor"
         app:iconifiedByDefault="false"
         app:queryHint="חפש לפי שם העסק..."
         app:layout_constraintTop_toBottomOf="@id/toolbar"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- סינון לפי קטגוריה -->
     <LinearLayout
         android:id="@+id/filterContainer"
         android:layout_width="match_parent"
@@ -45,6 +42,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="סנן לפי:"
+            android:textColor="@color/textColor"
             android:textStyle="bold"
             android:layout_marginStart="8dp"/>
 
@@ -55,7 +53,6 @@
             android:layout_marginStart="12dp"/>
     </LinearLayout>
 
-    <!-- רשימת העסקים -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvBusinesses"
         android:layout_width="0dp"
@@ -67,7 +64,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- הודעה כשהרשימה ריקה -->
     <TextView
         android:id="@+id/tvEmptyState"
         android:layout_width="wrap_content"
@@ -75,7 +71,7 @@
         android:text="לא נמצאו עסקים תואמים"
         android:visibility="gone"
         android:textSize="18sp"
-        android:textColor="#757575"
+        android:textColor="@color/colorPrimaryDark"
         app:layout_constraintTop_toTopOf="@id/rvBusinesses"
         app:layout_constraintBottom_toBottomOf="@id/rvBusinesses"
         app:layout_constraintStart_toStartOf="parent"

@@ -3,24 +3,26 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#F5F5F5"
-    android:padding="12dp">
+    android:background="@color/backgroundColor"
+    android:padding="16dp">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="המועדפים שלי"
-        android:textSize="24sp"
+        android:textSize="26sp"
         android:textStyle="bold"
-        android:textColor="@android:color/black"
+        android:textColor="@color/textColor"
         android:gravity="center"
-        android:layout_marginBottom="16dp"/>
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="24dp"/>
 
     <TextView
         android:id="@+id/tvEmptyState"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="אין עדיין עסקים במועדפים..."
+        android:textColor="#9E9E9E"
         android:gravity="center"
         android:textSize="18sp"
         android:visibility="gone"
