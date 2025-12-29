@@ -7,10 +7,10 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText; // הוספנו
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.RatingBar; // הוספנו
+import android.widget.RatingBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -36,6 +36,9 @@ public class BusinessDetailsActivity extends AppCompatActivity {
     private Button btnAddReview;
     private Button btnWhatsApp;
 
+    // כפתור קביעת תור
+    private Button btnBookAppointment;
+
     private FirebaseFirestore db;
     private FirebaseAuth auth;
 
@@ -43,9 +46,9 @@ public class BusinessDetailsActivity extends AppCompatActivity {
     private BusinessModel currentBusiness;
     private boolean isFavorite = false;
 
-    private RecyclerView rvReviews; // הוספה
-    private ReviewAdapter reviewAdapter; // הוספה
-    private List<ReviewModel> reviewsList; // הוספה
+    private RecyclerView rvReviews;
+    private ReviewAdapter reviewAdapter;
+    private List<ReviewModel> reviewsList;
 
     // משתנה לשמירת שם המשתמש הנוכחי (כדי שלא יהיה אנונימי)
     private String currentUserName = "אורח";
@@ -54,6 +57,7 @@ public class BusinessDetailsActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_business_details);
+
         // חיבור לרכיבים
         tvName = findViewById(R.id.tvDetailName);
         tvType = findViewById(R.id.tvDetailType);
@@ -65,6 +69,8 @@ public class BusinessDetailsActivity extends AppCompatActivity {
         btnAddReview = findViewById(R.id.btnAddReview);
         rvReviews = findViewById(R.id.rvReviewsList);
 
+        // מציאת הכפתור החדש
+        btnBookAppointment = findViewById(R.id.btnBookAppointment);
 
         // הגדרת הרשימה
         rvReviews.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(this));
@@ -75,11 +81,13 @@ public class BusinessDetailsActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
+        // קבלת ה-ID של העסק מהמסך הקודם
         currentBusinessId = getIntent().getStringExtra("BUSINESS_ID");
 
         if (currentBusinessId != null) {
             loadBusinessData(currentBusinessId);
             checkIfFavorite();
+            loadReviews(currentBusinessId);
         } else {
             Toast.makeText(this, "שגיאה בטעינת העסק", Toast.LENGTH_SHORT).show();
             finish();
@@ -88,14 +96,28 @@ public class BusinessDetailsActivity extends AppCompatActivity {
         // טעינת שם המשתמש הנוכחי (לצורך הביקורות)
         fetchCurrentUserName();
 
+        // מאזינים לכפתורים
         btnFavorite.setOnClickListener(v -> toggleFavorite());
 
-        if (currentBusinessId != null) {
-            loadReviews(currentBusinessId); // קריאה לפונקציה החדשה
-        }
+        // --- התיקון החשוב כאן: כפתור קביעת תור ---
+        btnBookAppointment.setOnClickListener(v -> {
+            if (currentBusinessId == null || currentBusinessId.isEmpty()) {
+                Toast.makeText(this, "אנא המתן לטעינת הנתונים...", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // יצירת מעבר למסך קביעת התור
+            Intent intent = new Intent(BusinessDetailsActivity.this, BookingActivity.class);
+
+            // שליחת המידע למסך הבא
+            intent.putExtra("businessId", currentBusinessId); // מעביר את ה-ID
+            intent.putExtra("businessName", tvName.getText().toString()); // מעביר את השם
+
+            startActivity(intent);
+        });
     }
 
-    // פונקציה חדשה: מביאה את השם של המשתמש מהדאטה בייס
+    // פונקציה שמביאה את השם של המשתמש מהדאטה בייס
     private void fetchCurrentUserName() {
         FirebaseUser user = auth.getCurrentUser();
         if (user != null) {
@@ -288,7 +310,6 @@ public class BusinessDetailsActivity extends AppCompatActivity {
             String reviewId = db.collection("reviews").document().getId();
             String userId = auth.getCurrentUser().getUid();
 
-            // כאן התיקון: שימוש במשתנה שכבר טענו למעלה
             String userName = currentUserName;
 
             ReviewModel newReview = new ReviewModel(
@@ -316,11 +337,10 @@ public class BusinessDetailsActivity extends AppCompatActivity {
         dialog.show();
     }
 
-
     private void loadReviews(String businessId) {
         db.collection("reviews")
-                .whereEqualTo("businessId", businessId) // רק ביקורות של העסק הזה
-                .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING) // מהחדש לישן
+                .whereEqualTo("businessId", businessId)
+                .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     reviewsList.clear();
@@ -330,7 +350,7 @@ public class BusinessDetailsActivity extends AppCompatActivity {
                             reviewsList.add(review);
                         }
                     }
-                    reviewAdapter.notifyDataSetChanged(); // רענון המסך
+                    reviewAdapter.notifyDataSetChanged();
                 })
                 .addOnFailureListener(e -> {
                     Toast.makeText(this, "שגיאה בטעינת ביקורות", Toast.LENGTH_SHORT).show();

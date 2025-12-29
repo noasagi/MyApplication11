@@ -20,6 +20,18 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
         <activity
+            android:name=".item_day_schedule"
+            android:exported="false" />
+        <activity
+            android:name=".BusinessHoursActivity"
+            android:exported="false" />
+        <activity
+            android:name=".BookingActivity"
+            android:exported="false" />
+        <activity
+            android:name=".BusinessScheduleSetupActivity"
+            android:exported="false" />
+        <activity
             android:name=".DialogAddReviewActivity"
             android:exported="false" />
         <activity

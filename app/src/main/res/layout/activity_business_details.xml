@@ -113,6 +113,19 @@
                 android:textStyle="bold"
                 app:cornerRadius="24dp"/>
 
+            <Button
+                android:id="@+id/btnBookAppointment"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="קבע תור לעסק זה 📅"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:backgroundTint="#6200EE"
+                android:textColor="#FFFFFF"
+                app:cornerRadius="24dp"
+                android:layout_marginTop="24dp"
+                android:layout_marginHorizontal="24dp"/>
+
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"

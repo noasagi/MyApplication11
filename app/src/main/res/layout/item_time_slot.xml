@@ -1,0 +1,21 @@
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cardSlot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="6dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="4dp">
+
+    <TextView
+        android:id="@+id/tvTimeSlot"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:padding="16dp"
+        android:text="10:00"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="@android:color/black"/>
+
+</androidx.cardview.widget.CardView>

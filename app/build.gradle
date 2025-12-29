@@ -55,6 +55,7 @@ dependencies {
 
     // ⭐ NEW – Firebase Storage (תיקון הבעיה אצלך)
     implementation 'com.google.firebase:firebase-storage:21.0.0'
+    implementation libs.firebase.database
 
     // Test libs
     testImplementation libs.junit

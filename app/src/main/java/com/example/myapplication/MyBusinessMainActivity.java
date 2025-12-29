@@ -50,6 +50,8 @@ public class MyBusinessMainActivity extends BaseActivity {
     private AutoCompleteTextView autoBusinessType;
 
     private FirebaseAuth auth;
+
+    private Button btnManageHours;
     private FirebaseFirestore firebaseFirestore;
 
     // רשימות תמונות
@@ -97,6 +99,19 @@ public class MyBusinessMainActivity extends BaseActivity {
         eTBusinessPhone = findViewById(R.id.eTBusinessPhone);
         eTBusinessDescription = findViewById(R.id.eTBusinessDescription);
         autoBusinessType = findViewById(R.id.autoBusinessType);
+        btnManageHours = findViewById(R.id.btnManageHours);
+
+
+        btnManageHours.setOnClickListener(v -> {
+            if (currentBusinessId != null) {
+                Intent intent = new Intent(MyBusinessMainActivity.this, BusinessHoursActivity.class);
+                intent.putExtra("BUSINESS_ID", currentBusinessId); // מעבירים את ה-ID
+                startActivity(intent);
+            } else {
+                Toast.makeText(this, "יש לשמור את העסק קודם", Toast.LENGTH_SHORT).show();
+            }
+        });
+
 
         // סוגי עסקים
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, getResources().getStringArray(R.array.business_types));

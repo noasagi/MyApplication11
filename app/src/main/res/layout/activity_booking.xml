@@ -1,0 +1,76 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:layoutDirection="rtl"
+    tools:context=".BookingActivity">
+
+    <TextView
+        android:id="@+id/tvBookingTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="קביעת תור"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_gravity="center"
+        android:layout_marginBottom="24dp"/>
+
+    <Button
+        android:id="@+id/btnPickDate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="בחר תאריך"
+        android:backgroundTint="#009688"
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:id="@+id/tvSelectedDate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="תאריך נבחר: --"
+        android:gravity="center"
+        android:textSize="18sp"
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="שעות פנויות:"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp"/>
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="gone"/>
+
+    <TextView
+        android:id="@+id/tvNoSlots"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="אין תורים פנויים לתאריך זה"
+        android:gravity="center"
+        android:visibility="gone"
+        android:textColor="@android:color/holo_red_dark"/>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvTimeSlots"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
+
+    <Button
+        android:id="@+id/btnConfirmBooking"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="אשר הזמנה"
+        android:backgroundTint="#6200EE"
+        android:enabled="false"
+        android:layout_marginTop="16dp"/>
+
+</LinearLayout>
