@@ -2,12 +2,12 @@ package com.example.myapplication;
 
 import android.Manifest;
 import android.app.ProgressDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.Build; // <--- הוספנו את זה לבדיקת גרסה
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.View;
@@ -32,7 +32,6 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.Blob;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QuerySnapshot;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
@@ -101,7 +100,6 @@ public class MyBusinessMainActivity extends BaseActivity {
         autoBusinessType = findViewById(R.id.autoBusinessType);
         btnManageHours = findViewById(R.id.btnManageHours);
 
-
         btnManageHours.setOnClickListener(v -> {
             if (currentBusinessId != null) {
                 Intent intent = new Intent(MyBusinessMainActivity.this, BusinessHoursActivity.class);
@@ -111,7 +109,6 @@ public class MyBusinessMainActivity extends BaseActivity {
                 Toast.makeText(this, "יש לשמור את העסק קודם", Toast.LENGTH_SHORT).show();
             }
         });
-
 
         // סוגי עסקים
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, getResources().getStringArray(R.array.business_types));
@@ -247,7 +244,16 @@ public class MyBusinessMainActivity extends BaseActivity {
                         .addOnSuccessListener(aVoid -> runOnUiThread(() -> {
                             pd.dismiss();
                             Toast.makeText(this, isEditMode ? "עודכן בהצלחה!" : "נוצר בהצלחה!", Toast.LENGTH_SHORT).show();
-                            finish();
+                            // לא סוגרים את המסך כדי לאפשר מעבר לשעות פעילות
+                            if(!isEditMode) {
+                                // אם זו הייתה יצירה, עכשיו זה הופך לעריכה
+                                isEditMode = true;
+                                currentBusinessId = businessIdToSave;
+                                btnManageHours.setVisibility(View.VISIBLE);
+                                btnDeleteBusiness.setVisibility(View.VISIBLE);
+                                tVTitle.setText("עריכת העסק שלי");
+                                btnSaveBusiness.setText("עדכן פרטים");
+                            }
                         }))
                         .addOnFailureListener(e -> runOnUiThread(() -> {
                             pd.dismiss();
@@ -356,9 +362,30 @@ public class MyBusinessMainActivity extends BaseActivity {
         previewContainer.addView(iv);
     }
 
-    // הרשאות
-    private boolean checkCameraPermission() { return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED; }
-    private void requestCameraPermission() { ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION); }
-    private boolean checkStoragePermission() { return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED; }
-    private void requestStoragePermission() { ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_STORAGE_PERMISSION); }
+    // --- הרשאות מתוקנות ---
+
+    private boolean checkCameraPermission() {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void requestCameraPermission() {
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
+    }
+
+    // תיקון קריטי: תמיכה באנדרואיד 13 ומעלה (TIRAMISU)
+    private boolean checkStoragePermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED;
+        } else {
+            return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+        }
+    }
+
+    private void requestStoragePermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_MEDIA_IMAGES}, REQUEST_STORAGE_PERMISSION);
+        } else {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_STORAGE_PERMISSION);
+        }
+    }
 }

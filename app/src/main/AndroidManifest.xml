@@ -20,6 +20,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
         <activity
+            android:name=".itemAppointmentRequest"
+            android:exported="false" />
+        <activity
+            android:name=".BusinessAppointmentsActivity"
+            android:exported="false" />
+        <activity
             android:name=".item_day_schedule"
             android:exported="false" />
         <activity

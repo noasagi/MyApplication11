@@ -23,6 +23,13 @@
         app:showAsAction="never"/>
 
     <item
+        android:id="@+id/action_appointments"
+        android:title="בקשות לתורים"
+        android:icon="@android:drawable/ic_menu_agenda"
+        android:visible="false"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_set_profile"
         android:title="עריכת פרופיל"
         android:visible="false"

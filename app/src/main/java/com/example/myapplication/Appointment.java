@@ -3,29 +3,50 @@ package com.example.myapplication;
 public class Appointment {
     private String appointmentId;
     private String businessId;
-    private String clientId;
-    private String clientName;
-    private String date; // Format: "dd-MM-yyyy"
-    private String time; // Format: "HH:mm"
+    private String userId;
+    private String userName;
+    private String date;
+    private String time;
     private String status; // "PENDING", "APPROVED", "REJECTED"
+    private long timestamp; // זמן במספר (מילישניות) למיון נוח
 
+    // בנאי ריק (חובה ל-Firebase)
     public Appointment() {}
 
-    public Appointment(String appointmentId, String businessId, String clientId, String clientName, String date, String time, String status) {
+    // --- הבנאי שהיה חסר לך (הוספנו אותו עכשיו) ---
+    public Appointment(String appointmentId, String businessId, String userId, String userName, String date, String time, String status, long timestamp) {
         this.appointmentId = appointmentId;
         this.businessId = businessId;
-        this.clientId = clientId;
-        this.clientName = clientName;
+        this.userId = userId;
+        this.userName = userName;
         this.date = date;
         this.time = time;
         this.status = status;
+        this.timestamp = timestamp;
     }
 
-    // Getters and Setters...
+    // Getters & Setters
     public String getAppointmentId() { return appointmentId; }
+    public void setAppointmentId(String appointmentId) { this.appointmentId = appointmentId; }
+
+    public String getBusinessId() { return businessId; }
+    public void setBusinessId(String businessId) { this.businessId = businessId; }
+
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
+
+    public String getUserName() { return userName; }
+    public void setUserName(String userName) { this.userName = userName; }
+
+    public String getDate() { return date; }
+    public void setDate(String date) { this.date = date; }
+
+    public String getTime() { return time; }
+    public void setTime(String time) { this.time = time; }
+
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
-    public String getTime() { return time; }
-    public String getDate() { return date; }
-    // ... תוסיפי את שאר ה-Getters וה-Setters לפי הצורך
+
+    public long getTimestamp() { return timestamp; }
+    public void setTimestamp(long timestamp) { this.timestamp = timestamp; }
 }

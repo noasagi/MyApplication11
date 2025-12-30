@@ -61,6 +61,7 @@ public abstract class BaseActivity extends AppCompatActivity {
         MenuItem itemSetProfile = menu.findItem(R.id.action_set_profile);
         MenuItem itemMyBusiness = menu.findItem(R.id.action_my_business);
         MenuItem itemFavorites = menu.findItem(R.id.action_favorites);
+        MenuItem itemAppointments = menu.findItem(R.id.action_appointments);
 
 
         if (itemHome != null) {
@@ -78,6 +79,10 @@ public abstract class BaseActivity extends AppCompatActivity {
         if (itemMyBusiness != null) {
             // "העסק שלי" יוצג רק לבעלי עסקים
             itemMyBusiness.setVisible(isBusiness);
+        }
+
+        if (itemMyBusiness != null) {
+            itemAppointments.setVisible(isBusiness);
         }
 
         // מציג את הכפתור רק אם המשתמש הוא לקוח (ולא בעל עסק או אורח)
@@ -111,6 +116,32 @@ public abstract class BaseActivity extends AppCompatActivity {
             Toast.makeText(this, "פותחת את ניהול העסק שלי", Toast.LENGTH_SHORT).show();
             Intent intent = new Intent(this, MyBusinessMainActivity.class);
             startActivity(intent);
+            return true;
+        }
+
+        else if (id == R.id.action_appointments) {
+            if (isBusiness) {
+                // משיכת ה-ID של המשתמש הנוכחי
+                String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+                // חיפוש העסק ששייך למשתמש הזה בפיירבייס
+                com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                        .collection("businesses")
+                        .whereEqualTo("userId", currentUserId) // וודאי שבפיירבייס שמרת את ה-ID תחת השם "userId"
+                        .get()
+                        .addOnSuccessListener(queryDocumentSnapshots -> {
+                            if (!queryDocumentSnapshots.isEmpty()) {
+                                // מצאנו את העסק, לוקחים את ה-ID שלו ופותחים את המסך
+                                String businessId = queryDocumentSnapshots.getDocuments().get(0).getId();
+
+                                Intent intent = new Intent(this, BusinessAppointmentsActivity.class);
+                                intent.putExtra("BUSINESS_ID", businessId);
+                                startActivity(intent);
+                            } else {
+                                Toast.makeText(this, "לא נמצא עסק מקושר", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+            }
             return true;
         }
 
