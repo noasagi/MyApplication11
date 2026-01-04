@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Date;
 
 public class BookingActivity extends AppCompatActivity {
 
@@ -196,16 +197,20 @@ public class BookingActivity extends AppCompatActivity {
 
         String appointmentId = db.collection("appointments").document().getId();
         String businessId = getIntent().getStringExtra("BUSINESS_ID");
+        String date = getIntent().getStringExtra("date");
+        String time = getIntent().getStringExtra("time");
 
+
+        // בתוך הפונקציה שיוצרת את התור ב-BookingActivity
         Appointment newAppointment = new Appointment(
-                appointmentId,      // ה-ID שיצרת
-                businessId,         // ID של העסק
-                userId,             // ID של המשתמש
-                userName,           // שם המשתמש
-                selectedDate,       // התאריך שנבחר (String)
-                selectedTime,       // השעה שנבחרה (String)
-                "PENDING",          // סטטוס התחלתי
-                System.currentTimeMillis() // <--- התיקון כאן: זמן יצירה כמספר
+                appointmentId,
+                businessId,
+                userId,
+                userName,
+                date,       // התאריך שנבחר
+                time,       // השעה שנבחרה
+                "PENDING",
+                new Date()  // <--- התיקון: זה יוצר אובייקט תאריך עם הזמן של עכשיו
         );
 
         db.collection("appointments").document(appointmentId).set(newAppointment)

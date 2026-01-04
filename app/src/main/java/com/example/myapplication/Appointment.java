@@ -1,5 +1,7 @@
 package com.example.myapplication;
 
+import java.util.Date; // <--- חשוב מאוד: לוודא שהשורה הזו קיימת!
+
 public class Appointment {
     private String appointmentId;
     private String businessId;
@@ -7,14 +9,15 @@ public class Appointment {
     private String userName;
     private String date;
     private String time;
-    private String status; // "PENDING", "APPROVED", "REJECTED"
-    private long timestamp; // זמן במספר (מילישניות) למיון נוח
+    private String status;
+
+    // ✅ התיקון: שינוי מ-long ל-Date כדי להתאים ל-Firestore
+    private Date timestamp;
 
     // בנאי ריק (חובה ל-Firebase)
     public Appointment() {}
 
-    // --- הבנאי שהיה חסר לך (הוספנו אותו עכשיו) ---
-    public Appointment(String appointmentId, String businessId, String userId, String userName, String date, String time, String status, long timestamp) {
+    public Appointment(String appointmentId, String businessId, String userId, String userName, String date, String time, String status, Date timestamp) {
         this.appointmentId = appointmentId;
         this.businessId = businessId;
         this.userId = userId;
@@ -47,6 +50,7 @@ public class Appointment {
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 
-    public long getTimestamp() { return timestamp; }
-    public void setTimestamp(long timestamp) { this.timestamp = timestamp; }
+    // ✅ גם כאן שינינו ל-Date
+    public Date getTimestamp() { return timestamp; }
+    public void setTimestamp(Date timestamp) { this.timestamp = timestamp; }
 }

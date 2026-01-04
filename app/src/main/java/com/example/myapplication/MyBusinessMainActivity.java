@@ -7,7 +7,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
-import android.os.Build; // <--- הוספנו את זה לבדיקת גרסה
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.View;
@@ -45,11 +45,12 @@ public class MyBusinessMainActivity extends BaseActivity {
     private LinearLayout previewContainer;
     private TextView tvNoImages, tVTitle;
     private Button btnChooseImage, btnTakePhoto, btnSaveBusiness, btnDeleteBusiness;
+    // הסרנו את כפתור התורים מכאן כי זה לא המקום שלו
+
     private EditText eTBusinessName, eTBusinessPhone, eTBusinessDescription;
     private AutoCompleteTextView autoBusinessType;
 
     private FirebaseAuth auth;
-
     private Button btnManageHours;
     private FirebaseFirestore firebaseFirestore;
 
@@ -94,16 +95,21 @@ public class MyBusinessMainActivity extends BaseActivity {
         btnTakePhoto = findViewById(R.id.btnTakePhoto);
         btnSaveBusiness = findViewById(R.id.btnSaveBusiness);
         btnDeleteBusiness = findViewById(R.id.btnDeleteBusiness);
+
         eTBusinessName = findViewById(R.id.eTBusinessName);
         eTBusinessPhone = findViewById(R.id.eTBusinessPhone);
         eTBusinessDescription = findViewById(R.id.eTBusinessDescription);
         autoBusinessType = findViewById(R.id.autoBusinessType);
         btnManageHours = findViewById(R.id.btnManageHours);
 
+        auth = FirebaseAuth.getInstance();
+        firebaseFirestore = FirebaseFirestore.getInstance();
+
+        // הגדרת כפתור שעות פעילות (זה כן חלק מהגדרות העסק)
         btnManageHours.setOnClickListener(v -> {
             if (currentBusinessId != null) {
                 Intent intent = new Intent(MyBusinessMainActivity.this, BusinessHoursActivity.class);
-                intent.putExtra("BUSINESS_ID", currentBusinessId); // מעבירים את ה-ID
+                intent.putExtra("BUSINESS_ID", currentBusinessId);
                 startActivity(intent);
             } else {
                 Toast.makeText(this, "יש לשמור את העסק קודם", Toast.LENGTH_SHORT).show();
@@ -114,9 +120,6 @@ public class MyBusinessMainActivity extends BaseActivity {
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, getResources().getStringArray(R.array.business_types));
         autoBusinessType.setAdapter(adapter);
         autoBusinessType.setOnClickListener(v -> autoBusinessType.showDropDown());
-
-        auth = FirebaseAuth.getInstance();
-        firebaseFirestore = FirebaseFirestore.getInstance();
 
         // בדיקה אוטומטית: האם למשתמש הזה כבר יש עסק?
         checkIfUserHasBusiness();
@@ -146,23 +149,22 @@ public class MyBusinessMainActivity extends BaseActivity {
         pd.setMessage("בודק נתונים...");
         pd.show();
 
-        // חיפוש עסק לפי ה-ID של בעל העסק (המשתמש המחובר)
         firebaseFirestore.collection("businesses")
                 .whereEqualTo("ownerId", user.getUid())
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     pd.dismiss();
                     if (!queryDocumentSnapshots.isEmpty()) {
-                        // נמצא עסק! עוברים למצב עריכה
                         DocumentSnapshot document = queryDocumentSnapshots.getDocuments().get(0);
                         BusinessModel business = document.toObject(BusinessModel.class);
                         if (business != null) {
                             switchToEditMode(business);
                         }
                     } else {
-                        // לא נמצא עסק - נשארים במצב יצירה
+                        // מצב יצירה
                         tVTitle.setText("יצירת עסק חדש");
                         btnDeleteBusiness.setVisibility(View.GONE);
+                        btnManageHours.setVisibility(View.GONE); // אין שעות לפני שיוצרים עסק
                     }
                 })
                 .addOnFailureListener(e -> {
@@ -175,10 +177,11 @@ public class MyBusinessMainActivity extends BaseActivity {
         isEditMode = true;
         currentBusinessId = business.getBusinessId();
 
-        // עדכון כותרות
+        // עדכון כותרות וכפתורים
         tVTitle.setText("עריכת העסק שלי");
         btnSaveBusiness.setText("עדכן פרטים");
-        btnDeleteBusiness.setVisibility(View.VISIBLE); // מציג את כפתור המחיקה
+        btnDeleteBusiness.setVisibility(View.VISIBLE);
+        btnManageHours.setVisibility(View.VISIBLE);
 
         // מילוי שדות
         eTBusinessName.setText(business.getName());
@@ -191,7 +194,7 @@ public class MyBusinessMainActivity extends BaseActivity {
             for (Blob blob : business.getImageBlobs()) {
                 byte[] bytes = blob.toBytes();
                 Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-                selectedCameraBitmaps.add(bitmap); // מוסיף לרשימת העריכה
+                selectedCameraBitmaps.add(bitmap);
             }
             refreshImagePreviews();
         }
@@ -215,14 +218,14 @@ public class MyBusinessMainActivity extends BaseActivity {
         pd.setMessage("אנא המתן");
         pd.show();
 
-        String businessIdToSave = isEditMode ? currentBusinessId : UUID.randomUUID().toString();
+        String businessIdToSave = (currentBusinessId != null) ? currentBusinessId : UUID.randomUUID().toString();
         String ownerId = auth.getCurrentUser().getUid();
 
         new Thread(() -> {
             try {
                 List<Blob> imageBlobs = processImages();
 
-                if (imageBlobs == null) { // תמונות גדולות מדי
+                if (imageBlobs == null) {
                     runOnUiThread(() -> {
                         pd.dismiss();
                         Toast.makeText(this, "התמונות כבדות מדי", Toast.LENGTH_SHORT).show();
@@ -244,20 +247,21 @@ public class MyBusinessMainActivity extends BaseActivity {
                         .addOnSuccessListener(aVoid -> runOnUiThread(() -> {
                             pd.dismiss();
                             Toast.makeText(this, isEditMode ? "עודכן בהצלחה!" : "נוצר בהצלחה!", Toast.LENGTH_SHORT).show();
-                            // לא סוגרים את המסך כדי לאפשר מעבר לשעות פעילות
-                            if(!isEditMode) {
-                                // אם זו הייתה יצירה, עכשיו זה הופך לעריכה
-                                isEditMode = true;
-                                currentBusinessId = businessIdToSave;
-                                btnManageHours.setVisibility(View.VISIBLE);
-                                btnDeleteBusiness.setVisibility(View.VISIBLE);
-                                tVTitle.setText("עריכת העסק שלי");
-                                btnSaveBusiness.setText("עדכן פרטים");
-                            }
+
+                            // עדכון המשתנים למצב עריכה
+                            isEditMode = true;
+                            currentBusinessId = businessIdToSave;
+
+                            // הצגת הכפתורים הרלוונטיים
+                            btnManageHours.setVisibility(View.VISIBLE);
+                            btnDeleteBusiness.setVisibility(View.VISIBLE);
+
+                            tVTitle.setText("עריכת העסק שלי");
+                            btnSaveBusiness.setText("עדכן פרטים");
                         }))
                         .addOnFailureListener(e -> runOnUiThread(() -> {
                             pd.dismiss();
-                            Toast.makeText(this, "שגיאה: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            Toast.makeText(this, "שגיאה בשמירה: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                         }));
 
             } catch (Exception e) {
@@ -289,12 +293,15 @@ public class MyBusinessMainActivity extends BaseActivity {
                     pd.dismiss();
                     Toast.makeText(this, "העסק נמחק", Toast.LENGTH_SHORT).show();
 
-                    // איפוס המסך למצב "יצירה"
                     isEditMode = false;
                     currentBusinessId = null;
                     tVTitle.setText("יצירת עסק חדש");
                     btnSaveBusiness.setText("שמור עסק");
+
+                    // הסתרת כפתורים
                     btnDeleteBusiness.setVisibility(View.GONE);
+                    btnManageHours.setVisibility(View.GONE);
+
                     eTBusinessName.setText("");
                     eTBusinessPhone.setText("");
                     eTBusinessDescription.setText("");
@@ -330,7 +337,7 @@ public class MyBusinessMainActivity extends BaseActivity {
             return new ArrayList<>();
         }
 
-        if (totalBytes > 950 * 1024) return null; // חריגה מ-1MB
+        if (totalBytes > 950 * 1024) return null;
         return imageBlobs;
     }
 
@@ -343,12 +350,15 @@ public class MyBusinessMainActivity extends BaseActivity {
 
     private void refreshImagePreviews() {
         previewContainer.removeAllViews();
+
         if (selectedImageUris.isEmpty() && selectedCameraBitmaps.isEmpty()) {
-            previewContainer.addView(tvNoImages);
-            return;
+            tvNoImages.setVisibility(View.VISIBLE);
+        } else {
+            tvNoImages.setVisibility(View.GONE);
+
+            for (Uri uri : selectedImageUris) addPreview(uri, null);
+            for (Bitmap bmp : selectedCameraBitmaps) addPreview(null, bmp);
         }
-        for (Uri uri : selectedImageUris) addPreview(uri, null);
-        for (Bitmap bmp : selectedCameraBitmaps) addPreview(null, bmp);
     }
 
     private void addPreview(Uri uri, Bitmap bitmap) {
@@ -362,8 +372,7 @@ public class MyBusinessMainActivity extends BaseActivity {
         previewContainer.addView(iv);
     }
 
-    // --- הרשאות מתוקנות ---
-
+    // --- הרשאות ---
     private boolean checkCameraPermission() {
         return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
     }
@@ -372,7 +381,6 @@ public class MyBusinessMainActivity extends BaseActivity {
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
     }
 
-    // תיקון קריטי: תמיכה באנדרואיד 13 ומעלה (TIRAMISU)
     private boolean checkStoragePermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED;

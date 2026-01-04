@@ -127,12 +127,14 @@ public abstract class BaseActivity extends AppCompatActivity {
                 // חיפוש העסק ששייך למשתמש הזה בפיירבייס
                 com.google.firebase.firestore.FirebaseFirestore.getInstance()
                         .collection("businesses")
-                        .whereEqualTo("userId", currentUserId) // וודאי שבפיירבייס שמרת את ה-ID תחת השם "userId"
+                        // ✅ תיקון: שינינו מ-userId ל-ownerId
+                        .whereEqualTo("ownerId", currentUserId)
                         .get()
                         .addOnSuccessListener(queryDocumentSnapshots -> {
                             if (!queryDocumentSnapshots.isEmpty()) {
-                                // מצאנו את העסק, לוקחים את ה-ID שלו ופותחים את המסך
-                                String businessId = queryDocumentSnapshots.getDocuments().get(0).getId();
+                                // מצאנו את העסק!
+                                // אנחנו לוקחים את השדה businessId מתוך המסמך ליתר ביטחון
+                                String businessId = queryDocumentSnapshots.getDocuments().get(0).getString("businessId");
 
                                 Intent intent = new Intent(this, BusinessAppointmentsActivity.class);
                                 intent.putExtra("BUSINESS_ID", businessId);
@@ -140,6 +142,9 @@ public abstract class BaseActivity extends AppCompatActivity {
                             } else {
                                 Toast.makeText(this, "לא נמצא עסק מקושר", Toast.LENGTH_SHORT).show();
                             }
+                        })
+                        .addOnFailureListener(e -> {
+                            Toast.makeText(this, "שגיאה בחיבור: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                         });
             }
             return true;
