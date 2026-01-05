@@ -13,8 +13,6 @@ import com.google.firebase.auth.FirebaseAuth;
 public abstract class BaseActivity extends AppCompatActivity {
 
     protected UserHelper userHelper;
-
-    // האם מופעל חץ חזרה (Up Button) – כדי לא להציג תפריט עם 3 נקודות
     private boolean isUpButtonEnabled = false;
 
     @Override
@@ -25,18 +23,12 @@ public abstract class BaseActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * הגדרת Toolbar רגיל (ללא חץ חזרה)
-     */
     protected void setupToolbar(Toolbar toolbar) {
         if (toolbar != null) {
             setSupportActionBar(toolbar);
         }
     }
 
-    /**
-     * Toolbar לדפים משניים עם חץ חזרה (ללא תפריט 3 נקודות)
-     */
     protected void setupSecondaryToolbar(Toolbar toolbar, boolean showBackButton) {
         setupToolbar(toolbar);
 
@@ -47,9 +39,6 @@ public abstract class BaseActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * סינון פריטי תפריט (גם לתפריט העליון וגם ל-Drawer)
-     */
     public void filterMenuItems(Menu menu) {
         if (userHelper == null) userHelper = new UserHelper(this);
         boolean isBusiness = userHelper.isBusinessOwner();
@@ -63,79 +52,59 @@ public abstract class BaseActivity extends AppCompatActivity {
         MenuItem itemFavorites = menu.findItem(R.id.action_favorites);
         MenuItem itemAppointments = menu.findItem(R.id.action_appointments);
 
+        if (itemHome != null) itemHome.setVisible(true);
+        if (itemLogin != null) itemLogin.setVisible(isGuest);
+        if (itemLogout != null) itemLogout.setVisible(!isGuest);
+        if (itemSetProfile != null) itemSetProfile.setVisible(!isGuest);
 
-        if (itemHome != null) {
-            itemHome.setVisible(true); // דף הבית תמיד קיים
-        }
-        if (itemLogin != null) {
-            itemLogin.setVisible(isGuest);
-        }
-        if (itemLogout != null) {
-            itemLogout.setVisible(!isGuest);
-        }
-        if (itemSetProfile != null) {
-            itemSetProfile.setVisible(!isGuest);
-        }
         if (itemMyBusiness != null) {
             // "העסק שלי" יוצג רק לבעלי עסקים
             itemMyBusiness.setVisible(isBusiness);
         }
 
-        if (itemMyBusiness != null) {
-            itemAppointments.setVisible(isBusiness);
+        // --- שינוי 1: הצגת כפתור התורים ---
+        if (itemAppointments != null) {
+            // כפתור התורים יוצג לכל מי שהוא לא אורח (גם עסק וגם לקוח צריכים אותו)
+            itemAppointments.setVisible(!isGuest);
         }
 
-        // מציג את הכפתור רק אם המשתמש הוא לקוח (ולא בעל עסק או אורח)
         if (itemFavorites != null) {
             itemFavorites.setVisible(userHelper.isClient());
         }
     }
 
-    /**
-     * ניווט כללי בפריטי תפריט (גם Drawer וגם תפריט עליון)
-     */
     public boolean handleNavigationItemSelection(MenuItem item) {
         int id = item.getItemId();
         if (userHelper == null) userHelper = new UserHelper(this);
         boolean isBusiness = userHelper.isBusinessOwner();
 
         if (id == R.id.action_home) {
-            // דף הבית – לבעל עסק: BusinessMainActivity, ללקוח: ClientMainActivity
             if (isBusiness) {
-                Intent intent = new Intent(this, BusinessMainActivity.class);
-                startActivity(intent);
+                startActivity(new Intent(this, BusinessMainActivity.class));
             } else {
-                Intent intent = new Intent(this, ClientMainActivity.class);
-                startActivity(intent);
+                startActivity(new Intent(this, ClientMainActivity.class));
             }
             return true;
         }
 
         else if (id == R.id.action_my_business) {
-            // ניהול העסק שלי – מגיע תמיד ל-MyBusinessMainActivity
             Toast.makeText(this, "פותחת את ניהול העסק שלי", Toast.LENGTH_SHORT).show();
-            Intent intent = new Intent(this, MyBusinessMainActivity.class);
-            startActivity(intent);
+            startActivity(new Intent(this, MyBusinessMainActivity.class));
             return true;
         }
 
+        // --- שינוי 2: ניווט חכם בכפתור התורים ---
         else if (id == R.id.action_appointments) {
             if (isBusiness) {
-                // משיכת ה-ID של המשתמש הנוכחי
+                // לוגיקה של בעל עסק (נשאר כמו שהיה)
                 String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-
-                // חיפוש העסק ששייך למשתמש הזה בפיירבייס
                 com.google.firebase.firestore.FirebaseFirestore.getInstance()
                         .collection("businesses")
-                        // ✅ תיקון: שינינו מ-userId ל-ownerId
                         .whereEqualTo("ownerId", currentUserId)
                         .get()
                         .addOnSuccessListener(queryDocumentSnapshots -> {
                             if (!queryDocumentSnapshots.isEmpty()) {
-                                // מצאנו את העסק!
-                                // אנחנו לוקחים את השדה businessId מתוך המסמך ליתר ביטחון
                                 String businessId = queryDocumentSnapshots.getDocuments().get(0).getString("businessId");
-
                                 Intent intent = new Intent(this, BusinessAppointmentsActivity.class);
                                 intent.putExtra("BUSINESS_ID", businessId);
                                 startActivity(intent);
@@ -143,20 +112,20 @@ public abstract class BaseActivity extends AppCompatActivity {
                                 Toast.makeText(this, "לא נמצא עסק מקושר", Toast.LENGTH_SHORT).show();
                             }
                         })
-                        .addOnFailureListener(e -> {
-                            Toast.makeText(this, "שגיאה בחיבור: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                        });
+                        .addOnFailureListener(e -> Toast.makeText(this, "שגיאה בחיבור", Toast.LENGTH_SHORT).show());
+            } else {
+                // לוגיקה של לקוח - פתיחת העמוד החדש
+                Intent intent = new Intent(this, MyAppointmentsActivity.class);
+                startActivity(intent);
             }
             return true;
         }
 
         else if (id == R.id.action_logout) {
-            // התנתקות
             FirebaseAuth.getInstance().signOut();
             userHelper.logout();
             Toast.makeText(this, "התנתקת בהצלחה", Toast.LENGTH_SHORT).show();
 
-            // ריענון תפריט רק אם זה לא מסך עם Drawer
             if (!(this instanceof DrawerBaseActivity)) {
                 invalidateOptionsMenu();
             }
@@ -168,33 +137,22 @@ public abstract class BaseActivity extends AppCompatActivity {
         }
 
         else if (id == R.id.action_login) {
-            Intent intent = new Intent(this, LoginActivity.class);
-            startActivity(intent);
+            startActivity(new Intent(this, LoginActivity.class));
             return true;
         }
 
         else if (id == R.id.action_favorites) {
-            Intent intent = new Intent(this, FavoritesActivity.class);
-            startActivity(intent);
+            startActivity(new Intent(this, FavoritesActivity.class));
             return true;
         }
 
-        // פעולות שלא טופלו כאן
         return false;
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // למסכים עם Drawer אין תפריט עליון (3 נקודות)
-        if (this instanceof DrawerBaseActivity) {
-            return false;
-        }
-
-        // למסכים עם חץ חזרה – לא מציגים 3 נקודות
-        if (isUpButtonEnabled) {
-            return false;
-        }
-
+        if (this instanceof DrawerBaseActivity) return false;
+        if (isUpButtonEnabled) return false;
         getMenuInflater().inflate(R.menu.main_menu, menu);
         return true;
     }
@@ -208,13 +166,10 @@ public abstract class BaseActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-
-        // טיפול בלחיצה על חץ חזרה ב-Toolbar
         if (id == android.R.id.home) {
             onBackPressed();
             return true;
         }
-
         if (handleNavigationItemSelection(item)) {
             return true;
         }

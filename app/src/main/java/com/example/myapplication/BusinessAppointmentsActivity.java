@@ -78,7 +78,7 @@ public class BusinessAppointmentsActivity extends AppCompatActivity {
     private void loadAppointments() {
         db.collection("appointments")
                 .whereEqualTo("businessId", businessId)
-                .orderBy("timestamp", Query.Direction.DESCENDING) // וודא שיש לך אינדקס ב-Firebase אם זה קורס
+               .orderBy("timestamp", Query.Direction.DESCENDING) // וודא שיש לך אינדקס ב-Firebase אם זה קורס
                 .addSnapshotListener((value, error) -> {
                     if (error != null) {
                         // לפעמים קורס אם אין אינדקס, נסה להסיר את ה-orderBy אם יש בעיה

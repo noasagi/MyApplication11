@@ -56,9 +56,12 @@ dependencies {
     // ⭐ NEW – Firebase Storage (תיקון הבעיה אצלך)
     implementation 'com.google.firebase:firebase-storage:21.0.0'
     implementation libs.firebase.database
+    implementation libs.recyclerview
 
     // Test libs
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
+
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
 }

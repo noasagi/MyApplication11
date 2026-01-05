@@ -20,6 +20,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
         <activity
+            android:name=".MyAppointmentsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".itemUserAppointment"
+            android:exported="false" />
+        <activity
             android:name=".itemAppointmentRequest"
             android:exported="false" />
         <activity
