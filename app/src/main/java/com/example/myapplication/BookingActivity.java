@@ -192,25 +192,61 @@ public class BookingActivity extends AppCompatActivity {
             return;
         }
 
+        // בדיקה שהמשתמש אכן בחר שעה ותאריך
+        if (selectedDate.isEmpty() || selectedTime.isEmpty()) {
+            Toast.makeText(this, "נא לבחור תאריך ושעה", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // הכנה לשמירה
+        btnConfirmBooking.setEnabled(false); // למנוע לחיצה כפולה
         String userId = auth.getCurrentUser().getUid();
-        String userName = (auth.getCurrentUser().getDisplayName() != null) ? auth.getCurrentUser().getDisplayName() : "לקוח";
 
+        // שלב 1: משיכת השם של המשתמש מתוך טבלת users
+        db.collection("users").document(userId).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    String userName = "לקוח"; // ברירת מחדל
+
+                    if (documentSnapshot.exists()) {
+                        // נסי למשוך את השם לפי איך שקראת לו ב-users (name, fullName, username...)
+                        if (documentSnapshot.getString("name") != null) {
+                            userName = documentSnapshot.getString("name");
+                        } else if (documentSnapshot.getString("fullName") != null) {
+                            userName = documentSnapshot.getString("fullName");
+                        } else {
+                            // אם אין שם, נשתמש במייל
+                            String email = auth.getCurrentUser().getEmail();
+                            if (email != null) userName = email;
+                        }
+                    }
+
+                    // שלב 2: יצירת התור ושמירתו (עכשיו שיש לנו שם)
+                    finalizeBooking(userId, userName);
+                })
+                .addOnFailureListener(e -> {
+                    // במקרה של שגיאה במשיכת השם, נשתמש במייל או שם כללי
+                    String fallbackName = auth.getCurrentUser().getEmail();
+                    if (fallbackName == null) fallbackName = "לקוח אורח";
+                    finalizeBooking(userId, fallbackName);
+                });
+    }
+
+    // פונקציית עזר לשמירה הסופית (כדי לא לכתוב את הקוד פעמיים)
+    private void finalizeBooking(String userId, String userName) {
         String appointmentId = db.collection("appointments").document().getId();
-        String businessId = getIntent().getStringExtra("BUSINESS_ID");
-        String date = getIntent().getStringExtra("date");
-        String time = getIntent().getStringExtra("time");
+        String businessId = currentBusinessId; // משתמש במשתנה הגלובלי שהגדרנו ב-onCreate
+        String date = selectedDate;
+        String time = selectedTime;
 
-
-        // בתוך הפונקציה שיוצרת את התור ב-BookingActivity
         Appointment newAppointment = new Appointment(
                 appointmentId,
                 businessId,
                 userId,
-                userName,
-                date,       // התאריך שנבחר
-                time,       // השעה שנבחרה
+                userName, // <--- עכשיו השם הזה יהיה מלא
+                date,
+                time,
                 "PENDING",
-                new Date()  // <--- התיקון: זה יוצר אובייקט תאריך עם הזמן של עכשיו
+                new Date()
         );
 
         db.collection("appointments").document(appointmentId).set(newAppointment)
@@ -218,7 +254,10 @@ public class BookingActivity extends AppCompatActivity {
                     Toast.makeText(this, "בקשתך נשלחה לבעל העסק!", Toast.LENGTH_LONG).show();
                     finish();
                 })
-                .addOnFailureListener(e -> Toast.makeText(this, "שגיאה בשליחת הבקשה", Toast.LENGTH_SHORT).show());
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "שגיאה בשליחת הבקשה", Toast.LENGTH_SHORT).show();
+                    btnConfirmBooking.setEnabled(true); // נאפשר לנסות שוב
+                });
     }
 
     private int convertTimeToMinutes(String time) {
@@ -237,6 +276,7 @@ public class BookingActivity extends AppCompatActivity {
     }
 
     private String getHebrewDayName(int dayOfWeek) {
+        // התיקון: חזרנו לעברית כדי להתאים למה ששמור בפיירבייס (כפי שראינו בתמונה)
         switch (dayOfWeek) {
             case Calendar.SUNDAY: return "יום ראשון";
             case Calendar.MONDAY: return "יום שני";
@@ -244,6 +284,7 @@ public class BookingActivity extends AppCompatActivity {
             case Calendar.WEDNESDAY: return "יום רביעי";
             case Calendar.THURSDAY: return "יום חמישי";
             case Calendar.FRIDAY: return "יום שישי";
+            case Calendar.SATURDAY: return "יום שבת";
             default: return "יום ראשון";
         }
     }
