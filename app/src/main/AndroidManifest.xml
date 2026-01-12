@@ -20,6 +20,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
         <activity
+            android:name=".BusinessBlockSlotsActivity"
+            android:exported="false" />
+        <activity
             android:name=".MyAppointmentsActivity"
             android:exported="false" />
         <activity

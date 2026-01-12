@@ -1,6 +1,7 @@
 package com.example.myapplication;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -14,7 +15,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.firebase.Timestamp;
+import com.google.android.material.textfield.TextInputEditText; // ייבוא חדש
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -33,13 +34,16 @@ public class BookingActivity extends AppCompatActivity {
     private RecyclerView rvTimeSlots;
     private Button btnPickDate, btnConfirmBooking;
 
+    // *** חדש: משתנה לתיבת הטקסט ***
+    private TextInputEditText etDescription;
+
     private String selectedDate = "";
     private String selectedTime = "";
     private TimeSlotAdapter adapter;
     private List<String> timeSlotsList;
 
     private String currentBusinessId;
-    private String currentBusinessName;
+    private String currentBusinessName = "";
     private FirebaseFirestore db;
     private FirebaseAuth auth;
 
@@ -60,16 +64,20 @@ public class BookingActivity extends AppCompatActivity {
             return;
         }
 
+        if (currentBusinessName == null || currentBusinessName.isEmpty()) {
+            fetchBusinessNameFromDB();
+        }
+
         tvSelectedDate = findViewById(R.id.tvSelectedDate);
         tvNoSlots = findViewById(R.id.tvNoSlots);
         rvTimeSlots = findViewById(R.id.rvTimeSlots);
         btnPickDate = findViewById(R.id.btnPickDate);
         btnConfirmBooking = findViewById(R.id.btnConfirmBooking);
 
-        if (getSupportActionBar() != null) {
-            String title = (currentBusinessName != null) ? currentBusinessName : "הזמנת תור";
-            getSupportActionBar().setTitle("הזמנת תור ל" + title);
-        }
+        // *** חדש: חיבור ה-View ***
+        etDescription = findViewById(R.id.etDescription);
+
+        updateTitle();
 
         rvTimeSlots.setLayoutManager(new GridLayoutManager(this, 3));
         timeSlotsList = new ArrayList<>();
@@ -79,6 +87,23 @@ public class BookingActivity extends AppCompatActivity {
         btnPickDate.setOnClickListener(v -> showDatePicker());
 
         btnConfirmBooking.setOnClickListener(v -> saveAppointmentRequest());
+    }
+
+    private void updateTitle() {
+        if (getSupportActionBar() != null) {
+            String title = (currentBusinessName != null && !currentBusinessName.isEmpty()) ? currentBusinessName : "הזמנת תור";
+            getSupportActionBar().setTitle("הזמנת תור ל" + title);
+        }
+    }
+
+    private void fetchBusinessNameFromDB() {
+        db.collection("businesses").document(currentBusinessId).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        currentBusinessName = documentSnapshot.getString("businessName");
+                        updateTitle();
+                    }
+                });
     }
 
     private void showDatePicker() {
@@ -150,10 +175,8 @@ public class BookingActivity extends AppCompatActivity {
                 .addOnSuccessListener(querySnapshot -> {
                     Set<String> bookedTimes = new HashSet<>();
                     for (QueryDocumentSnapshot doc : querySnapshot) {
-                        // תיקון: שימוש ב-Appointment
                         Appointment app = doc.toObject(Appointment.class);
-
-                        if (!app.getStatus().equals("REJECTED")) {
+                        if (app.getStatus() != null && !app.getStatus().equals("REJECTED")) {
                             bookedTimes.add(app.getTime());
                         }
                     }
@@ -192,62 +215,57 @@ public class BookingActivity extends AppCompatActivity {
             return;
         }
 
-        // בדיקה שהמשתמש אכן בחר שעה ותאריך
         if (selectedDate.isEmpty() || selectedTime.isEmpty()) {
             Toast.makeText(this, "נא לבחור תאריך ושעה", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // הכנה לשמירה
-        btnConfirmBooking.setEnabled(false); // למנוע לחיצה כפולה
+        btnConfirmBooking.setEnabled(false);
         String userId = auth.getCurrentUser().getUid();
 
-        // שלב 1: משיכת השם של המשתמש מתוך טבלת users
         db.collection("users").document(userId).get()
                 .addOnSuccessListener(documentSnapshot -> {
-                    String userName = "לקוח"; // ברירת מחדל
-
+                    String userName = "לקוח";
                     if (documentSnapshot.exists()) {
-                        // נסי למשוך את השם לפי איך שקראת לו ב-users (name, fullName, username...)
                         if (documentSnapshot.getString("name") != null) {
                             userName = documentSnapshot.getString("name");
                         } else if (documentSnapshot.getString("fullName") != null) {
                             userName = documentSnapshot.getString("fullName");
                         } else {
-                            // אם אין שם, נשתמש במייל
                             String email = auth.getCurrentUser().getEmail();
                             if (email != null) userName = email;
                         }
                     }
-
-                    // שלב 2: יצירת התור ושמירתו (עכשיו שיש לנו שם)
                     finalizeBooking(userId, userName);
                 })
                 .addOnFailureListener(e -> {
-                    // במקרה של שגיאה במשיכת השם, נשתמש במייל או שם כללי
                     String fallbackName = auth.getCurrentUser().getEmail();
                     if (fallbackName == null) fallbackName = "לקוח אורח";
                     finalizeBooking(userId, fallbackName);
                 });
     }
 
-    // פונקציית עזר לשמירה הסופית (כדי לא לכתוב את הקוד פעמיים)
     private void finalizeBooking(String userId, String userName) {
         String appointmentId = db.collection("appointments").document().getId();
-        String businessId = currentBusinessId; // משתמש במשתנה הגלובלי שהגדרנו ב-onCreate
-        String date = selectedDate;
-        String time = selectedTime;
 
-        Appointment newAppointment = new Appointment(
-                appointmentId,
-                businessId,
-                userId,
-                userName, // <--- עכשיו השם הזה יהיה מלא
-                date,
-                time,
-                "PENDING",
-                new Date()
-        );
+        // *** חדש: קבלת התיאור מהשדה ***
+        String userDescription = etDescription.getText().toString().trim();
+        if (userDescription.isEmpty()) {
+            userDescription = "ללא תיאור";
+        }
+
+        Appointment newAppointment = new Appointment();
+        newAppointment.setAppointmentId(appointmentId);
+        newAppointment.setBusinessId(currentBusinessId);
+        newAppointment.setBusinessName(currentBusinessName);
+        newAppointment.setUserId(userId);
+        newAppointment.setUserName(userName);
+        newAppointment.setDate(selectedDate);
+        newAppointment.setTime(selectedTime);
+        newAppointment.setStatus("PENDING");
+        newAppointment.setTimestamp(new Date().getTime());
+        // *** חדש: שמירת התיאור ***
+        newAppointment.setDescription(userDescription);
 
         db.collection("appointments").document(appointmentId).set(newAppointment)
                 .addOnSuccessListener(aVoid -> {
@@ -256,13 +274,17 @@ public class BookingActivity extends AppCompatActivity {
                 })
                 .addOnFailureListener(e -> {
                     Toast.makeText(this, "שגיאה בשליחת הבקשה", Toast.LENGTH_SHORT).show();
-                    btnConfirmBooking.setEnabled(true); // נאפשר לנסות שוב
+                    btnConfirmBooking.setEnabled(true);
                 });
     }
 
     private int convertTimeToMinutes(String time) {
-        String[] parts = time.split(":");
-        return Integer.parseInt(parts[0]) * 60 + Integer.parseInt(parts[1]);
+        try {
+            String[] parts = time.split(":");
+            return Integer.parseInt(parts[0]) * 60 + Integer.parseInt(parts[1]);
+        } catch (Exception e) {
+            return 0;
+        }
     }
 
     private String convertMinutesToTime(int totalMinutes) {
@@ -276,7 +298,6 @@ public class BookingActivity extends AppCompatActivity {
     }
 
     private String getHebrewDayName(int dayOfWeek) {
-        // התיקון: חזרנו לעברית כדי להתאים למה ששמור בפיירבייס (כפי שראינו בתמונה)
         switch (dayOfWeek) {
             case Calendar.SUNDAY: return "יום ראשון";
             case Calendar.MONDAY: return "יום שני";
@@ -289,6 +310,7 @@ public class BookingActivity extends AppCompatActivity {
         }
     }
 
+    // --- Adapter ---
     class TimeSlotAdapter extends RecyclerView.Adapter<TimeSlotAdapter.ViewHolder> {
         private List<String> slots;
         private int selectedPosition = -1;
@@ -327,7 +349,7 @@ public class BookingActivity extends AppCompatActivity {
 
         public class ViewHolder extends RecyclerView.ViewHolder {
             TextView tvTime;
-            androidx.cardview.widget.CardView cardView;
+            CardView cardView;
             public ViewHolder(View itemView) {
                 super(itemView);
                 tvTime = itemView.findViewById(R.id.tvTimeSlot);

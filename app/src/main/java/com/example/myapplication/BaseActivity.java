@@ -52,20 +52,25 @@ public abstract class BaseActivity extends AppCompatActivity {
         MenuItem itemFavorites = menu.findItem(R.id.action_favorites);
         MenuItem itemAppointments = menu.findItem(R.id.action_appointments);
 
+        // --- חדש: כפתור לניהול יומן/חסימות ---
+        MenuItem itemBlockSlots = menu.findItem(R.id.action_block_slots);
+
         if (itemHome != null) itemHome.setVisible(true);
         if (itemLogin != null) itemLogin.setVisible(isGuest);
         if (itemLogout != null) itemLogout.setVisible(!isGuest);
         if (itemSetProfile != null) itemSetProfile.setVisible(!isGuest);
 
         if (itemMyBusiness != null) {
-            // "העסק שלי" יוצג רק לבעלי עסקים
             itemMyBusiness.setVisible(isBusiness);
         }
 
-        // --- שינוי 1: הצגת כפתור התורים ---
         if (itemAppointments != null) {
-            // כפתור התורים יוצג לכל מי שהוא לא אורח (גם עסק וגם לקוח צריכים אותו)
             itemAppointments.setVisible(!isGuest);
+        }
+
+        // --- לוגיקה חדשה: הצגת ניהול יומן רק לבעל עסק ---
+        if (itemBlockSlots != null) {
+            itemBlockSlots.setVisible(isBusiness);
         }
 
         if (itemFavorites != null) {
@@ -93,10 +98,14 @@ public abstract class BaseActivity extends AppCompatActivity {
             return true;
         }
 
-        // --- שינוי 2: ניווט חכם בכפתור התורים ---
+        // --- חדש: ניווט לדף חסימת שעות ---
+        else if (id == R.id.action_block_slots) {
+            startActivity(new Intent(this, BusinessBlockSlotsActivity.class));
+            return true;
+        }
+
         else if (id == R.id.action_appointments) {
             if (isBusiness) {
-                // לוגיקה של בעל עסק (נשאר כמו שהיה)
                 String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
                 com.google.firebase.firestore.FirebaseFirestore.getInstance()
                         .collection("businesses")
@@ -114,7 +123,6 @@ public abstract class BaseActivity extends AppCompatActivity {
                         })
                         .addOnFailureListener(e -> Toast.makeText(this, "שגיאה בחיבור", Toast.LENGTH_SHORT).show());
             } else {
-                // לוגיקה של לקוח - פתיחת העמוד החדש
                 Intent intent = new Intent(this, MyAppointmentsActivity.class);
                 startActivity(intent);
             }

@@ -89,25 +89,44 @@ public class MyAppointmentsActivity extends AppCompatActivity {
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             Appointment app = appointments.get(position);
 
-            // כאן נצטרך בהמשך לשלוף את שם העסק לפי businessId, אבל בינתיים נציג תאריך
-            holder.tvBusinessName.setText("תור לעסק");
+            // הגדרת תאריך ושעה
             holder.tvDateTime.setText(app.getDate() + " | " + app.getTime());
 
-            // --- הלוגיקה של הצבעים לפי הסטטוס ---
-            String status = app.getStatus() != null ? app.getStatus() : "PENDING";
+            // --- טיפול בשם העסק ---
+            if (app.getBusinessName() != null && !app.getBusinessName().isEmpty()) {
+                // אופציה א': השם כבר שמור בתוך התור (הכי מהיר)
+                holder.tvBusinessName.setText(app.getBusinessName());
+            } else {
+                // אופציה ב': השם לא שמור (תור ישן), נשלוף אותו לפי ה-ID
+                holder.tvBusinessName.setText("טוען שם עסק..."); // טקסט זמני
+                FirebaseFirestore.getInstance()
+                        .collection("businesses")
+                        .document(app.getBusinessId())
+                        .get()
+                        .addOnSuccessListener(documentSnapshot -> {
+                            if (documentSnapshot.exists()) {
+                                String name = documentSnapshot.getString("businessName"); // וודאי שזה שם השדה ב-businesses
+                                holder.tvBusinessName.setText(name);
+                            } else {
+                                holder.tvBusinessName.setText("עסק לא ידוע");
+                            }
+                        });
+            }
 
+            // --- צבעים וסטטוס (כמו קודם) ---
+            String status = app.getStatus() != null ? app.getStatus() : "PENDING";
             switch (status) {
                 case "PENDING":
                     holder.tvStatus.setText("ממתין לאישור");
-                    holder.tvStatus.setTextColor(Color.parseColor("#FF9800")); // כתום
+                    holder.tvStatus.setTextColor(Color.parseColor("#FF9800"));
                     break;
                 case "APPROVED":
                     holder.tvStatus.setText("✔ התור אושר!");
-                    holder.tvStatus.setTextColor(Color.parseColor("#4CAF50")); // ירוק
+                    holder.tvStatus.setTextColor(Color.parseColor("#4CAF50"));
                     break;
                 case "REJECTED":
                     holder.tvStatus.setText("❌ התור נדחה/בוטל");
-                    holder.tvStatus.setTextColor(Color.RED); // אדום
+                    holder.tvStatus.setTextColor(Color.RED);
                     break;
             }
         }

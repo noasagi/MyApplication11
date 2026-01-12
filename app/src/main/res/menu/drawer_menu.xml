@@ -47,4 +47,10 @@
         android:visible="false"
         app:showAsAction="never"/>
 
+    <item
+        android:id="@+id/action_block_slots"
+        android:title="ניהול יומן / חסימה"
+        android:icon="@android:drawable/ic_menu_my_calendar"
+        app:showAsAction="never" />
+
 </menu>

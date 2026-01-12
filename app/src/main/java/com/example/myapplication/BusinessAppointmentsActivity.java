@@ -18,8 +18,13 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class BusinessAppointmentsActivity extends AppCompatActivity {
 
@@ -45,14 +50,11 @@ public class BusinessAppointmentsActivity extends AppCompatActivity {
         adapter = new AppointmentsAdapter(appointmentList);
         rvAppointments.setAdapter(adapter);
 
-        // בדיקה: האם קיבלנו ID מהעמוד הקודם?
         businessId = getIntent().getStringExtra("BUSINESS_ID");
 
         if (businessId != null) {
-            // יש ID - טען תורים
             loadAppointments();
         } else {
-            // אין ID - ננסה למצוא את העסק של המשתמש הנוכחי
             fetchBusinessIdAndLoad();
         }
     }
@@ -65,7 +67,6 @@ public class BusinessAppointmentsActivity extends AppCompatActivity {
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     if (!queryDocumentSnapshots.isEmpty()) {
-                        // מצאנו את העסק!
                         businessId = queryDocumentSnapshots.getDocuments().get(0).getString("businessId");
                         loadAppointments();
                     } else {
@@ -76,12 +77,13 @@ public class BusinessAppointmentsActivity extends AppCompatActivity {
     }
 
     private void loadAppointments() {
+        if (businessId == null) return;
+
         db.collection("appointments")
                 .whereEqualTo("businessId", businessId)
-               .orderBy("timestamp", Query.Direction.DESCENDING) // וודא שיש לך אינדקס ב-Firebase אם זה קורס
+                .orderBy("timestamp", Query.Direction.DESCENDING)
                 .addSnapshotListener((value, error) -> {
                     if (error != null) {
-                        // לפעמים קורס אם אין אינדקס, נסה להסיר את ה-orderBy אם יש בעיה
                         Toast.makeText(this, "שגיאה בטעינת תורים: " + error.getMessage(), Toast.LENGTH_SHORT).show();
                         return;
                     }
@@ -90,12 +92,66 @@ public class BusinessAppointmentsActivity extends AppCompatActivity {
                     if (value != null) {
                         for (QueryDocumentSnapshot doc : value) {
                             Appointment app = doc.toObject(Appointment.class);
-                            app.setAppointmentId(doc.getId()); // חשוב לשמור את ה-ID של המסמך לעדכון סטטוס
-                            appointmentList.add(app);
+                            app.setAppointmentId(doc.getId());
+
+                            // סינון: מציגים רק אם הפונקציה מחזירה true
+                            if (shouldShowAppointment(app)) {
+                                appointmentList.add(app);
+                            }
                         }
                     }
                     adapter.notifyDataSetChanged();
                 });
+    }
+
+    // פונקציה שמחליטה האם להציג את התור ברשימה
+    private boolean shouldShowAppointment(Appointment app) {
+        String status = app.getStatus();
+        if (status == null) status = "PENDING";
+
+        // 1. אם התור נדחה - הסתר אותו מיד
+        if (status.equals("REJECTED")) {
+            return false;
+        }
+
+        // 2. אם התור מאושר - הסתר אותו רק אם התאריך עבר
+        if (status.equals("APPROVED")) {
+            if (isDateInPast(app.getDate())) {
+                return false; // התאריך עבר, אל תציג
+            }
+        }
+
+        // 3. הצג כל דבר אחר (כולל PENDING)
+        return true;
+    }
+
+    // פונקציית עזר לבדיקה אם תאריך עבר
+    private boolean isDateInPast(String dateStr) {
+        if (dateStr == null || dateStr.isEmpty()) return false;
+
+        SimpleDateFormat sdf = new SimpleDateFormat("d/M/yyyy", Locale.getDefault());
+        try {
+            Date appointmentDate = sdf.parse(dateStr);
+            Date today = new Date();
+
+            // איפוס שעות כדי להשוות רק תאריכים
+            Calendar cal1 = Calendar.getInstance();
+            Calendar cal2 = Calendar.getInstance();
+            if (appointmentDate != null) {
+                cal1.setTime(appointmentDate);
+            }
+            cal2.setTime(today);
+
+            // השוואה: האם שנה קודמת? או אותה שנה ויום קודם?
+            if (cal1.get(Calendar.YEAR) < cal2.get(Calendar.YEAR)) return true;
+
+            return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
+                    cal1.get(Calendar.DAY_OF_YEAR) < cal2.get(Calendar.DAY_OF_YEAR);
+
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     // --- Adapter ---
@@ -118,7 +174,11 @@ public class BusinessAppointmentsActivity extends AppCompatActivity {
             holder.tvClientName.setText(app.getUserName());
             holder.tvDateTime.setText(app.getDate() + " | " + app.getTime());
 
-            // טיפול בערכי NULL כדי למנוע קריסה
+            // תיאור
+            String desc = app.getDescription();
+            if (desc == null || desc.isEmpty()) desc = "אין הערות";
+            holder.tvDescription.setText(desc);
+
             String status = app.getStatus() != null ? app.getStatus() : "PENDING";
 
             switch (status) {
@@ -135,12 +195,6 @@ public class BusinessAppointmentsActivity extends AppCompatActivity {
                     holder.btnApprove.setVisibility(View.GONE);
                     holder.btnReject.setVisibility(View.VISIBLE);
                     holder.btnReject.setText("בטל תור");
-                    break;
-                case "REJECTED":
-                    holder.tvStatus.setText("נדחה/בוטל");
-                    holder.tvStatus.setTextColor(android.graphics.Color.RED);
-                    holder.btnApprove.setVisibility(View.GONE);
-                    holder.btnReject.setVisibility(View.GONE);
                     break;
             }
 
@@ -160,13 +214,15 @@ public class BusinessAppointmentsActivity extends AppCompatActivity {
         public int getItemCount() { return list.size(); }
 
         class ViewHolder extends RecyclerView.ViewHolder {
-            TextView tvClientName, tvDateTime, tvStatus;
+            TextView tvClientName, tvDateTime, tvStatus, tvDescription;
             Button btnApprove, btnReject;
 
             public ViewHolder(@NonNull View itemView) {
                 super(itemView);
                 tvClientName = itemView.findViewById(R.id.tvClientName);
                 tvDateTime = itemView.findViewById(R.id.tvDateTime);
+                // וודא שה-ID הזה קיים ב-XML שלך:
+                tvDescription = itemView.findViewById(R.id.tvDescription);
                 tvStatus = itemView.findViewById(R.id.tvStatus);
                 btnApprove = itemView.findViewById(R.id.btnApprove);
                 btnReject = itemView.findViewById(R.id.btnReject);
