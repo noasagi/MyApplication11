@@ -15,7 +15,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.material.textfield.TextInputEditText; // ייבוא חדש
+import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -34,7 +34,7 @@ public class BookingActivity extends AppCompatActivity {
     private RecyclerView rvTimeSlots;
     private Button btnPickDate, btnConfirmBooking;
 
-    // *** חדש: משתנה לתיבת הטקסט ***
+    // משתנה לתיבת הטקסט (הערות)
     private TextInputEditText etDescription;
 
     private String selectedDate = "";
@@ -74,14 +74,16 @@ public class BookingActivity extends AppCompatActivity {
         btnPickDate = findViewById(R.id.btnPickDate);
         btnConfirmBooking = findViewById(R.id.btnConfirmBooking);
 
-        // *** חדש: חיבור ה-View ***
+        // חיבור ה-View של ההערות
         etDescription = findViewById(R.id.etDescription);
 
         updateTitle();
 
-        rvTimeSlots.setLayoutManager(new GridLayoutManager(this, 3));
+        rvTimeSlots.setLayoutManager(new GridLayoutManager(this, 3)); // אפשר לשנות ל-2 אם הכפתורים רחבים מדי
         timeSlotsList = new ArrayList<>();
-        adapter = new TimeSlotAdapter(timeSlotsList);
+
+        // *** שינוי 1: אתחול האדפטר עם 0 דקות כברירת מחדל ***
+        adapter = new TimeSlotAdapter(timeSlotsList, 0);
         rvTimeSlots.setAdapter(adapter);
 
         btnPickDate.setOnClickListener(v -> showDatePicker());
@@ -205,7 +207,9 @@ public class BookingActivity extends AppCompatActivity {
         } else {
             tvNoSlots.setVisibility(View.GONE);
             rvTimeSlots.setVisibility(View.VISIBLE);
-            adapter.notifyDataSetChanged();
+
+            // *** שינוי 2: עדכון האדפטר עם משך הזמן החדש ***
+            adapter.updateData(timeSlotsList, durationMinutes);
         }
     }
 
@@ -248,7 +252,7 @@ public class BookingActivity extends AppCompatActivity {
     private void finalizeBooking(String userId, String userName) {
         String appointmentId = db.collection("appointments").document().getId();
 
-        // *** חדש: קבלת התיאור מהשדה ***
+        // קבלת התיאור מהשדה
         String userDescription = etDescription.getText().toString().trim();
         if (userDescription.isEmpty()) {
             userDescription = "ללא תיאור";
@@ -261,10 +265,10 @@ public class BookingActivity extends AppCompatActivity {
         newAppointment.setUserId(userId);
         newAppointment.setUserName(userName);
         newAppointment.setDate(selectedDate);
-        newAppointment.setTime(selectedTime);
+        newAppointment.setTime(selectedTime); // כאן נשמרת רק שעת ההתחלה
         newAppointment.setStatus("PENDING");
         newAppointment.setTimestamp(new Date().getTime());
-        // *** חדש: שמירת התיאור ***
+        // שמירת התיאור
         newAppointment.setDescription(userDescription);
 
         db.collection("appointments").document(appointmentId).set(newAppointment)
@@ -310,12 +314,25 @@ public class BookingActivity extends AppCompatActivity {
         }
     }
 
-    // --- Adapter ---
+    // --- Adapter המעודכן עם תצוגת טווח שעות ---
     class TimeSlotAdapter extends RecyclerView.Adapter<TimeSlotAdapter.ViewHolder> {
         private List<String> slots;
+        private int durationMinutes; // משתנה למשך התור
         private int selectedPosition = -1;
 
-        public TimeSlotAdapter(List<String> slots) { this.slots = slots; }
+        // בנאי מעודכן
+        public TimeSlotAdapter(List<String> slots, int durationMinutes) {
+            this.slots = slots;
+            this.durationMinutes = durationMinutes;
+        }
+
+        // פונקציה לעדכון נתונים מבחוץ
+        public void updateData(List<String> newSlots, int newDuration) {
+            this.slots = newSlots;
+            this.durationMinutes = newDuration;
+            this.selectedPosition = -1; // איפוס בחירה כשמחליפים יום
+            notifyDataSetChanged();
+        }
 
         @Override
         public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
@@ -325,8 +342,14 @@ public class BookingActivity extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(ViewHolder holder, int position) {
-            String time = slots.get(position);
-            holder.tvTime.setText(time);
+            String startTime = slots.get(position);
+
+            // חישוב שעת הסיום לתצוגה
+            String endTime = calculateEndTime(startTime, durationMinutes);
+            String displayTime = startTime + " - " + endTime;
+
+            holder.tvTime.setText(displayTime);
+
             if (selectedPosition == position) {
                 holder.cardView.setCardBackgroundColor(Color.parseColor("#6200EE"));
                 holder.tvTime.setTextColor(Color.WHITE);
@@ -334,10 +357,11 @@ public class BookingActivity extends AppCompatActivity {
                 holder.cardView.setCardBackgroundColor(Color.WHITE);
                 holder.tvTime.setTextColor(Color.BLACK);
             }
+
             holder.itemView.setOnClickListener(v -> {
                 int prev = selectedPosition;
                 selectedPosition = holder.getAdapterPosition();
-                selectedTime = slots.get(selectedPosition);
+                selectedTime = slots.get(selectedPosition); // שומרים רק את שעת ההתחלה
                 btnConfirmBooking.setEnabled(true);
                 notifyItemChanged(prev);
                 notifyItemChanged(selectedPosition);
@@ -354,6 +378,18 @@ public class BookingActivity extends AppCompatActivity {
                 super(itemView);
                 tvTime = itemView.findViewById(R.id.tvTimeSlot);
                 cardView = itemView.findViewById(R.id.cardSlot);
+            }
+        }
+
+        // פונקציית עזר לחישוב זמן סיום
+        private String calculateEndTime(String start, int duration) {
+            try {
+                String[] parts = start.split(":");
+                int totalMin = Integer.parseInt(parts[0]) * 60 + Integer.parseInt(parts[1]);
+                totalMin += duration;
+                return String.format("%02d:%02d", totalMin / 60, totalMin % 60);
+            } catch (Exception e) {
+                return start;
             }
         }
     }
