@@ -1,25 +1,43 @@
 package com.example.myapplication;
 
 import android.os.Bundle;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
-import androidx.appcompat.widget.Toolbar;
-
-import com.google.android.material.navigation.NavigationView;
-import androidx.drawerlayout.widget.DrawerLayout;
-
-public class BusinessMainActivity extends DrawerBaseActivity {
+public class BusinessMainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_business_main);
 
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        drawerLayout = findViewById(R.id.drawer_layout);
-        navigationView = findViewById(R.id.nav_view);
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
 
-        setupDrawer(toolbar, drawerLayout, navigationView);
+        bottomNav.setOnItemSelectedListener(item -> {
+            Fragment selectedFragment = null;
+            int id = item.getItemId();
 
-        // לוגיקה נוספת לבעל עסק...
+            if (id == R.id.nav_business_home) {
+                selectedFragment = new BusinessHomeFragment();
+            } else if (id == R.id.nav_business_profile) {
+                selectedFragment = new ProfileFragment();
+            } else if (id == R.id.nav_business_menu) {
+                selectedFragment = new BusinessMenuFragment();
+            }
+
+            if (selectedFragment != null) {
+                getSupportFragmentManager().beginTransaction()
+                        .replace(R.id.fragment_container, selectedFragment)
+                        .commit();
+            }
+            return true;
+        });
+
+        // טעינה ראשונית של יומן העסק
+        if (savedInstanceState == null) {
+            getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container,
+                    new BusinessHomeFragment()).commit();
+        }
     }
 }

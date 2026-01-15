@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_business_home"
+        android:icon="@drawable/ic_home"
+        android:title="יומן" />
+    <item
+        android:id="@+id/nav_business_profile"
+        android:icon="@drawable/ic_profile"
+        android:title="פרופיל העסק" />
+    <item
+        android:id="@+id/nav_business_menu"
+        android:icon="@drawable/ic_settings"
+        android:title="תפריט" />
+</menu>

@@ -1,40 +1,47 @@
 package com.example.myapplication;
 
-import android.content.Intent;
 import android.os.Bundle;
-import android.widget.Button;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.Fragment;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
-import androidx.annotation.Nullable;
-import androidx.appcompat.widget.Toolbar;
-import androidx.drawerlayout.widget.DrawerLayout;
-
-import com.google.android.material.navigation.NavigationView;
-
-public class ClientMainActivity extends DrawerBaseActivity {
-
-    private Button btnSetProfile;
-    private Button btnBrowseBusinesses;
+public class ClientMainActivity extends AppCompatActivity {
 
     @Override
-    protected void onCreate(@Nullable Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_client_main);
 
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        DrawerLayout drawerLayout = findViewById(R.id.drawer_layout);
-        NavigationView navView = findViewById(R.id.nav_view);
-        initDrawer(toolbar, drawerLayout, navView);
+        BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
 
-        btnSetProfile = findViewById(R.id.btnSetProfile);
-        btnSetProfile.setOnClickListener(v -> {
-            Intent intent = new Intent(ClientMainActivity.this, SetProfileActivity.class);
-            startActivity(intent);
+        bottomNav.setOnItemSelectedListener(item -> {
+            Fragment selectedFragment = null;
+            int id = item.getItemId();
+
+            if (id == R.id.nav_customer_home) {
+                selectedFragment = new CustomerHomeFragment();
+            } else if (id == R.id.nav_customer_search) {
+                selectedFragment = new SearchFragment();
+            } else if (id == R.id.nav_customer_appointments) {
+                selectedFragment = new AppointmentsFragment();
+            } else if (id == R.id.nav_customer_profile) {
+                selectedFragment = new ProfileFragment();
+            } else if (id == R.id.nav_customer_settings) {
+                selectedFragment = new SettingsFragment();
+            }
+
+            if (selectedFragment != null) {
+                getSupportFragmentManager().beginTransaction()
+                        .replace(R.id.fragment_container, selectedFragment)
+                        .commit();
+            }
+            return true;
         });
 
-        btnBrowseBusinesses = findViewById(R.id.btnBrowseBusinesses);
-        btnBrowseBusinesses.setOnClickListener(v -> {
-            Intent intent = new Intent(ClientMainActivity.this, BrowseBusinessesActivity.class);
-            startActivity(intent);
-        });
+        // טעינה ראשונית של מסך הבית
+        if (savedInstanceState == null) {
+            getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container,
+                    new CustomerHomeFragment()).commit();
+        }
     }
 }
