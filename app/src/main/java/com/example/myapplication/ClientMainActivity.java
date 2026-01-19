@@ -23,9 +23,9 @@ public class ClientMainActivity extends AppCompatActivity {
             } else if (id == R.id.nav_customer_search) {
                 selectedFragment = new SearchFragment();
             } else if (id == R.id.nav_customer_appointments) {
-                selectedFragment = new AppointmentsFragment();
+                selectedFragment = new AppointmentsClientFragment();
             } else if (id == R.id.nav_customer_profile) {
-                selectedFragment = new ProfileFragment();
+                selectedFragment = new ProfileClientFragment();
             } else if (id == R.id.nav_customer_settings) {
                 selectedFragment = new SettingsFragment();
             }

@@ -18,12 +18,17 @@ public class BusinessMainActivity extends AppCompatActivity {
             Fragment selectedFragment = null;
             int id = item.getItemId();
 
+            // 1. הוספנו את המקרה הזה:
             if (id == R.id.nav_business_home) {
                 selectedFragment = new BusinessHomeFragment();
-            } else if (id == R.id.nav_business_profile) {
-                selectedFragment = new ProfileFragment();
-            } else if (id == R.id.nav_business_menu) {
-                selectedFragment = new BusinessMenuFragment();
+            }
+            // שאר המקרים הרגילים:
+            else if (id == R.id.nav_business_schedule) {
+                selectedFragment = new BusinessScheduleFragment();
+
+            } else if (id == R.id.nav_business_settings) {
+                // כאן עמוד ההגדרות והניהול החדש
+                selectedFragment = new BusinessSettingsFragment();
             }
 
             if (selectedFragment != null) {
@@ -34,10 +39,11 @@ public class BusinessMainActivity extends AppCompatActivity {
             return true;
         });
 
-        // טעינה ראשונית של יומן העסק
+        // 2. שינינו את זה כך שיפתח את דף הבית בהתחלה (במקום היומן)
         if (savedInstanceState == null) {
-            getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container,
-                    new BusinessHomeFragment()).commit();
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_container, new BusinessHomeFragment())
+                    .commit();
         }
     }
-}
+    }
