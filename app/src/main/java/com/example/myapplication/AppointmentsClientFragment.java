@@ -1,10 +1,12 @@
 package com.example.myapplication;
 
+import android.app.AlertDialog;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -33,7 +35,6 @@ public class AppointmentsClientFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        // טעינת ה-XML של הפרגמנט
         View view = inflater.inflate(R.layout.fragment_appointments, container, false);
 
         db = FirebaseFirestore.getInstance();
@@ -41,7 +42,6 @@ public class AppointmentsClientFragment extends Fragment {
 
         rvMyAppointments = view.findViewById(R.id.rvMyAppointments);
 
-        // שימוש ב-getContext() בתוך פרגמנט
         if (getContext() != null) {
             rvMyAppointments.setLayoutManager(new LinearLayoutManager(getContext()));
         }
@@ -59,14 +59,13 @@ public class AppointmentsClientFragment extends Fragment {
         if (auth.getCurrentUser() == null) return;
 
         db.collection("appointments")
-                .whereEqualTo("userId", auth.getCurrentUser().getUid()) // רק תורים שלי
-                .orderBy("timestamp", Query.Direction.DESCENDING) // הכי חדש למעלה
+                .whereEqualTo("userId", auth.getCurrentUser().getUid())
+                .orderBy("timestamp", Query.Direction.DESCENDING)
                 .addSnapshotListener((value, error) -> {
-                    // בדיקה שהפרגמנט עדיין מחובר למסך כדי למנוע קריסה
                     if (getContext() == null) return;
 
                     if (error != null) {
-                        Toast.makeText(getContext(), "שגיאה בטעינת תורים", Toast.LENGTH_SHORT).show();
+                        // Toast.makeText(getContext(), "שגיאה בטעינה", Toast.LENGTH_SHORT).show();
                         return;
                     }
 
@@ -74,8 +73,7 @@ public class AppointmentsClientFragment extends Fragment {
                     if (value != null) {
                         for (QueryDocumentSnapshot doc : value) {
                             Appointment app = doc.toObject(Appointment.class);
-                            // נשמור גם את ה-ID של המסמך ליתר ביטחון
-                            app.setAppointmentId(doc.getId());
+                            app.setAppointmentId(doc.getId()); // חובה לשמור ID בשביל המחיקה!
                             list.add(app);
                         }
                     }
@@ -94,6 +92,7 @@ public class AppointmentsClientFragment extends Fragment {
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            // כאן אנחנו טוענים את ה-XML החדש שיצרנו למעלה
             View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_user_appointment, parent, false);
             return new ViewHolder(view);
         }
@@ -102,52 +101,57 @@ public class AppointmentsClientFragment extends Fragment {
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             Appointment app = appointments.get(position);
 
-            // הגדרת תאריך ושעה
             holder.tvDateTime.setText(app.getDate() + " | " + app.getTime());
 
-            // --- טיפול בשם העסק ---
+            // --- שם העסק ---
             if (app.getBusinessName() != null && !app.getBusinessName().isEmpty()) {
                 holder.tvBusinessName.setText(app.getBusinessName());
             } else {
-                holder.tvBusinessName.setText("טוען שם עסק...");
+                holder.tvBusinessName.setText("טוען...");
                 if (app.getBusinessId() != null) {
-                    FirebaseFirestore.getInstance()
-                            .collection("businesses")
-                            .document(app.getBusinessId())
-                            .get()
-                            .addOnSuccessListener(documentSnapshot -> {
-                                if (documentSnapshot.exists()) {
-                                    String name = documentSnapshot.getString("businessName");
-                                    // עדכון השם בתצוגה
+                    db.collection("businesses").document(app.getBusinessId()).get()
+                            .addOnSuccessListener(ds -> {
+                                if (ds.exists()) {
+                                    String name = ds.getString("businessName");
                                     holder.tvBusinessName.setText(name);
-                                    // אופציונלי: שמירת השם באובייקט כדי שלא נצטרך לטעון שוב בגלילה
                                     app.setBusinessName(name);
-                                } else {
-                                    holder.tvBusinessName.setText("עסק לא ידוע");
                                 }
                             });
                 }
             }
 
-            // --- צבעים וסטטוס ---
+            // --- סטטוס ---
             String status = app.getStatus() != null ? app.getStatus() : "PENDING";
             switch (status) {
                 case "PENDING":
                     holder.tvStatus.setText("ממתין לאישור");
-                    holder.tvStatus.setTextColor(Color.parseColor("#FF9800")); // כתום
+                    holder.tvStatus.setTextColor(Color.parseColor("#FF9800"));
                     break;
                 case "APPROVED":
                     holder.tvStatus.setText("✔ התור אושר!");
-                    holder.tvStatus.setTextColor(Color.parseColor("#4CAF50")); // ירוק
+                    holder.tvStatus.setTextColor(Color.parseColor("#4CAF50"));
                     break;
                 case "REJECTED":
-                    holder.tvStatus.setText("❌ התור נדחה/בוטל");
+                    holder.tvStatus.setText("❌ נדחה");
                     holder.tvStatus.setTextColor(Color.RED);
                     break;
                 default:
                     holder.tvStatus.setText(status);
                     holder.tvStatus.setTextColor(Color.GRAY);
             }
+
+            // --- לוגיקה של כפתור המחיקה ---
+            holder.btnDelete.setOnClickListener(v -> {
+                // הצגת דיאלוג "האם אתה בטוח?"
+                new AlertDialog.Builder(getContext())
+                        .setTitle("ביטול תור")
+                        .setMessage("האם אתה בטוח שברצונך למחוק את התור הזה?")
+                        .setPositiveButton("כן, מחק", (dialog, which) -> {
+                            deleteAppointment(app.getAppointmentId());
+                        })
+                        .setNegativeButton("ביטול", null)
+                        .show();
+            });
         }
 
         @Override
@@ -155,13 +159,30 @@ public class AppointmentsClientFragment extends Fragment {
 
         class ViewHolder extends RecyclerView.ViewHolder {
             TextView tvBusinessName, tvDateTime, tvStatus;
+            ImageView btnDelete; // הוספנו את המשתנה הזה
 
             public ViewHolder(@NonNull View itemView) {
                 super(itemView);
                 tvBusinessName = itemView.findViewById(R.id.tvBusinessName);
                 tvDateTime = itemView.findViewById(R.id.tvDateTime);
                 tvStatus = itemView.findViewById(R.id.tvStatus);
+                btnDelete = itemView.findViewById(R.id.btnDelete); // חיבור ל-XML
             }
         }
+    }
+
+    // פונקציה למחיקת התור מ-Firestore
+    private void deleteAppointment(String docId) {
+        if (docId == null) return;
+
+        db.collection("appointments").document(docId)
+                .delete()
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(getContext(), "התור נמחק בהצלחה", Toast.LENGTH_SHORT).show();
+                    // הרשימה תתעדכן אוטומטית בגלל ה-SnapshotListener ב-loadUserAppointments
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(getContext(), "שגיאה במחיקה: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
     }
 }

@@ -12,12 +12,9 @@
         android:id="@+id/nav_customer_appointments"
         android:icon="@drawable/ic_calendar"
         android:title="התורים שלי" />
+
     <item
         android:id="@+id/nav_customer_profile"
         android:icon="@drawable/ic_profile"
         android:title="פרופיל" />
-    <item
-        android:id="@+id/nav_customer_settings"
-        android:icon="@drawable/ic_settings"
-        android:title="הגדרות" />
 </menu>
