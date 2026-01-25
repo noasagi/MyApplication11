@@ -8,6 +8,7 @@ public class ReviewModel {
     private String userId;
     private String userName;
     private String comment;
+    private String appointmentId; // שדה חדש!
 
     // שלושת הדירוגים שלנו
     private float ratingProfessionalism;
@@ -39,6 +40,10 @@ public class ReviewModel {
 
     public String getBusinessId() { return businessId; }
     public void setBusinessId(String businessId) { this.businessId = businessId; }
+
+    public String getAppointmentId() { return appointmentId; }
+    public void setAppointmentId(String appointmentId) { this.appointmentId = appointmentId; }
+
 
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }

@@ -6,6 +6,7 @@ public class Appointment {
     private String businessId;
     private String userId;
     private String userName;
+    private boolean isReviewed; // שדה חדש!
     private String date;
     private String time;
     private String status;
@@ -34,6 +35,10 @@ public class Appointment {
     public void setAppointmentId(String appointmentId) { this.appointmentId = appointmentId; }
 
     public String getBusinessName() { return businessName; }
+
+    public boolean getIsReviewed() { return isReviewed; }
+    public void setIsReviewed(boolean isReviewed) { this.isReviewed = isReviewed; }
+
     public void setBusinessName(String businessName) { this.businessName = businessName; }
 
     public String getBusinessId() { return businessId; }
