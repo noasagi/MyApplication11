@@ -25,18 +25,7 @@
         <activity
             android:name=".MyAppointmentsActivity"
             android:exported="false" />
-        <activity
-            android:name=".itemUserAppointment"
-            android:exported="false" />
-        <activity
-            android:name=".itemAppointmentRequest"
-            android:exported="false" />
-        <activity
-            android:name=".BusinessAppointmentsActivity"
-            android:exported="false" />
-        <activity
-            android:name=".item_day_schedule"
-            android:exported="false" />
+
         <activity
             android:name=".BusinessHoursActivity"
             android:exported="false" />
@@ -70,9 +59,7 @@
         <activity
             android:name=".RegisterActivity"
             android:exported="false" />
-        <activity
-            android:name=".MainActivity"
-            android:exported="false" />
+
         <activity
             android:name=".LoginActivity"
             android:exported="false" />

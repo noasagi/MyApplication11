@@ -9,7 +9,6 @@
     tools:context=".BookingActivity">
 
     <TextView
-        android:id="@+id/tvBookingTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="קביעת תור"
@@ -44,7 +43,6 @@
         android:layout_marginBottom="8dp"/>
 
     <ProgressBar
-        android:id="@+id/progressBar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
