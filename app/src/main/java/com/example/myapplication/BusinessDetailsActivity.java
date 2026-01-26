@@ -33,7 +33,6 @@ public class BusinessDetailsActivity extends AppCompatActivity {
     private TextView tvName, tvType, tvPhone, tvDescription;
     private LinearLayout galleryContainer;
     private FloatingActionButton btnFavorite;
-    private Button btnAddReview;
     private Button btnWhatsApp;
 
     // כפתור קביעת תור
@@ -66,7 +65,6 @@ public class BusinessDetailsActivity extends AppCompatActivity {
         galleryContainer = findViewById(R.id.galleryContainer);
         btnFavorite = findViewById(R.id.btnFavorite);
         btnWhatsApp = findViewById(R.id.btnWhatsApp);
-        btnAddReview = findViewById(R.id.btnAddReview);
         rvReviews = findViewById(R.id.rvReviewsList);
 
         // מציאת הכפתור החדש
@@ -200,8 +198,6 @@ public class BusinessDetailsActivity extends AppCompatActivity {
             }
         });
 
-        // כפתור הוספת ביקורת
-        btnAddReview.setOnClickListener(v -> showAddReviewDialog(business.getBusinessId()));
     }
 
     // --- לוגיקת מועדפים ---

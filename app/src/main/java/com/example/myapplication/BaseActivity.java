@@ -104,30 +104,7 @@ public abstract class BaseActivity extends AppCompatActivity {
             return true;
         }
 
-        else if (id == R.id.action_appointments) {
-            if (isBusiness) {
-                String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-                com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                        .collection("businesses")
-                        .whereEqualTo("ownerId", currentUserId)
-                        .get()
-                        .addOnSuccessListener(queryDocumentSnapshots -> {
-                            if (!queryDocumentSnapshots.isEmpty()) {
-                                String businessId = queryDocumentSnapshots.getDocuments().get(0).getString("businessId");
-                                Intent intent = new Intent(this, BusinessAppointmentsActivity.class);
-                                intent.putExtra("BUSINESS_ID", businessId);
-                                startActivity(intent);
-                            } else {
-                                Toast.makeText(this, "לא נמצא עסק מקושר", Toast.LENGTH_SHORT).show();
-                            }
-                        })
-                        .addOnFailureListener(e -> Toast.makeText(this, "שגיאה בחיבור", Toast.LENGTH_SHORT).show());
-            } else {
-                Intent intent = new Intent(this, MyAppointmentsActivity.class);
-                startActivity(intent);
-            }
-            return true;
-        }
+
 
         else if (id == R.id.action_logout) {
             FirebaseAuth.getInstance().signOut();

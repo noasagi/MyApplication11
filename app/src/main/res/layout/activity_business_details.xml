@@ -101,17 +101,6 @@
                 app:cornerRadius="30dp"
                 android:elevation="4dp"/>
 
-            <Button
-                android:id="@+id/btnAddReview"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="דרג את העסק"
-                android:layout_marginBottom="8dp"
-                android:layout_marginHorizontal="24dp"
-                android:backgroundTint="@color/colorAccent"
-                android:textColor="#FFFFFF"
-                android:textStyle="bold"
-                app:cornerRadius="24dp"/>
 
             <Button
                 android:id="@+id/btnBookAppointment"
