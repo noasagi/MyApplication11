@@ -16,7 +16,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -39,17 +41,25 @@ public class BusinessHoursActivity extends AppCompatActivity {
         setContentView(R.layout.activity_business_hours);
 
         businessId = getIntent().getStringExtra("BUSINESS_ID");
-        etDuration = findViewById(R.id.etDuration);
+        if (businessId == null) {
+            businessId = getIntent().getStringExtra("businessId"); // גיבוי לאותיות קטנות
+        }
+        if (businessId == null && FirebaseAuth.getInstance().getCurrentUser() != null) {
+            businessId = FirebaseAuth.getInstance().getCurrentUser().getUid(); // גיבוי אחרון - ה-ID של המשתמש המחובר
+        }        etDuration = findViewById(R.id.etDuration);
         btnSaveAll = findViewById(R.id.btnSaveAll);
         rvDays = findViewById(R.id.rvDays);
 
-        // אתחול רשימת הימים
+        // 1. קודם כל מאתחלים עם שעות ברירת מחדל
         initDaysList();
 
-        // הגדרת ה-RecyclerView
+        // 2. מגדירים את ה-RecyclerView
         rvDays.setLayoutManager(new LinearLayoutManager(this));
         adapter = new DaysAdapter(daysList, this);
         rvDays.setAdapter(adapter);
+
+        // 3. מנסים למשוך נתונים קיימים מפיירבייס כדי לדרוס את ברירת המחדל
+        loadFromFirebase();
 
         btnSaveAll.setOnClickListener(v -> saveToFirebase());
     }
@@ -59,12 +69,57 @@ public class BusinessHoursActivity extends AppCompatActivity {
         String[] dayNames = {"יום ראשון", "יום שני", "יום שלישי", "יום רביעי", "יום חמישי", "יום שישי"};
 
         for (String name : dayNames) {
-            // ברירת מחדל: 09:00 עד 17:00, יום פתוח
             daysList.add(new DaySchedule(name, "09:00", "17:00", true));
         }
     }
 
+    private void loadFromFirebase() {
+        if (businessId == null || businessId.isEmpty()) return;
+
+        FirebaseFirestore.getInstance()
+                .collection("businesses")
+                .document(businessId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        // טעינת משך התור
+                        if (documentSnapshot.contains("appointmentDuration")) {
+                            Long duration = documentSnapshot.getLong("appointmentDuration");
+                            if (duration != null) {
+                                etDuration.setText(String.valueOf(duration));
+                            }
+                        }
+
+                        // טעינת שעות הפעילות
+                        if (documentSnapshot.contains("weeklySchedule")) {
+                            Map<String, Object> weeklySchedule = (Map<String, Object>) documentSnapshot.get("weeklySchedule");
+                            if (weeklySchedule != null) {
+                                for (DaySchedule day : daysList) {
+                                    if (weeklySchedule.containsKey(day.dayName)) {
+                                        Map<String, Object> dayData = (Map<String, Object>) weeklySchedule.get(day.dayName);
+                                        if (dayData != null) {
+                                            day.startTime = (String) dayData.get("start");
+                                            day.endTime = (String) dayData.get("end");
+                                            day.isOpen = (Boolean) dayData.get("isOpen");
+                                        }
+                                    }
+                                }
+                                // מעדכנים את המסך עם הנתונים החדשים
+                                adapter.notifyDataSetChanged();
+                            }
+                        }
+                    }
+                })
+                .addOnFailureListener(e -> Toast.makeText(this, "שגיאה בטעינת הנתונים", Toast.LENGTH_SHORT).show());
+    }
+
     private void saveToFirebase() {
+        Toast.makeText(this, "Owner ID: " + businessId, Toast.LENGTH_LONG).show();
+        if (businessId == null || businessId.isEmpty()) {
+            Toast.makeText(this, "שגיאה: חסר מזהה עסק", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         String durationStr = etDuration.getText().toString();
         if (durationStr.isEmpty()) {
             Toast.makeText(this, "נא להזין משך תור", Toast.LENGTH_SHORT).show();
@@ -73,9 +128,8 @@ public class BusinessHoursActivity extends AppCompatActivity {
 
         int duration = Integer.parseInt(durationStr);
 
-        // הכנת המידע לשמירה
         Map<String, Object> dataToSave = new HashMap<>();
-        dataToSave.put("appointmentDuration", duration); // שמירת משך התור
+        dataToSave.put("appointmentDuration", duration);
 
         Map<String, Object> weeklySchedule = new HashMap<>();
         for (DaySchedule day : daysList) {
@@ -84,26 +138,25 @@ public class BusinessHoursActivity extends AppCompatActivity {
             dayData.put("end", day.endTime);
             dayData.put("isOpen", day.isOpen);
 
-            // המפתח הוא שם היום
             weeklySchedule.put(day.dayName, dayData);
         }
 
         dataToSave.put("weeklySchedule", weeklySchedule);
 
+        // השינוי כאן: שימוש ב-set עם merge במקום update
         FirebaseFirestore.getInstance()
                 .collection("businesses")
                 .document(businessId)
-                .update(dataToSave)
+                .set(dataToSave, SetOptions.merge())
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(this, "השעות נשמרו בהצלחה!", Toast.LENGTH_SHORT).show();
                     finish();
                 })
-                .addOnFailureListener(e -> Toast.makeText(this, "שגיאה בשמירה", Toast.LENGTH_SHORT).show());
+                .addOnFailureListener(e -> Toast.makeText(this, "שגיאה בשמירה: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 
     // --- מחלקות עזר (מודל ואדפטר) ---
 
-    // מודל לייצוג יום אחד
     public static class DaySchedule {
         String dayName;
         String startTime;
@@ -118,7 +171,6 @@ public class BusinessHoursActivity extends AppCompatActivity {
         }
     }
 
-    // אדפטר לרשימה
     class DaysAdapter extends RecyclerView.Adapter<DaysAdapter.DayViewHolder> {
 
         private List<DaySchedule> list;
@@ -145,7 +197,6 @@ public class BusinessHoursActivity extends AppCompatActivity {
             holder.btnEndTime.setText(day.endTime);
             holder.switchIsOpen.setChecked(day.isOpen);
 
-            // הסתרה/הצגה של השעות לפי המתג
             updateVisibility(holder, day.isOpen);
 
             holder.switchIsOpen.setOnCheckedChangeListener((buttonView, isChecked) -> {
@@ -153,13 +204,8 @@ public class BusinessHoursActivity extends AppCompatActivity {
                 updateVisibility(holder, isChecked);
             });
 
-            holder.btnStartTime.setOnClickListener(v -> {
-                showTimePicker(holder.btnStartTime, day, true);
-            });
-
-            holder.btnEndTime.setOnClickListener(v -> {
-                showTimePicker(holder.btnEndTime, day, false);
-            });
+            holder.btnStartTime.setOnClickListener(v -> showTimePicker(holder.btnStartTime, day, true));
+            holder.btnEndTime.setOnClickListener(v -> showTimePicker(holder.btnEndTime, day, false));
         }
 
         private void updateVisibility(DayViewHolder holder, boolean isOpen) {

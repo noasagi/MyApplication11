@@ -24,7 +24,7 @@ public class SplashActivity extends AppCompatActivity {
         // מפעיל טיימר ל-2 שניות (2000 מילישניות)
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             checkUserAndNavigate();
-        }, 2000);
+        }, 4000);
     }
 
     private void checkUserAndNavigate() {

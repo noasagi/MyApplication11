@@ -5,19 +5,23 @@ plugins {
 
 android {
     namespace 'com.example.myapplication'
-    compileSdk {
-        version = release(36)
-    }
+
+    // מעלים חזרה ל-35 כדי שה-RecyclerView יעבוד
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.example.myapplication"
         minSdk 27
-        targetSdk 36
+
+        // משאירים על 34! זה מה שימנע את הקריסה של פיירבייס
+        targetSdk 34
+
         versionCode 1
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
+// ... המשך הקובץ כרגיל
 
     buildTypes {
         release {

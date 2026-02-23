@@ -8,10 +8,12 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.app.DatePickerDialog;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.DatePicker;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -56,6 +58,7 @@ public class BookingActivity extends AppCompatActivity {
         auth = FirebaseAuth.getInstance();
 
         currentBusinessId = getIntent().getStringExtra("businessId");
+        Toast.makeText(this, "Client ID: " + currentBusinessId, Toast.LENGTH_LONG).show();
         currentBusinessName = getIntent().getStringExtra("businessName");
 
         if (currentBusinessId == null) {
@@ -73,21 +76,17 @@ public class BookingActivity extends AppCompatActivity {
         rvTimeSlots = findViewById(R.id.rvTimeSlots);
         btnPickDate = findViewById(R.id.btnPickDate);
         btnConfirmBooking = findViewById(R.id.btnConfirmBooking);
-
-        // חיבור ה-View של ההערות
         etDescription = findViewById(R.id.etDescription);
 
         updateTitle();
 
-        rvTimeSlots.setLayoutManager(new GridLayoutManager(this, 3)); // אפשר לשנות ל-2 אם הכפתורים רחבים מדי
+        rvTimeSlots.setLayoutManager(new GridLayoutManager(this, 3));
         timeSlotsList = new ArrayList<>();
 
-        // *** שינוי 1: אתחול האדפטר עם 0 דקות כברירת מחדל ***
         adapter = new TimeSlotAdapter(timeSlotsList, 0);
         rvTimeSlots.setAdapter(adapter);
 
         btnPickDate.setOnClickListener(v -> showDatePicker());
-
         btnConfirmBooking.setOnClickListener(v -> saveAppointmentRequest());
     }
 
@@ -114,7 +113,7 @@ public class BookingActivity extends AppCompatActivity {
         int month = calendar.get(Calendar.MONTH);
         int day = calendar.get(Calendar.DAY_OF_MONTH);
 
-        DatePickerDialog datePickerDialog = new DatePickerDialog(this,
+        DatePickerDialog datePickerDialog = new DatePickerDialog(BookingActivity.this,
                 (view, year1, month1, dayOfMonth) -> {
                     Calendar selectedCal = Calendar.getInstance();
                     selectedCal.set(year1, month1, dayOfMonth);
@@ -140,33 +139,56 @@ public class BookingActivity extends AppCompatActivity {
         rvTimeSlots.setVisibility(View.GONE);
 
         String dayOfWeekKey = getHebrewDayName(selectedDateCal.get(Calendar.DAY_OF_WEEK));
+        Log.d("BookingDebug", "Looking for hours for day: " + dayOfWeekKey);
 
         db.collection("businesses").document(currentBusinessId).get()
                 .addOnSuccessListener(businessDoc -> {
-                    if (!businessDoc.exists()) return;
+                    if (!businessDoc.exists()) {
+                        Log.e("BookingDebug", "Business document does not exist!");
+                        showNoSlots("העסק לא נמצא");
+                        return;
+                    }
 
                     Long durationLong = businessDoc.getLong("appointmentDuration");
                     int appointmentDuration = (durationLong != null) ? durationLong.intValue() : 30;
+                    Log.d("BookingDebug", "Appointment Duration: " + appointmentDuration);
 
                     Map<String, Object> weeklySchedule = (Map<String, Object>) businessDoc.get("weeklySchedule");
 
                     if (weeklySchedule != null && weeklySchedule.containsKey(dayOfWeekKey)) {
                         Map<String, Object> dayData = (Map<String, Object>) weeklySchedule.get(dayOfWeekKey);
-                        boolean isOpen = (boolean) dayData.get("isOpen");
 
-                        if (isOpen) {
-                            String startTime = (String) dayData.get("start");
-                            String endTime = (String) dayData.get("end");
+                        if (dayData != null) {
+                            Boolean isOpenObj = (Boolean) dayData.get("isOpen");
+                            boolean isOpen = (isOpenObj != null) ? isOpenObj : false;
 
-                            fetchBookedSlotsAndGenerate(startTime, endTime, appointmentDuration);
+                            Log.d("BookingDebug", "Is " + dayOfWeekKey + " open? " + isOpen);
+
+                            if (isOpen) {
+                                String startTime = (String) dayData.get("start");
+                                String endTime = (String) dayData.get("end");
+
+                                Log.d("BookingDebug", "Loaded Start: " + startTime + ", End: " + endTime);
+
+                                if (startTime == null) startTime = "09:00";
+                                if (endTime == null) endTime = "17:00";
+
+                                fetchBookedSlotsAndGenerate(startTime, endTime, appointmentDuration);
+                            } else {
+                                showNoSlots("העסק סגור ביום זה");
+                            }
                         } else {
                             showNoSlots("העסק סגור ביום זה");
                         }
                     } else {
-                        showNoSlots("לא הוגדרו שעות");
+                        Log.d("BookingDebug", "weeklySchedule is null or day not found in map");
+                        showNoSlots("לא הוגדרו שעות פעילות ליום זה");
                     }
                 })
-                .addOnFailureListener(e -> showNoSlots("שגיאה בטעינת נתונים"));
+                .addOnFailureListener(e -> {
+                    Log.e("BookingDebug", "Error loading business data: " + e.getMessage());
+                    showNoSlots("שגיאה בטעינת נתונים");
+                });
     }
 
     private void fetchBookedSlotsAndGenerate(String start, String end, int duration) {
@@ -177,9 +199,12 @@ public class BookingActivity extends AppCompatActivity {
                 .addOnSuccessListener(querySnapshot -> {
                     Set<String> bookedTimes = new HashSet<>();
                     for (QueryDocumentSnapshot doc : querySnapshot) {
-                        Appointment app = doc.toObject(Appointment.class);
-                        if (app.getStatus() != null && !app.getStatus().equals("REJECTED")) {
-                            bookedTimes.add(app.getTime());
+                        String status = doc.getString("status");
+                        if (status != null && !status.equals("REJECTED")) {
+                            String time = doc.getString("time");
+                            if (time != null) {
+                                bookedTimes.add(time);
+                            }
                         }
                     }
                     generateSlots(start, end, duration, bookedTimes);
@@ -207,8 +232,6 @@ public class BookingActivity extends AppCompatActivity {
         } else {
             tvNoSlots.setVisibility(View.GONE);
             rvTimeSlots.setVisibility(View.VISIBLE);
-
-            // *** שינוי 2: עדכון האדפטר עם משך הזמן החדש ***
             adapter.updateData(timeSlotsList, durationMinutes);
         }
     }
@@ -252,26 +275,25 @@ public class BookingActivity extends AppCompatActivity {
     private void finalizeBooking(String userId, String userName) {
         String appointmentId = db.collection("appointments").document().getId();
 
-        // קבלת התיאור מהשדה
-        String userDescription = etDescription.getText().toString().trim();
+        String userDescription = etDescription.getText() != null ? etDescription.getText().toString().trim() : "";
         if (userDescription.isEmpty()) {
             userDescription = "ללא תיאור";
         }
 
-        Appointment newAppointment = new Appointment();
-        newAppointment.setAppointmentId(appointmentId);
-        newAppointment.setBusinessId(currentBusinessId);
-        newAppointment.setBusinessName(currentBusinessName);
-        newAppointment.setUserId(userId);
-        newAppointment.setUserName(userName);
-        newAppointment.setDate(selectedDate);
-        newAppointment.setTime(selectedTime); // כאן נשמרת רק שעת ההתחלה
-        newAppointment.setStatus("PENDING");
-        newAppointment.setTimestamp(new Date().getTime());
-        // שמירת התיאור
-        newAppointment.setDescription(userDescription);
+        // שימוש במפה בטוחה כדי למנוע קריסות של מחלקת המודל
+        Map<String, Object> appointmentData = new java.util.HashMap<>();
+        appointmentData.put("appointmentId", appointmentId);
+        appointmentData.put("businessId", currentBusinessId);
+        appointmentData.put("businessName", currentBusinessName);
+        appointmentData.put("userId", userId);
+        appointmentData.put("userName", userName);
+        appointmentData.put("date", selectedDate);
+        appointmentData.put("time", selectedTime);
+        appointmentData.put("status", "PENDING");
+        appointmentData.put("timestamp", new Date().getTime());
+        appointmentData.put("description", userDescription);
 
-        db.collection("appointments").document(appointmentId).set(newAppointment)
+        db.collection("appointments").document(appointmentId).set(appointmentData)
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(this, "בקשתך נשלחה לבעל העסק!", Toast.LENGTH_LONG).show();
                     finish();
@@ -292,7 +314,7 @@ public class BookingActivity extends AppCompatActivity {
     }
 
     private String convertMinutesToTime(int totalMinutes) {
-        return String.format("%02d:%02d", totalMinutes / 60, totalMinutes % 60);
+        return String.format(java.util.Locale.getDefault(), "%02d:%02d", totalMinutes / 60, totalMinutes % 60);
     }
 
     private void showNoSlots(String message) {
@@ -314,23 +336,20 @@ public class BookingActivity extends AppCompatActivity {
         }
     }
 
-    // --- Adapter המעודכן עם תצוגת טווח שעות ---
     class TimeSlotAdapter extends RecyclerView.Adapter<TimeSlotAdapter.ViewHolder> {
         private List<String> slots;
-        private int durationMinutes; // משתנה למשך התור
+        private int durationMinutes;
         private int selectedPosition = -1;
 
-        // בנאי מעודכן
         public TimeSlotAdapter(List<String> slots, int durationMinutes) {
             this.slots = slots;
             this.durationMinutes = durationMinutes;
         }
 
-        // פונקציה לעדכון נתונים מבחוץ
         public void updateData(List<String> newSlots, int newDuration) {
             this.slots = newSlots;
             this.durationMinutes = newDuration;
-            this.selectedPosition = -1; // איפוס בחירה כשמחליפים יום
+            this.selectedPosition = -1;
             notifyDataSetChanged();
         }
 
@@ -343,8 +362,6 @@ public class BookingActivity extends AppCompatActivity {
         @Override
         public void onBindViewHolder(ViewHolder holder, int position) {
             String startTime = slots.get(position);
-
-            // חישוב שעת הסיום לתצוגה
             String endTime = calculateEndTime(startTime, durationMinutes);
             String displayTime = startTime + " - " + endTime;
 
@@ -361,7 +378,7 @@ public class BookingActivity extends AppCompatActivity {
             holder.itemView.setOnClickListener(v -> {
                 int prev = selectedPosition;
                 selectedPosition = holder.getAdapterPosition();
-                selectedTime = slots.get(selectedPosition); // שומרים רק את שעת ההתחלה
+                selectedTime = slots.get(selectedPosition);
                 btnConfirmBooking.setEnabled(true);
                 notifyItemChanged(prev);
                 notifyItemChanged(selectedPosition);
@@ -381,13 +398,12 @@ public class BookingActivity extends AppCompatActivity {
             }
         }
 
-        // פונקציית עזר לחישוב זמן סיום
         private String calculateEndTime(String start, int duration) {
             try {
                 String[] parts = start.split(":");
                 int totalMin = Integer.parseInt(parts[0]) * 60 + Integer.parseInt(parts[1]);
                 totalMin += duration;
-                return String.format("%02d:%02d", totalMin / 60, totalMin % 60);
+                return String.format(java.util.Locale.getDefault(), "%02d:%02d", totalMin / 60, totalMin % 60);
             } catch (Exception e) {
                 return start;
             }
