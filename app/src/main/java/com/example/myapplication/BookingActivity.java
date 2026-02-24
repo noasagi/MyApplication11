@@ -13,11 +13,13 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
@@ -28,7 +30,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Date;
 import java.util.Locale;
 
 public class BookingActivity extends AppCompatActivity {
@@ -36,17 +37,22 @@ public class BookingActivity extends AppCompatActivity {
     private TextView tvSelectedDate, tvNoSlots;
     private RecyclerView rvTimeSlots;
     private Button btnPickDate, btnConfirmBooking;
-    private TextInputEditText etDescription;
+    private Spinner spinnerTreatments; // הרשימה הנפתחת החדשה
 
     private String selectedDate = "";
     private String selectedTime = "";
     private TimeSlotAdapter adapter;
     private List<String> timeSlotsList;
+    private Calendar selectedCalendar = null; // שומר את התאריך למקרה שהלקוח מחליף טיפול
 
     private String currentBusinessId;
     private String currentBusinessName = "";
     private FirebaseFirestore db;
     private FirebaseAuth auth;
+
+    // רשימות לניהול הטיפולים
+    private List<Treatment> treatmentList = new ArrayList<>();
+    private Treatment selectedTreatment = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,12 +62,9 @@ public class BookingActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
-        // קבלת ה-ID שהגיע מהאדפטר
         currentBusinessId = getIntent().getStringExtra("businessId");
         currentBusinessName = getIntent().getStringExtra("businessName");
-
         if (currentBusinessId == null) {
-            // גיבוי למקרה שהמפתח נשלח באותיות גדולות
             currentBusinessId = getIntent().getStringExtra("BUSINESS_ID");
         }
 
@@ -76,19 +79,75 @@ public class BookingActivity extends AppCompatActivity {
         rvTimeSlots = findViewById(R.id.rvTimeSlots);
         btnPickDate = findViewById(R.id.btnPickDate);
         btnConfirmBooking = findViewById(R.id.btnConfirmBooking);
-        etDescription = findViewById(R.id.etDescription);
+        spinnerTreatments = findViewById(R.id.spinnerTreatments);
 
         rvTimeSlots.setLayoutManager(new GridLayoutManager(this, 3));
         timeSlotsList = new ArrayList<>();
         adapter = new TimeSlotAdapter(timeSlotsList, 0);
         rvTimeSlots.setAdapter(adapter);
 
-        btnPickDate.setOnClickListener(v -> showDatePicker());
+        btnPickDate.setOnClickListener(v -> {
+            if (selectedTreatment == null) {
+                Toast.makeText(this, "נא לבחור טיפול קודם", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            showDatePicker();
+        });
+
         btnConfirmBooking.setOnClickListener(v -> saveAppointmentRequest());
 
         if (getSupportActionBar() != null) {
             getSupportActionBar().setTitle("הזמנת תור");
         }
+
+        // טעינת הטיפולים מה-Firebase
+        loadTreatments();
+    }
+
+    private void loadTreatments() {
+        db.collection("businesses").document(currentBusinessId).collection("treatments")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    treatmentList.clear();
+                    List<String> treatmentNames = new ArrayList<>();
+
+                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                        Treatment treatment = doc.toObject(Treatment.class);
+                        treatmentList.add(treatment);
+                        treatmentNames.add(treatment.getName() + " (" + treatment.getDurationMinutes() + " דקות)");
+                    }
+
+                    if (treatmentList.isEmpty()) {
+                        treatmentNames.add("לא הוגדרו טיפולים לעסק זה");
+                        btnPickDate.setEnabled(false);
+                    }
+
+                    ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, treatmentNames);
+                    spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                    spinnerTreatments.setAdapter(spinnerAdapter);
+
+                    spinnerTreatments.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                        @Override
+                        public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                            if (!treatmentList.isEmpty()) {
+                                selectedTreatment = treatmentList.get(position);
+                                selectedTime = ""; // איפוס השעה שנבחרה
+                                btnConfirmBooking.setEnabled(false);
+
+                                // אם הלקוח כבר בחר תאריך, נחשב מחדש את השעות לפי הטיפול החדש
+                                if (selectedCalendar != null) {
+                                    loadRealTimeSlots(selectedCalendar);
+                                }
+                            }
+                        }
+
+                        @Override
+                        public void onNothingSelected(AdapterView<?> parent) {
+                            selectedTreatment = null;
+                        }
+                    });
+                })
+                .addOnFailureListener(e -> Toast.makeText(this, "שגיאה בטעינת טיפולים", Toast.LENGTH_SHORT).show());
     }
 
     private void showDatePicker() {
@@ -99,17 +158,16 @@ public class BookingActivity extends AppCompatActivity {
 
         DatePickerDialog datePickerDialog = new DatePickerDialog(this,
                 (view, year1, month1, dayOfMonth) -> {
-                    Calendar selectedCal = Calendar.getInstance();
-                    selectedCal.set(year1, month1, dayOfMonth);
+                    selectedCalendar = Calendar.getInstance();
+                    selectedCalendar.set(year1, month1, dayOfMonth);
 
-                    // שמירת התאריך בפורמט אחיד
                     selectedDate = dayOfMonth + "/" + (month1 + 1) + "/" + year1;
                     tvSelectedDate.setText("תאריך נבחר: " + selectedDate);
 
                     selectedTime = "";
                     btnConfirmBooking.setEnabled(false);
 
-                    loadRealTimeSlots(selectedCal);
+                    loadRealTimeSlots(selectedCalendar);
                 }, year, month, day);
 
         datePickerDialog.getDatePicker().setMinDate(System.currentTimeMillis() - 1000);
@@ -117,15 +175,15 @@ public class BookingActivity extends AppCompatActivity {
     }
 
     private void loadRealTimeSlots(Calendar selectedDateCal) {
+        if (selectedTreatment == null) return;
+
         timeSlotsList.clear();
         adapter.notifyDataSetChanged();
         tvNoSlots.setText("בודק זמינות...");
         tvNoSlots.setVisibility(View.VISIBLE);
         rvTimeSlots.setVisibility(View.GONE);
 
-        // שימוש באינדקס (0-6) כדי להתאים לקוד החדש של BusinessHoursActivity
         String dayOfWeekKey = String.valueOf(selectedDateCal.get(Calendar.DAY_OF_WEEK) - 1);
-        Log.d("BookingDebug", "Searching for day index: " + dayOfWeekKey + " for business: " + currentBusinessId);
 
         db.collection("businesses").document(currentBusinessId).get()
                 .addOnSuccessListener(businessDoc -> {
@@ -134,8 +192,8 @@ public class BookingActivity extends AppCompatActivity {
                         return;
                     }
 
-                    Long durationLong = businessDoc.getLong("appointmentDuration");
-                    int appointmentDuration = (durationLong != null) ? durationLong.intValue() : 30;
+                    // *** השינוי המרכזי: לוקחים את הזמן מהטיפול הספציפי, ולא מהעסק! ***
+                    int appointmentDuration = selectedTreatment.getDurationMinutes();
 
                     Map<String, Object> weeklySchedule = (Map<String, Object>) businessDoc.get("weeklySchedule");
 
@@ -159,7 +217,7 @@ public class BookingActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> showNoSlots("שגיאה בתקשורת עם השרת"));
     }
 
-    private void fetchBookedSlotsAndGenerate(String start, String end, int duration) {
+    private void fetchBookedSlotsAndGenerate(String start, String end, int duration, Set<String> blockedTimesList) {
         db.collection("appointments")
                 .whereEqualTo("businessId", currentBusinessId)
                 .whereEqualTo("date", selectedDate)
@@ -178,6 +236,11 @@ public class BookingActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> showNoSlots("שגיאה בבדיקת תורים תפוסים"));
     }
 
+    // קריאה לפונקציה המקורית אם אין חסימות (הוספתי תאימות לאחור)
+    private void fetchBookedSlotsAndGenerate(String start, String end, int duration) {
+        fetchBookedSlotsAndGenerate(start, end, duration, new HashSet<>());
+    }
+
     private void generateSlots(String start, String end, int durationMinutes, Set<String> bookedTimes) {
         timeSlotsList.clear();
         int startMins = convertTimeToMinutes(start);
@@ -188,7 +251,7 @@ public class BookingActivity extends AppCompatActivity {
             if (!bookedTimes.contains(timeString)) {
                 timeSlotsList.add(timeString);
             }
-            startMins += durationMinutes;
+            startMins += durationMinutes; // קופץ קדימה לפי זמן הטיפול הספציפי!
         }
 
         if (timeSlotsList.isEmpty()) {
@@ -201,15 +264,14 @@ public class BookingActivity extends AppCompatActivity {
     }
 
     private void saveAppointmentRequest() {
-        if (auth.getCurrentUser() == null) {
-            Toast.makeText(this, "עליך להתחבר", Toast.LENGTH_SHORT).show();
+        if (auth.getCurrentUser() == null || selectedTreatment == null) {
+            Toast.makeText(this, "חסרים נתונים", Toast.LENGTH_SHORT).show();
             return;
         }
 
         btnConfirmBooking.setEnabled(false);
         String userId = auth.getCurrentUser().getUid();
 
-        // שליפת שם המשתמש מהפרופיל שלו
         db.collection("users").document(userId).get().addOnSuccessListener(doc -> {
             String userName = "לקוח";
             if (doc.exists()) {
@@ -222,7 +284,9 @@ public class BookingActivity extends AppCompatActivity {
 
     private void finalizeBooking(String userId, String userName) {
         String appointmentId = db.collection("appointments").document().getId();
-        String description = etDescription.getText().toString().trim();
+
+        // עכשיו התיאור הוא פשוט שם הטיפול שהלקוח בחר מהרשימה
+        String description = selectedTreatment.getName() + " (₪" + selectedTreatment.getPrice() + ")";
 
         Map<String, Object> data = new java.util.HashMap<>();
         data.put("appointmentId", appointmentId);
@@ -234,7 +298,7 @@ public class BookingActivity extends AppCompatActivity {
         data.put("time", selectedTime);
         data.put("status", "PENDING");
         data.put("timestamp", System.currentTimeMillis());
-        data.put("description", description.isEmpty() ? "ללא הערות" : description);
+        data.put("description", description);
 
         db.collection("appointments").document(appointmentId).set(data)
                 .addOnSuccessListener(aVoid -> {

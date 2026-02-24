@@ -12,6 +12,7 @@
         android:title="יומן" />
 
     <item
+        android:id="@+id/nav_buisness_services"
         android:icon="@android:drawable/ic_menu_agenda"
         android:title="טיפולים" />
 

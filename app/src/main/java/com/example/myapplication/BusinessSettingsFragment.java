@@ -32,12 +32,12 @@ public class BusinessSettingsFragment extends Fragment {
             Intent intent = new Intent(getContext(), MyBusinessMainActivity.class);
             startActivity(intent);
         });
-
-        // 2. ניהול טיפולים (מוביל לרשימת הטיפולים שבנינו קודם)
-        /*cardTreatments.setOnClickListener(v -> {
-            Intent intent = new Intent(getContext(), BusinessServicesActivity.class);
-            startActivity(intent);
-        }); */
+        cardTreatments.setOnClickListener(v -> {
+            requireActivity().getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_container, new BusinessServicesFragment()) // שימי לב להערה למטה!
+                    .addToBackStack(null) // מאפשר למשתמש ללחוץ על כפתור ה"חזור" של הטלפון ולחזור להגדרות
+                    .commit();
+        });
 
         // 3. שעות פעילות קבועות (התיקון כאן - מושכים את ה-ID האמיתי של העסק)
         cardBusinessHours.setOnClickListener(v -> {
