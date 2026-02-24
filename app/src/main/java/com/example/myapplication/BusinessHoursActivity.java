@@ -40,25 +40,23 @@ public class BusinessHoursActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_business_hours);
 
+        // ניסיון לקבל ID מכל המקורות האפשריים
         businessId = getIntent().getStringExtra("BUSINESS_ID");
-        if (businessId == null) {
-            businessId = getIntent().getStringExtra("businessId"); // גיבוי לאותיות קטנות
-        }
+        if (businessId == null) businessId = getIntent().getStringExtra("businessId");
         if (businessId == null && FirebaseAuth.getInstance().getCurrentUser() != null) {
-            businessId = FirebaseAuth.getInstance().getCurrentUser().getUid(); // גיבוי אחרון - ה-ID של המשתמש המחובר
-        }        etDuration = findViewById(R.id.etDuration);
+            businessId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        }
+
+        etDuration = findViewById(R.id.etDuration);
         btnSaveAll = findViewById(R.id.btnSaveAll);
         rvDays = findViewById(R.id.rvDays);
 
-        // 1. קודם כל מאתחלים עם שעות ברירת מחדל
         initDaysList();
 
-        // 2. מגדירים את ה-RecyclerView
         rvDays.setLayoutManager(new LinearLayoutManager(this));
         adapter = new DaysAdapter(daysList, this);
         rvDays.setAdapter(adapter);
 
-        // 3. מנסים למשוך נתונים קיימים מפיירבייס כדי לדרוס את ברירת המחדל
         loadFromFirebase();
 
         btnSaveAll.setOnClickListener(v -> saveToFirebase());
@@ -66,15 +64,15 @@ public class BusinessHoursActivity extends AppCompatActivity {
 
     private void initDaysList() {
         daysList = new ArrayList<>();
-        String[] dayNames = {"יום ראשון", "יום שני", "יום שלישי", "יום רביעי", "יום חמישי", "יום שישי"};
-
-        for (String name : dayNames) {
-            daysList.add(new DaySchedule(name, "09:00", "17:00", true));
+        // רשימת ימים מלאה כולל שבת
+        String[] dayNames = {"יום ראשון", "יום שני", "יום שלישי", "יום רביעי", "יום חמישי", "יום שישי", "יום שבת"};
+        for (int i = 0; i < dayNames.length; i++) {
+            daysList.add(new DaySchedule(i, dayNames[i], "09:00", "17:00", true));
         }
     }
 
     private void loadFromFirebase() {
-        if (businessId == null || businessId.isEmpty()) return;
+        if (businessId == null) return;
 
         FirebaseFirestore.getInstance()
                 .collection("businesses")
@@ -82,40 +80,33 @@ public class BusinessHoursActivity extends AppCompatActivity {
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
-                        // טעינת משך התור
                         if (documentSnapshot.contains("appointmentDuration")) {
                             Long duration = documentSnapshot.getLong("appointmentDuration");
-                            if (duration != null) {
-                                etDuration.setText(String.valueOf(duration));
-                            }
+                            if (duration != null) etDuration.setText(String.valueOf(duration));
                         }
 
-                        // טעינת שעות הפעילות
-                        if (documentSnapshot.contains("weeklySchedule")) {
-                            Map<String, Object> weeklySchedule = (Map<String, Object>) documentSnapshot.get("weeklySchedule");
-                            if (weeklySchedule != null) {
-                                for (DaySchedule day : daysList) {
-                                    if (weeklySchedule.containsKey(day.dayName)) {
-                                        Map<String, Object> dayData = (Map<String, Object>) weeklySchedule.get(day.dayName);
-                                        if (dayData != null) {
-                                            day.startTime = (String) dayData.get("start");
-                                            day.endTime = (String) dayData.get("end");
-                                            day.isOpen = (Boolean) dayData.get("isOpen");
-                                        }
+                        Map<String, Object> weeklySchedule = (Map<String, Object>) documentSnapshot.get("weeklySchedule");
+                        if (weeklySchedule != null) {
+                            for (DaySchedule day : daysList) {
+                                // חיפוש לפי האינדקס (כדי למנוע בעיות עברית)
+                                String key = String.valueOf(day.dayIndex);
+                                if (weeklySchedule.containsKey(key)) {
+                                    Map<String, Object> dayData = (Map<String, Object>) weeklySchedule.get(key);
+                                    if (dayData != null) {
+                                        day.startTime = (String) dayData.get("start");
+                                        day.endTime = (String) dayData.get("end");
+                                        day.isOpen = (Boolean) dayData.get("isOpen");
                                     }
                                 }
-                                // מעדכנים את המסך עם הנתונים החדשים
-                                adapter.notifyDataSetChanged();
                             }
+                            adapter.notifyDataSetChanged();
                         }
                     }
-                })
-                .addOnFailureListener(e -> Toast.makeText(this, "שגיאה בטעינת הנתונים", Toast.LENGTH_SHORT).show());
+                });
     }
 
     private void saveToFirebase() {
-        Toast.makeText(this, "Owner ID: " + businessId, Toast.LENGTH_LONG).show();
-        if (businessId == null || businessId.isEmpty()) {
+        if (businessId == null) {
             Toast.makeText(this, "שגיאה: חסר מזהה עסק", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -126,24 +117,22 @@ public class BusinessHoursActivity extends AppCompatActivity {
             return;
         }
 
-        int duration = Integer.parseInt(durationStr);
-
-        Map<String, Object> dataToSave = new HashMap<>();
-        dataToSave.put("appointmentDuration", duration);
-
         Map<String, Object> weeklySchedule = new HashMap<>();
         for (DaySchedule day : daysList) {
             Map<String, Object> dayData = new HashMap<>();
+            dayData.put("dayName", day.dayName); // שומרים את השם רק ליופי ב-DB
             dayData.put("start", day.startTime);
             dayData.put("end", day.endTime);
             dayData.put("isOpen", day.isOpen);
 
-            weeklySchedule.put(day.dayName, dayData);
+            // המפתח ב-Map הוא המספר של היום (0-6)
+            weeklySchedule.put(String.valueOf(day.dayIndex), dayData);
         }
 
+        Map<String, Object> dataToSave = new HashMap<>();
+        dataToSave.put("appointmentDuration", Integer.parseInt(durationStr));
         dataToSave.put("weeklySchedule", weeklySchedule);
 
-        // השינוי כאן: שימוש ב-set עם merge במקום update
         FirebaseFirestore.getInstance()
                 .collection("businesses")
                 .document(businessId)
@@ -152,18 +141,18 @@ public class BusinessHoursActivity extends AppCompatActivity {
                     Toast.makeText(this, "השעות נשמרו בהצלחה!", Toast.LENGTH_SHORT).show();
                     finish();
                 })
-                .addOnFailureListener(e -> Toast.makeText(this, "שגיאה בשמירה: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                .addOnFailureListener(e -> Toast.makeText(this, "שגיאה: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 
-    // --- מחלקות עזר (מודל ואדפטר) ---
-
     public static class DaySchedule {
+        int dayIndex; // 0 לראשון, 1 לשני וכו'
         String dayName;
         String startTime;
         String endTime;
         boolean isOpen;
 
-        public DaySchedule(String dayName, String startTime, String endTime, boolean isOpen) {
+        public DaySchedule(int dayIndex, String dayName, String startTime, String endTime, boolean isOpen) {
+            this.dayIndex = dayIndex;
             this.dayName = dayName;
             this.startTime = startTime;
             this.endTime = endTime;
@@ -172,7 +161,6 @@ public class BusinessHoursActivity extends AppCompatActivity {
     }
 
     class DaysAdapter extends RecyclerView.Adapter<DaysAdapter.DayViewHolder> {
-
         private List<DaySchedule> list;
         private AppCompatActivity context;
 
@@ -191,7 +179,6 @@ public class BusinessHoursActivity extends AppCompatActivity {
         @Override
         public void onBindViewHolder(@NonNull DayViewHolder holder, int position) {
             DaySchedule day = list.get(position);
-
             holder.tvDayName.setText(day.dayName);
             holder.btnStartTime.setText(day.startTime);
             holder.btnEndTime.setText(day.endTime);
@@ -209,15 +196,9 @@ public class BusinessHoursActivity extends AppCompatActivity {
         }
 
         private void updateVisibility(DayViewHolder holder, boolean isOpen) {
-            if (isOpen) {
-                holder.btnStartTime.setVisibility(View.VISIBLE);
-                holder.btnEndTime.setVisibility(View.VISIBLE);
-                holder.switchIsOpen.setText("פתוח");
-            } else {
-                holder.btnStartTime.setVisibility(View.INVISIBLE);
-                holder.btnEndTime.setVisibility(View.INVISIBLE);
-                holder.switchIsOpen.setText("סגור");
-            }
+            holder.btnStartTime.setVisibility(isOpen ? View.VISIBLE : View.INVISIBLE);
+            holder.btnEndTime.setVisibility(isOpen ? View.VISIBLE : View.INVISIBLE);
+            holder.switchIsOpen.setText(isOpen ? "פתוח" : "סגור");
         }
 
         private void showTimePicker(Button btn, DaySchedule day, boolean isStart) {
@@ -232,15 +213,12 @@ public class BusinessHoursActivity extends AppCompatActivity {
         }
 
         @Override
-        public int getItemCount() {
-            return list.size();
-        }
+        public int getItemCount() { return list.size(); }
 
         class DayViewHolder extends RecyclerView.ViewHolder {
             TextView tvDayName;
             Switch switchIsOpen;
             Button btnStartTime, btnEndTime;
-
             public DayViewHolder(@NonNull View itemView) {
                 super(itemView);
                 tvDayName = itemView.findViewById(R.id.tvDayName);
