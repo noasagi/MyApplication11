@@ -37,20 +37,19 @@ public class BookingActivity extends AppCompatActivity {
     private TextView tvSelectedDate, tvNoSlots;
     private RecyclerView rvTimeSlots;
     private Button btnPickDate, btnConfirmBooking;
-    private Spinner spinnerTreatments; // הרשימה הנפתחת החדשה
+    private Spinner spinnerTreatments;
 
     private String selectedDate = "";
     private String selectedTime = "";
     private TimeSlotAdapter adapter;
     private List<String> timeSlotsList;
-    private Calendar selectedCalendar = null; // שומר את התאריך למקרה שהלקוח מחליף טיפול
+    private Calendar selectedCalendar = null;
 
     private String currentBusinessId;
     private String currentBusinessName = "";
     private FirebaseFirestore db;
     private FirebaseAuth auth;
 
-    // רשימות לניהול הטיפולים
     private List<Treatment> treatmentList = new ArrayList<>();
     private Treatment selectedTreatment = null;
 
@@ -100,7 +99,6 @@ public class BookingActivity extends AppCompatActivity {
             getSupportActionBar().setTitle("הזמנת תור");
         }
 
-        // טעינת הטיפולים מה-Firebase
         loadTreatments();
     }
 
@@ -131,10 +129,9 @@ public class BookingActivity extends AppCompatActivity {
                         public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                             if (!treatmentList.isEmpty()) {
                                 selectedTreatment = treatmentList.get(position);
-                                selectedTime = ""; // איפוס השעה שנבחרה
+                                selectedTime = "";
                                 btnConfirmBooking.setEnabled(false);
 
-                                // אם הלקוח כבר בחר תאריך, נחשב מחדש את השעות לפי הטיפול החדש
                                 if (selectedCalendar != null) {
                                     loadRealTimeSlots(selectedCalendar);
                                 }
@@ -192,9 +189,7 @@ public class BookingActivity extends AppCompatActivity {
                         return;
                     }
 
-                    // *** השינוי המרכזי: לוקחים את הזמן מהטיפול הספציפי, ולא מהעסק! ***
                     int appointmentDuration = selectedTreatment.getDurationMinutes();
-
                     Map<String, Object> weeklySchedule = (Map<String, Object>) businessDoc.get("weeklySchedule");
 
                     if (weeklySchedule != null && weeklySchedule.containsKey(dayOfWeekKey)) {
@@ -217,41 +212,67 @@ public class BookingActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> showNoSlots("שגיאה בתקשורת עם השרת"));
     }
 
-    private void fetchBookedSlotsAndGenerate(String start, String end, int duration, Set<String> blockedTimesList) {
+    private void fetchBookedSlotsAndGenerate(String start, String end, int duration) {
         db.collection("appointments")
                 .whereEqualTo("businessId", currentBusinessId)
                 .whereEqualTo("date", selectedDate)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
-                    Set<String> bookedTimes = new HashSet<>();
+                    // *** האלגוריתם החדש: שומר טווחי זמן (התחלה וסיום) במקום שעות בודדות ***
+                    List<int[]> bookedRanges = new ArrayList<>();
+
                     for (QueryDocumentSnapshot doc : querySnapshot) {
                         String status = doc.getString("status");
                         if (status != null && !status.equals("REJECTED")) {
                             String time = doc.getString("time");
-                            if (time != null) bookedTimes.add(time);
+                            Long durationLong = doc.getLong("duration");
+
+                            // אם זה תור ישן שאין לו אורך, נניח שהוא 30 דקות כברירת מחדל
+                            int bookedDuration = (durationLong != null) ? durationLong.intValue() : 30;
+
+                            if (time != null) {
+                                int bookedStart = convertTimeToMinutes(time);
+                                int bookedEnd = bookedStart + bookedDuration;
+                                bookedRanges.add(new int[]{bookedStart, bookedEnd});
+                            }
                         }
                     }
-                    generateSlots(start, end, duration, bookedTimes);
+                    generateSlots(start, end, duration, bookedRanges);
                 })
                 .addOnFailureListener(e -> showNoSlots("שגיאה בבדיקת תורים תפוסים"));
     }
 
-    // קריאה לפונקציה המקורית אם אין חסימות (הוספתי תאימות לאחור)
-    private void fetchBookedSlotsAndGenerate(String start, String end, int duration) {
-        fetchBookedSlotsAndGenerate(start, end, duration, new HashSet<>());
-    }
-
-    private void generateSlots(String start, String end, int durationMinutes, Set<String> bookedTimes) {
+    private void generateSlots(String start, String end, int durationMinutes, List<int[]> bookedRanges) {
         timeSlotsList.clear();
         int startMins = convertTimeToMinutes(start);
         int endMins = convertTimeToMinutes(end);
 
+        // התיקון: קפיצות קבועות ביומן (כל 30 דקות) במקום קפיצות לפי אורך הטיפול
+        int intervalMinutes = 30;
+
         while (startMins + durationMinutes <= endMins) {
-            String timeString = convertMinutesToTime(startMins);
-            if (!bookedTimes.contains(timeString)) {
+            int proposedStart = startMins;
+            int proposedEnd = startMins + durationMinutes;
+            boolean isOverlapping = false;
+
+            // בדיקת חפיפה
+            for (int[] range : bookedRanges) {
+                int bookedStart = range[0];
+                int bookedEnd = range[1];
+
+                if (proposedStart < bookedEnd && proposedEnd > bookedStart) {
+                    isOverlapping = true;
+                    break;
+                }
+            }
+
+            if (!isOverlapping) {
+                String timeString = convertMinutesToTime(startMins);
                 timeSlotsList.add(timeString);
             }
-            startMins += durationMinutes; // קופץ קדימה לפי זמן הטיפול הספציפי!
+
+            // מתקדמים ביומן בחצאי שעות (כדי לא לפספס חורים של 10:30 למשל)
+            startMins += intervalMinutes;
         }
 
         if (timeSlotsList.isEmpty()) {
@@ -284,8 +305,6 @@ public class BookingActivity extends AppCompatActivity {
 
     private void finalizeBooking(String userId, String userName) {
         String appointmentId = db.collection("appointments").document().getId();
-
-        // עכשיו התיאור הוא פשוט שם הטיפול שהלקוח בחר מהרשימה
         String description = selectedTreatment.getName() + " (₪" + selectedTreatment.getPrice() + ")";
 
         Map<String, Object> data = new java.util.HashMap<>();
@@ -299,6 +318,9 @@ public class BookingActivity extends AppCompatActivity {
         data.put("status", "PENDING");
         data.put("timestamp", System.currentTimeMillis());
         data.put("description", description);
+
+        // *** חדש: שומרים את משך הזמן בדאטה בייס ***
+        data.put("duration", selectedTreatment.getDurationMinutes());
 
         db.collection("appointments").document(appointmentId).set(data)
                 .addOnSuccessListener(aVoid -> {

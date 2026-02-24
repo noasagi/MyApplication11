@@ -1,7 +1,7 @@
 package com.example.myapplication;
 
+import android.app.AlertDialog;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
@@ -26,16 +27,18 @@ import java.util.Map;
 
 public class BusinessServicesFragment extends Fragment {
 
-    private EditText etTreatmentName, etTreatmentPrice, etTreatmentDuration;
+    private EditText etTreatmentName, etTreatmentDuration, etTreatmentPrice;
     private Button btnAddTreatment;
     private RecyclerView rvTreatments;
 
     private FirebaseFirestore db;
     private FirebaseAuth auth;
-    private String currentBusinessId = null;
+    private String businessId = null;
 
     private TreatmentsAdapter adapter;
-    private List<Treatment> treatmentList;
+    private List<Treatment> treatmentList = new ArrayList<>();
+    // רשימה שתשמור את ה-ID של כל מסמך כדי שנוכל למחוק אותו
+    private List<String> treatmentIds = new ArrayList<>();
 
     public BusinessServicesFragment() {
         // Required empty public constructor
@@ -45,132 +48,138 @@ public class BusinessServicesFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_business_services, container, false);
 
-        // 1. חיבור רכיבי ה-UI מה-XML
-        etTreatmentName = view.findViewById(R.id.etTreatmentName);
-        etTreatmentPrice = view.findViewById(R.id.etTreatmentPrice);
-        etTreatmentDuration = view.findViewById(R.id.etTreatmentDuration);
-        btnAddTreatment = view.findViewById(R.id.btnAddTreatment);
-        rvTreatments = view.findViewById(R.id.rvTreatments);
-
-        // 2. אתחול Firebase
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
-        // 3. הגדרת הרשימה (RecyclerView)
+        etTreatmentName = view.findViewById(R.id.etTreatmentName);
+        etTreatmentDuration = view.findViewById(R.id.etTreatmentDuration);
+        etTreatmentPrice = view.findViewById(R.id.etTreatmentPrice);
+        btnAddTreatment = view.findViewById(R.id.btnAddTreatment);
+        rvTreatments = view.findViewById(R.id.rvTreatments);
+
         rvTreatments.setLayoutManager(new LinearLayoutManager(getContext()));
-        treatmentList = new ArrayList<>();
-        adapter = new TreatmentsAdapter(treatmentList);
+        adapter = new TreatmentsAdapter();
         rvTreatments.setAdapter(adapter);
 
-        // 4. טעינת מזהה העסק של המשתמש המחובר והצגת הטיפולים שלו
-        loadBusinessData();
+        findBusinessIdAndLoadTreatments();
 
-        // 5. לחיצה על כפתור "הוסף טיפול"
         btnAddTreatment.setOnClickListener(v -> addTreatment());
 
         return view;
     }
 
-    private void loadBusinessData() {
+    private void findBusinessIdAndLoadTreatments() {
         if (auth.getCurrentUser() == null) return;
-        String userId = auth.getCurrentUser().getUid();
+        String uid = auth.getCurrentUser().getUid();
 
-        // חיפוש העסק ששייך למשתמש הנוכחי (לפי התמונה ששלחת, יש שדה ownerId)
-        db.collection("businesses")
-                .whereEqualTo("ownerId", userId)
-                .get()
+        db.collection("businesses").whereEqualTo("ownerId", uid).get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     if (!queryDocumentSnapshots.isEmpty()) {
-                        // מצאנו את העסק! נשמור את ה-ID שלו
-                        currentBusinessId = queryDocumentSnapshots.getDocuments().get(0).getId();
-                        // עכשיו נטען את הטיפולים שכבר קיימים
+                        businessId = queryDocumentSnapshots.getDocuments().get(0).getId();
                         loadTreatments();
                     } else {
-                        Toast.makeText(getContext(), "לא נמצא עסק מקושר למשתמש זה", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(), "לא נמצא עסק", Toast.LENGTH_SHORT).show();
                     }
                 })
-                .addOnFailureListener(e -> Toast.makeText(getContext(), "שגיאה בטעינת נתוני עסק", Toast.LENGTH_SHORT).show());
+                .addOnFailureListener(e -> Toast.makeText(getContext(), "שגיאה בטעינת העסק", Toast.LENGTH_SHORT).show());
     }
 
     private void loadTreatments() {
-        if (currentBusinessId == null) return;
+        if (businessId == null) return;
 
-        db.collection("businesses").document(currentBusinessId).collection("treatments")
+        db.collection("businesses").document(businessId).collection("treatments")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     treatmentList.clear();
+                    treatmentIds.clear();
                     for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
                         Treatment treatment = doc.toObject(Treatment.class);
                         treatmentList.add(treatment);
+                        treatmentIds.add(doc.getId()); // שומרים את ה-ID למחיקה
                     }
                     adapter.notifyDataSetChanged();
                 });
     }
 
     private void addTreatment() {
-        if (currentBusinessId == null) {
-            Toast.makeText(getContext(), "אנא המתן לטעינת נתוני העסק", Toast.LENGTH_SHORT).show();
+        if (businessId == null) {
+            Toast.makeText(getContext(), "אנא המתן לטעינת העסק", Toast.LENGTH_SHORT).show();
             return;
         }
 
         String name = etTreatmentName.getText().toString().trim();
-        String priceStr = etTreatmentPrice.getText().toString().trim();
         String durationStr = etTreatmentDuration.getText().toString().trim();
+        String priceStr = etTreatmentPrice.getText().toString().trim();
 
-        if (TextUtils.isEmpty(name) || TextUtils.isEmpty(priceStr) || TextUtils.isEmpty(durationStr)) {
+        if (name.isEmpty() || durationStr.isEmpty() || priceStr.isEmpty()) {
             Toast.makeText(getContext(), "נא למלא את כל השדות", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        double price = Double.parseDouble(priceStr);
         int duration = Integer.parseInt(durationStr);
+        double price = Double.parseDouble(priceStr);
 
-        // יצירת מזהה ייחודי לטיפול
-        String treatmentId = db.collection("businesses").document(currentBusinessId).collection("treatments").document().getId();
+        Map<String, Object> treatmentData = new HashMap<>();
+        treatmentData.put("name", name);
+        treatmentData.put("durationMinutes", duration);
+        treatmentData.put("price", price);
 
-        Treatment newTreatment = new Treatment(treatmentId, name, price, duration);
-
-        // שמירה ב-Firestore
-        db.collection("businesses").document(currentBusinessId).collection("treatments").document(treatmentId)
-                .set(newTreatment)
-                .addOnSuccessListener(aVoid -> {
+        db.collection("businesses").document(businessId).collection("treatments")
+                .add(treatmentData)
+                .addOnSuccessListener(documentReference -> {
                     Toast.makeText(getContext(), "הטיפול נוסף בהצלחה!", Toast.LENGTH_SHORT).show();
-                    // ניקוי השדות
                     etTreatmentName.setText("");
-                    etTreatmentPrice.setText("");
                     etTreatmentDuration.setText("");
-                    // רענון הרשימה
-                    loadTreatments();
+                    etTreatmentPrice.setText("");
+                    loadTreatments(); // רענון הרשימה
                 })
-                .addOnFailureListener(e -> Toast.makeText(getContext(), "שגיאה בשמירת הטיפול", Toast.LENGTH_SHORT).show());
+                .addOnFailureListener(e -> Toast.makeText(getContext(), "שגיאה בהוספת הטיפול", Toast.LENGTH_SHORT).show());
     }
 
-    // --- אדפטר פנימי להצגת הטיפולים ברשימה ---
+    // --- Adapter פנימי לרשימת הטיפולים ---
     class TreatmentsAdapter extends RecyclerView.Adapter<TreatmentsAdapter.ViewHolder> {
-        private List<Treatment> treatments;
-
-        public TreatmentsAdapter(List<Treatment> treatments) {
-            this.treatments = treatments;
-        }
 
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            // ניצור עיצוב זמני דרך קוד כדי לחסוך לך קובץ XML נוסף כרגע (אפשר לשנות בהמשך)
+            // משתמשים בעיצוב מובנה של אנדרואיד לשתי שורות טקסט
             View view = LayoutInflater.from(parent.getContext()).inflate(android.R.layout.simple_list_item_2, parent, false);
             return new ViewHolder(view);
         }
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            Treatment treatment = treatments.get(position);
-            holder.text1.setText(treatment.getName() + " (" + treatment.getDurationMinutes() + " דקות)");
-            holder.text2.setText("מחיר: ₪" + treatment.getPrice());
+            Treatment treatment = treatmentList.get(position);
+
+            // שורה ראשונה: שם הטיפול
+            holder.text1.setText(treatment.getName());
+            // שורה שנייה: זמן ומחיר + הדרכה קטנה למחיקה
+            holder.text2.setText("⏱ " + treatment.getDurationMinutes() + " דקות | ₪" + treatment.getPrice() + " (לחיצה ארוכה למחיקה)");
+
+            // *** מנגנון המחיקה בלחיצה ארוכה ***
+            holder.itemView.setOnLongClickListener(v -> {
+                new AlertDialog.Builder(getContext())
+                        .setTitle("מחיקת טיפול")
+                        .setMessage("האם את/ה בטוח/ה שברצונך למחוק את הטיפול '" + treatment.getName() + "'?")
+                        .setPositiveButton("כן, מחק", (dialog, which) -> {
+                            String docId = treatmentIds.get(position);
+                            db.collection("businesses").document(businessId).collection("treatments").document(docId)
+                                    .delete()
+                                    .addOnSuccessListener(aVoid -> {
+                                        Toast.makeText(getContext(), "הטיפול נמחק", Toast.LENGTH_SHORT).show();
+                                        loadTreatments(); // רענון הרשימה
+                                    })
+                                    .addOnFailureListener(e -> Toast.makeText(getContext(), "שגיאה במחיקה", Toast.LENGTH_SHORT).show());
+                        })
+                        .setNegativeButton("ביטול", null)
+                        .show();
+                return true; // אומר לאנדרואיד שטפלנו בלחיצה הארוכה
+            });
         }
 
         @Override
         public int getItemCount() {
-            return treatments.size();
+            return treatmentList.size();
         }
 
         class ViewHolder extends RecyclerView.ViewHolder {
