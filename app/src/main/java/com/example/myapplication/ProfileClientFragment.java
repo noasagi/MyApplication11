@@ -1,5 +1,6 @@
 package com.example.myapplication;
 
+import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.ProgressDialog;
 import android.graphics.Bitmap;
@@ -41,15 +42,33 @@ public class ProfileClientFragment extends Fragment {
 
     private FirebaseAuth refAuth;
     private FirebaseFirestore db;
-    private Uri imageUri = null;
 
-    // משגר לבחירת תמונה
+    // שומרים את התמונה כ-Bitmap כדי שנתמוך בכל המקורות (מצלמה, גלריה, אווטאר)
+    private Bitmap selectedImageBitmap = null;
+
+    // משגר לבחירת תמונה מהגלריה
     private final ActivityResultLauncher<String> selectImageLauncher = registerForActivityResult(
             new ActivityResultContracts.GetContent(),
             uri -> {
                 if (uri != null) {
-                    imageUri = uri;
-                    imgProfile.setImageURI(imageUri);
+                    try {
+                        InputStream inputStream = getContext().getContentResolver().openInputStream(uri);
+                        selectedImageBitmap = BitmapFactory.decodeStream(inputStream);
+                        imgProfile.setImageBitmap(selectedImageBitmap);
+                    } catch (Exception e) {
+                        Toast.makeText(getContext(), "שגיאה בטעינת התמונה", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }
+    );
+
+    // משגר לצילום תמונה מהמצלמה (מחזיר Thumbnail שמספיק מעולה לפרופיל)
+    private final ActivityResultLauncher<Void> takePictureLauncher = registerForActivityResult(
+            new ActivityResultContracts.TakePicturePreview(),
+            bitmap -> {
+                if (bitmap != null) {
+                    selectedImageBitmap = bitmap;
+                    imgProfile.setImageBitmap(selectedImageBitmap);
                 }
             }
     );
@@ -57,7 +76,6 @@ public class ProfileClientFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        // ודאי שיש לך קובץ xml בשם fragment_profile (אם אין, תשתמשי ב-XML ששלחת לי קודם בשם הזה)
         View view = inflater.inflate(R.layout.fragment_client_profile, container, false);
 
         // אתחול רכיבים
@@ -73,12 +91,70 @@ public class ProfileClientFragment extends Fragment {
         db = FirebaseFirestore.getInstance();
 
         eTBirthDate.setOnClickListener(v -> showDatePicker());
-        imgProfile.setOnClickListener(v -> selectImageLauncher.launch("image/*"));
+
+        // עכשיו לחיצה על התמונה פותחת את הדיאלוג במקום ישר את הגלריה
+        imgProfile.setOnClickListener(v -> showImagePickerDialog());
+
         btnSaveProfile.setOnClickListener(v -> saveProfile());
 
         loadUserData();
 
         return view;
+    }
+
+    private void showImagePickerDialog() {
+        if (getContext() == null) return;
+
+        // טעינת העיצוב שיצרנו לדיאלוג
+        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_image_picker, null);
+        AlertDialog dialog = new AlertDialog.Builder(getContext())
+                .setView(dialogView)
+                .create();
+
+        Button btnCamera = dialogView.findViewById(R.id.btnCamera);
+        Button btnGallery = dialogView.findViewById(R.id.btnGallery);
+
+        // כפתור מצלמה
+        btnCamera.setOnClickListener(v -> {
+            takePictureLauncher.launch(null);
+            dialog.dismiss();
+        });
+
+        // כפתור גלריה
+        btnGallery.setOnClickListener(v -> {
+            selectImageLauncher.launch("image/*");
+            dialog.dismiss();
+        });
+
+        // פונקציה משותפת ללחיצה על אווטארים
+        View.OnClickListener avatarClickListener = v -> {
+            int drawableId = 0;
+
+            // מזהים על איזה אווטאר המשתמש לחץ
+            if (v.getId() == R.id.imgAvatar1) drawableId = R.drawable.avatar_1;
+            else if (v.getId() == R.id.imgAvatar2) drawableId = R.drawable.avatar_2;
+            else if (v.getId() == R.id.imgAvatar3) drawableId = R.drawable.avatar_3;
+            else if (v.getId() == R.id.imgAvatar4) drawableId = R.drawable.avatar_4;
+            else if (v.getId() == R.id.imgAvatar5) drawableId = R.drawable.avatar_5;
+            else if (v.getId() == R.id.imgAvatar6) drawableId = R.drawable.avatar_6;
+
+            if (drawableId != 0) {
+                // הופכים את האווטאר ל-Bitmap ושומרים
+                selectedImageBitmap = BitmapFactory.decodeResource(getResources(), drawableId);
+                imgProfile.setImageBitmap(selectedImageBitmap);
+            }
+            dialog.dismiss();
+        };
+
+        // חיבור הפונקציה לכל התמונות
+        dialogView.findViewById(R.id.imgAvatar1).setOnClickListener(avatarClickListener);
+        dialogView.findViewById(R.id.imgAvatar2).setOnClickListener(avatarClickListener);
+        dialogView.findViewById(R.id.imgAvatar3).setOnClickListener(avatarClickListener);
+        dialogView.findViewById(R.id.imgAvatar4).setOnClickListener(avatarClickListener);
+        dialogView.findViewById(R.id.imgAvatar5).setOnClickListener(avatarClickListener);
+        dialogView.findViewById(R.id.imgAvatar6).setOnClickListener(avatarClickListener);
+
+        dialog.show();
     }
 
     private void loadUserData() {
@@ -141,8 +217,9 @@ public class ProfileClientFragment extends Fragment {
         data.put("phone", phone);
 
         new Thread(() -> {
-            if (imageUri != null) {
-                Blob imageBlob = compressImageToBlob(imageUri);
+            // כעת נשתמש ב-Bitmap השמור במקום ב-Uri
+            if (selectedImageBitmap != null) {
+                Blob imageBlob = compressBitmapToBlob(selectedImageBitmap);
                 if (imageBlob != null) data.put("profileImageBlob", imageBlob);
             }
 
@@ -166,11 +243,9 @@ public class ProfileClientFragment extends Fragment {
         }).start();
     }
 
-    private Blob compressImageToBlob(Uri uri) {
+    // הפונקציה עודכנה לקבל Bitmap במקום Uri
+    private Blob compressBitmapToBlob(Bitmap originalBitmap) {
         try {
-            if (getContext() == null) return null;
-            InputStream inputStream = getContext().getContentResolver().openInputStream(uri);
-            Bitmap originalBitmap = BitmapFactory.decodeStream(inputStream);
             Bitmap resizedBitmap = Bitmap.createScaledBitmap(originalBitmap, 500, 500, true);
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 70, baos);

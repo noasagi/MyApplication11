@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:gravity="center"
+    android:background="@android:color/white">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="בחר תמונת פרופיל"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="#333333"
+        android:layout_marginBottom="24dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="24dp">
+
+        <Button
+            android:id="@+id/btnCamera"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="צלם תמונה"
+            android:backgroundTint="#1976D2"
+            android:textColor="@android:color/white"
+            android:layout_marginEnd="8dp"/>
+
+        <Button
+            android:id="@+id/btnGallery"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="בחר מגלריה"
+            android:backgroundTint="#388E3C"
+            android:textColor="@android:color/white"
+            android:layout_marginStart="8dp"/>
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#E0E0E0"
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="או בחר אווטאר מוכן:"
+        android:textSize="16sp"
+        android:textColor="#757575"
+        android:layout_marginBottom="16dp"/>
+
+    <GridLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:columnCount="3"
+        android:rowCount="2"
+        android:layout_gravity="center"
+        android:useDefaultMargins="true">
+
+        <ImageView
+            android:id="@+id/imgAvatar1"
+            android:layout_width="70dp"
+            android:layout_height="70dp"
+            android:src="@drawable/avatar_1"
+            android:layout_margin="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"/>
+
+        <ImageView
+            android:id="@+id/imgAvatar2"
+            android:layout_width="70dp"
+            android:layout_height="70dp"
+            android:src="@drawable/avatar_2"
+            android:layout_margin="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"/>
+
+        <ImageView
+            android:id="@+id/imgAvatar3"
+            android:layout_width="70dp"
+            android:layout_height="70dp"
+            android:src="@drawable/avatar_3"
+            android:layout_margin="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"/>
+
+        <ImageView
+            android:id="@+id/imgAvatar4"
+            android:layout_width="70dp"
+            android:layout_height="70dp"
+            android:src="@drawable/avatar_4"
+            android:layout_margin="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"/>
+
+        <ImageView
+            android:id="@+id/imgAvatar5"
+            android:layout_width="70dp"
+            android:layout_height="70dp"
+            android:src="@drawable/avatar_5"
+            android:layout_margin="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"/>
+
+        <ImageView
+            android:id="@+id/imgAvatar6"
+            android:layout_width="70dp"
+            android:layout_height="70dp"
+            android:src="@drawable/avatar_6"
+            android:layout_margin="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"/>
+
+        <ImageView
+            android:id="@+id/imgAvatar7"
+            android:layout_width="70dp"
+            android:layout_height="70dp"
+            android:src="@drawable/avatar_7"
+            android:layout_margin="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"/>
+
+
+        <ImageView
+            android:id="@+id/imgAvatar8"
+            android:layout_width="70dp"
+            android:layout_height="70dp"
+            android:src="@drawable/avatar_8"
+            android:layout_margin="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"/>
+
+
+
+        <ImageView
+            android:id="@+id/imgAvatar9"
+            android:layout_width="70dp"
+            android:layout_height="70dp"
+            android:src="@drawable/avatar_9"
+            android:layout_margin="8dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"/>
+    </GridLayout>
+</LinearLayout>

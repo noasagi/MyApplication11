@@ -1,11 +1,14 @@
 package com.example.myapplication;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -16,6 +19,7 @@ import androidx.fragment.app.Fragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.Blob;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
@@ -24,6 +28,7 @@ public class CustomerHomeFragment extends Fragment {
     private TextView tvWelcome, tvRateBusinessName;
     private CardView cardSearch, cardAppointments, cardRateUs;
     private Button btnRateNow;
+    private ImageView imgHomeProfile;
     private FirebaseAuth auth;
     private FirebaseFirestore db;
 
@@ -35,6 +40,7 @@ public class CustomerHomeFragment extends Fragment {
         tvWelcome = view.findViewById(R.id.tvWelcome);
         cardSearch = view.findViewById(R.id.cardSearch);
         cardAppointments = view.findViewById(R.id.cardAppointments);
+        imgHomeProfile = view.findViewById(R.id.imgHomeProfile); // הוספנו את קישור התמונה
 
         // אלמנטים חדשים לדירוג
         cardRateUs = view.findViewById(R.id.cardRateUs);
@@ -52,6 +58,9 @@ public class CustomerHomeFragment extends Fragment {
         cardSearch.setOnClickListener(v -> navigateTo(R.id.nav_customer_search));
         cardAppointments.setOnClickListener(v -> navigateTo(R.id.nav_customer_appointments));
 
+        // לחיצה על תמונת הפרופיל - ודא ש-ID הניווט תואם לשלך!
+        imgHomeProfile.setOnClickListener(v -> navigateTo(R.id.nav_customer_profile));
+
         return view;
     }
 
@@ -66,7 +75,6 @@ public class CustomerHomeFragment extends Fragment {
         if (auth.getCurrentUser() == null) return;
 
         // שליפת תורים של המשתמש שהם בסטטוס APPROVED
-        // הערה: עדיף היה לשמור status=COMPLETED בצד שרת, אבל כאן נבדוק לפי זמן
         long currentTime = System.currentTimeMillis();
 
         db.collection("appointments")
@@ -116,6 +124,14 @@ public class CustomerHomeFragment extends Fragment {
                             String name = documentSnapshot.getString("name");
                             if (name != null && !name.isEmpty()) {
                                 tvWelcome.setText("שלום, " + name);
+                            }
+
+                            // משיכת תמונת הפרופיל והצגתה
+                            Blob imageBlob = documentSnapshot.getBlob("profileImageBlob");
+                            if (imageBlob != null) {
+                                byte[] bytes = imageBlob.toBytes();
+                                Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+                                imgHomeProfile.setImageBitmap(bitmap);
                             }
                         }
                     });

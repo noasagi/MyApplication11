@@ -1,11 +1,15 @@
 package com.example.myapplication;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.ProgressDialog;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.net.Uri;
 import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -15,6 +19,7 @@ import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.ContextCompat;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -37,15 +42,43 @@ public class SetProfileActivity extends BaseActivity {
     private FirebaseAuth refAuth;
     private FirebaseFirestore db;
 
-    private Uri imageUri = null; // לשמירת ה-URI הזמני לבחירה
+    private Bitmap selectedImageBitmap = null;
 
-    // משגר לבחירת תמונה מהגלריה
+    // 1. משגר לבקשת הרשאת מצלמה
+    private final ActivityResultLauncher<String> requestCameraPermissionLauncher = registerForActivityResult(
+            new ActivityResultContracts.RequestPermission(),
+            isGranted -> {
+                if (isGranted) {
+                    launchCameraSafely(); // ההרשאה ניתנה - פותחים מצלמה
+                } else {
+                    Toast.makeText(this, "יש לאשר גישה למצלמה כדי לצלם תמונה", Toast.LENGTH_SHORT).show();
+                }
+            }
+    );
+
+    // 2. משגר לבחירת תמונה מהגלריה
     private final ActivityResultLauncher<String> selectImageLauncher = registerForActivityResult(
             new ActivityResultContracts.GetContent(),
             uri -> {
                 if (uri != null) {
-                    imageUri = uri;
-                    imgProfile.setImageURI(imageUri); // תצוגה מקדימה למשתמש
+                    try {
+                        InputStream inputStream = getContentResolver().openInputStream(uri);
+                        selectedImageBitmap = BitmapFactory.decodeStream(inputStream);
+                        imgProfile.setImageBitmap(selectedImageBitmap);
+                    } catch (Exception e) {
+                        Toast.makeText(this, "שגיאה בטעינת התמונה", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }
+    );
+
+    // 3. משגר לצילום תמונה מהמצלמה
+    private final ActivityResultLauncher<Void> takePictureLauncher = registerForActivityResult(
+            new ActivityResultContracts.TakePicturePreview(),
+            bitmap -> {
+                if (bitmap != null) {
+                    selectedImageBitmap = bitmap;
+                    imgProfile.setImageBitmap(selectedImageBitmap);
                 }
             }
     );
@@ -69,16 +102,82 @@ public class SetProfileActivity extends BaseActivity {
 
         eTBirthDate.setOnClickListener(v -> showDatePicker());
 
-        // לחיצה על התמונה -> פתיחת גלריה
-        imgProfile.setOnClickListener(v -> selectImageLauncher.launch("image/*"));
+        // לחיצה על התמונה פותחת את הדיאלוג
+        imgProfile.setOnClickListener(v -> showImagePickerDialog());
 
         btnSaveProfile.setOnClickListener(v -> saveProfile());
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setupSecondaryToolbar(toolbar, true);
 
-        // טעינת נתונים קיימים (כולל תמונה אם יש)
+        // טעינת נתונים קיימים
         loadUserData();
+    }
+
+    private void showImagePickerDialog() {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_image_picker, null);
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .create();
+
+        Button btnCamera = dialogView.findViewById(R.id.btnCamera);
+        Button btnGallery = dialogView.findViewById(R.id.btnGallery);
+
+        // כפתור מצלמה - בודק הרשאות קודם!
+        btnCamera.setOnClickListener(v -> {
+            dialog.dismiss(); // סוגרים את החלון הקופץ קודם
+
+            // בדיקה האם כבר יש לנו הרשאה למצלמה
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                launchCameraSafely();
+            } else {
+                // אם אין הרשאה, מבקשים אותה
+                requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA);
+            }
+        });
+
+        // כפתור גלריה
+        btnGallery.setOnClickListener(v -> {
+            selectImageLauncher.launch("image/*");
+            dialog.dismiss();
+        });
+
+        // פונקציה משותפת ללחיצה על אווטארים
+        View.OnClickListener avatarClickListener = v -> {
+            int drawableId = 0;
+
+            if (v.getId() == R.id.imgAvatar1) drawableId = R.drawable.avatar_1;
+            else if (v.getId() == R.id.imgAvatar2) drawableId = R.drawable.avatar_2;
+            else if (v.getId() == R.id.imgAvatar3) drawableId = R.drawable.avatar_3;
+            else if (v.getId() == R.id.imgAvatar4) drawableId = R.drawable.avatar_4;
+            else if (v.getId() == R.id.imgAvatar5) drawableId = R.drawable.avatar_5;
+            else if (v.getId() == R.id.imgAvatar6) drawableId = R.drawable.avatar_6;
+
+            if (drawableId != 0) {
+                selectedImageBitmap = BitmapFactory.decodeResource(getResources(), drawableId);
+                imgProfile.setImageBitmap(selectedImageBitmap);
+            }
+            dialog.dismiss();
+        };
+
+        // חיבור הפונקציה לכל התמונות
+        dialogView.findViewById(R.id.imgAvatar1).setOnClickListener(avatarClickListener);
+        dialogView.findViewById(R.id.imgAvatar2).setOnClickListener(avatarClickListener);
+        dialogView.findViewById(R.id.imgAvatar3).setOnClickListener(avatarClickListener);
+        dialogView.findViewById(R.id.imgAvatar4).setOnClickListener(avatarClickListener);
+        dialogView.findViewById(R.id.imgAvatar5).setOnClickListener(avatarClickListener);
+        dialogView.findViewById(R.id.imgAvatar6).setOnClickListener(avatarClickListener);
+
+        dialog.show();
+    }
+
+    // פונקציית עזר לפתיחת המצלמה בצורה בטוחה שלא תקריס את האפליקציה
+    private void launchCameraSafely() {
+        try {
+            takePictureLauncher.launch(null);
+        } catch (Exception e) {
+            Toast.makeText(this, "לא נמצאה אפליקציית מצלמה זמינה במכשיר", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void loadUserData() {
@@ -87,13 +186,11 @@ public class SetProfileActivity extends BaseActivity {
             db.collection("users").document(user.getUid()).get()
                     .addOnSuccessListener(documentSnapshot -> {
                         if (documentSnapshot.exists()) {
-                            // טעינת טקסטים
                             eTName.setText(documentSnapshot.getString("name"));
                             eTBirthDate.setText(documentSnapshot.getString("birthDate"));
                             eTAddress.setText(documentSnapshot.getString("address"));
                             eTPhone.setText(documentSnapshot.getString("phone"));
 
-                            // טעינת תמונה מ-Blob
                             Blob imageBlob = documentSnapshot.getBlob("profileImageBlob");
                             if (imageBlob != null) {
                                 byte[] bytes = imageBlob.toBytes();
@@ -140,9 +237,8 @@ public class SetProfileActivity extends BaseActivity {
         data.put("address", address);
         data.put("phone", phone);
 
-        // אם המשתמש בחר תמונה חדשה, אנחנו ממירים אותה ל-Blob
-        if (imageUri != null) {
-            Blob imageBlob = compressImageToBlob(imageUri);
+        if (selectedImageBitmap != null) {
+            Blob imageBlob = compressBitmapToBlob(selectedImageBitmap);
             if (imageBlob != null) {
                 data.put("profileImageBlob", imageBlob);
             } else {
@@ -166,35 +262,19 @@ public class SetProfileActivity extends BaseActivity {
         }
     }
 
-    // --- פונקציות עזר לכיווץ התמונה ---
-
-    private Blob compressImageToBlob(Uri uri) {
+    private Blob compressBitmapToBlob(Bitmap originalBitmap) {
         try {
-            // 1. המרה מ-URI ל-Bitmap
-            InputStream inputStream = getContentResolver().openInputStream(uri);
-            Bitmap originalBitmap = BitmapFactory.decodeStream(inputStream);
-
-            // 2. הקטנת גודל (Resize)
             Bitmap resizedBitmap = getResizedBitmap(originalBitmap, 500);
-
-            // 3. דחיסה ל-JPEG והמרה ל-Bytes
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 70, baos);
-
-            // --- התיקון כאן: ---
             byte[] data = baos.toByteArray();
-            // -------------------
-
-            // 4. החזרה כ-Blob של Firestore
             return Blob.fromBytes(data);
-
         } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
     }
 
-    // פונקציה שמקטינה את הרזולוציה תוך שמירה על פרופורציות
     private Bitmap getResizedBitmap(Bitmap image, int maxSize) {
         int width = image.getWidth();
         int height = image.getHeight();
