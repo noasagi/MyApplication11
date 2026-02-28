@@ -5,8 +5,10 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-feature android:name="android.hardware.camera" android:required="false" />
 
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />
@@ -21,12 +23,17 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
         <activity
+            android:name=".BusinessStatisticsFragment"
+            android:exported="false" />
+        <activity
+            android:name=".fragment_business_statistics"
+            android:exported="false" />
+        <activity
             android:name=".BusinessBlockSlotsActivity"
             android:exported="false" />
         <activity
             android:name=".MyAppointmentsActivity"
             android:exported="false" />
-
         <activity
             android:name=".BusinessHoursActivity"
             android:exported="false" />
@@ -60,7 +67,6 @@
         <activity
             android:name=".RegisterActivity"
             android:exported="false" />
-
         <activity
             android:name=".LoginActivity"
             android:exported="false" />

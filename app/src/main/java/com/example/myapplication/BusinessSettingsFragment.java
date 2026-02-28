@@ -25,6 +25,7 @@ public class BusinessSettingsFragment extends Fragment {
         CardView cardTreatments = view.findViewById(R.id.cardTreatments);
         CardView cardBusinessHours = view.findViewById(R.id.cardBusinessHours);
         CardView cardBlockHours = view.findViewById(R.id.cardBlockHours);
+        CardView cardStatistics = view.findViewById(R.id.cardStatistics); // השורה החדשה!
         Button btnLogout = view.findViewById(R.id.btnLogout);
 
         // 1. כפתור לעריכת פרטי עסק
@@ -32,30 +33,30 @@ public class BusinessSettingsFragment extends Fragment {
             Intent intent = new Intent(getContext(), MyBusinessMainActivity.class);
             startActivity(intent);
         });
+
+        // 2. ניהול טיפולים ומחירים
         cardTreatments.setOnClickListener(v -> {
             requireActivity().getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.fragment_container, new BusinessServicesFragment()) // שימי לב להערה למטה!
-                    .addToBackStack(null) // מאפשר למשתמש ללחוץ על כפתור ה"חזור" של הטלפון ולחזור להגדרות
+                    .replace(R.id.fragment_container, new BusinessServicesFragment())
+                    .addToBackStack(null)
                     .commit();
         });
 
-        // 3. שעות פעילות קבועות (התיקון כאן - מושכים את ה-ID האמיתי של העסק)
+        // 3. שעות פעילות קבועות
         cardBusinessHours.setOnClickListener(v -> {
             if (FirebaseAuth.getInstance().getCurrentUser() != null) {
                 String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
-                // פונים לפיירבייס כדי למצוא את המסמך של העסק לפי ה-UID של המנהל
                 FirebaseFirestore.getInstance().collection("businesses")
-                        .whereEqualTo("ownerId", uid) // ⚠️ שימי לב: ודאי שככה קוראים לשדה של מנהל העסק אצלך במסד הנתונים
+                        .whereEqualTo("ownerId", uid)
                         .get()
                         .addOnSuccessListener(queryDocumentSnapshots -> {
                             if (!queryDocumentSnapshots.isEmpty()) {
-                                // מצאנו את העסק! לוקחים את ה-ID האמיתי שלו
                                 String realBusinessId = queryDocumentSnapshots.getDocuments().get(0).getId();
 
                                 Intent intent = new Intent(getContext(), BusinessHoursActivity.class);
                                 intent.putExtra("BUSINESS_ID", realBusinessId);
-                                intent.putExtra("businessId", realBusinessId); // ליתר ביטחון, שולחים גם באותיות קטנות
+                                intent.putExtra("businessId", realBusinessId);
                                 startActivity(intent);
                             } else {
                                 if (getContext() != null) {
@@ -77,7 +78,15 @@ public class BusinessSettingsFragment extends Fragment {
             startActivity(intent);
         });
 
-        // 5. התנתקות
+        // 5. סטטיסטיקות עסק (הפונקציה החדשה!)
+        cardStatistics.setOnClickListener(v -> {
+            requireActivity().getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_container, new BusinessStatisticsFragment())
+                    .addToBackStack(null)
+                    .commit();
+        });
+
+        // 6. התנתקות
         btnLogout.setOnClickListener(v -> {
             FirebaseAuth.getInstance().signOut();
             Intent intent = new Intent(getActivity(), LoginActivity.class);
