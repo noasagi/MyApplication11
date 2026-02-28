@@ -6,25 +6,28 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/backgroundColor"
+    android:background="@color/jobsy_background"
+    android:layoutDirection="rtl"
     tools:context=".SetProfileActivity">
 
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/toolbar"
+    <TextView
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="@color/colorPrimary"
-        app:titleTextColor="@android:color/white"
-        android:theme="@style/ThemeOverlay.AppCompat.ActionBar"
-        app:popupTheme="@style/ThemeOverlay.AppCompat.Light"/>
+        android:layout_height="wrap_content"
+        android:text="הפרופיל שלי"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="@color/jobsy_text_primary"
+        android:paddingTop="24dp"
+        android:paddingHorizontal="24dp"
+        android:paddingBottom="8dp"/>
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingStart="24dp"
-        android:paddingEnd="24dp"
-        android:paddingTop="16dp"
-        android:paddingBottom="16dp">
+        android:paddingHorizontal="24dp"
+        android:paddingTop="8dp"
+        android:clipToPadding="false"
+        android:paddingBottom="32dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -35,10 +38,10 @@
                 android:layout_width="120dp"
                 android:layout_height="120dp"
                 android:layout_gravity="center_horizontal"
-                android:layout_marginTop="24dp"
-                android:layout_marginBottom="16dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="12dp"
                 app:cardCornerRadius="60dp"
-                app:cardElevation="8dp">
+                app:cardElevation="0dp">
 
                 <ImageView
                     android:id="@+id/imgProfile"
@@ -46,7 +49,7 @@
                     android:layout_height="match_parent"
                     android:scaleType="centerCrop"
                     android:src="@android:drawable/ic_menu_camera"
-                    android:background="#EFEBE9"
+                    android:background="#E2E8F0"
                     android:clickable="true"
                     android:focusable="true"/>
 
@@ -57,76 +60,108 @@
                 android:layout_height="wrap_content"
                 android:text="לחץ להוספת תמונה"
                 android:layout_gravity="center_horizontal"
-                android:textColor="@color/colorAccent"
+                android:textColor="@color/jobsy_primary"
                 android:textStyle="bold"
                 android:textSize="14sp"
-                android:layout_marginBottom="24dp"/>
+                android:layout_marginBottom="32dp"/>
 
-            <EditText
-                android:id="@+id/eTName"
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="שם מלא"
-                android:padding="16dp"
-                android:textColor="@color/textColor"
-                android:textColorHint="#9E9E9E"
-                android:backgroundTint="@color/colorPrimary"
-                android:layout_marginTop="16dp"/>
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/jobsy_card_bg"
+                android:layout_marginBottom="16dp">
+                <EditText
+                    android:id="@+id/eTName"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:hint="שם מלא"
+                    android:paddingHorizontal="16dp"
+                    android:background="@null"
+                    android:textColor="@color/jobsy_text_primary"
+                    android:textColorHint="@color/jobsy_text_secondary"
+                    android:textSize="16sp" />
+            </androidx.cardview.widget.CardView>
 
-            <EditText
-                android:id="@+id/eTBirthDate"
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="תאריך לידה"
-                android:focusable="false"
-                android:clickable="true"
-                android:padding="16dp"
-                android:textColor="@color/textColor"
-                android:textColorHint="#9E9E9E"
-                android:backgroundTint="@color/colorPrimary"
-                android:layout_marginTop="16dp"/>
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/jobsy_card_bg"
+                android:layout_marginBottom="16dp">
+                <EditText
+                    android:id="@+id/eTBirthDate"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:hint="תאריך לידה"
+                    android:focusable="false"
+                    android:clickable="true"
+                    android:paddingHorizontal="16dp"
+                    android:background="@null"
+                    android:textColor="@color/jobsy_text_primary"
+                    android:textColorHint="@color/jobsy_text_secondary"
+                    android:textSize="16sp" />
+            </androidx.cardview.widget.CardView>
 
-            <EditText
-                android:id="@+id/eTAddress"
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="כתובת"
-                android:padding="16dp"
-                android:textColor="@color/textColor"
-                android:textColorHint="#9E9E9E"
-                android:backgroundTint="@color/colorPrimary"
-                android:layout_marginTop="16dp"/>
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/jobsy_card_bg"
+                android:layout_marginBottom="16dp">
+                <EditText
+                    android:id="@+id/eTAddress"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:hint="כתובת"
+                    android:paddingHorizontal="16dp"
+                    android:background="@null"
+                    android:textColor="@color/jobsy_text_primary"
+                    android:textColorHint="@color/jobsy_text_secondary"
+                    android:textSize="16sp" />
+            </androidx.cardview.widget.CardView>
 
-            <EditText
-                android:id="@+id/eTPhone"
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="טלפון"
-                android:inputType="phone"
-                android:padding="16dp"
-                android:textColor="@color/textColor"
-                android:textColorHint="#9E9E9E"
-                android:backgroundTint="@color/colorPrimary"
-                android:layout_marginTop="16dp"/>
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/jobsy_card_bg"
+                android:layout_marginBottom="32dp">
+                <EditText
+                    android:id="@+id/eTPhone"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:hint="טלפון"
+                    android:inputType="phone"
+                    android:paddingHorizontal="16dp"
+                    android:background="@null"
+                    android:textColor="@color/jobsy_text_primary"
+                    android:textColorHint="@color/jobsy_text_secondary"
+                    android:textSize="16sp" />
+            </androidx.cardview.widget.CardView>
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnSaveProfile"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="56dp"
                 android:text="שמור פרופיל"
-                android:backgroundTint="@color/colorPrimary"
-                android:textColor="@android:color/white"
+                app:backgroundTint="@color/jobsy_primary"
+                android:textColor="@color/white"
+                android:textSize="18sp"
                 android:textStyle="bold"
-                android:layout_marginTop="32dp"
-                android:padding="16dp"
-                app:cornerRadius="24dp"/>
+                app:cornerRadius="16dp"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
 
             <TextView
                 android:id="@+id/tVMsg"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text=""
-                android:textColor="#D32F2F"
+                android:textColor="@color/jobsy_error"
                 android:gravity="center"
                 android:layout_marginTop="16dp"/>
 

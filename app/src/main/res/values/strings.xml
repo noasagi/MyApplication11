@@ -1,13 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">My Application</string>
-
-    <!-- Strings used for navigation drawer toggle -->
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
 
-    <!-- Strings used for fragments for navigation -->
-
-    <!-- סוגי עסקים לבחירה ב-Spinner -->
     <string-array name="business_types">
         <item>אינסטלטור</item>
         <item>שיפוצניק</item>
@@ -29,7 +25,6 @@
         <item>מאלף כלבים</item>
         <item>אחר</item>
     </string-array>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
 
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

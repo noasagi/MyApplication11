@@ -25,7 +25,7 @@ public class SettingsFragment extends Fragment {
 
     private ImageView imgProfileSmall;
     private TextView tvProfileName;
-    private CardView btnEditProfile, btnFavorites;
+    private CardView btnEditProfile, btnFavorites, btnHistory; // הוספנו את btnHistory כאן
     private Button btnLogout;
 
     private FirebaseAuth mAuth;
@@ -34,7 +34,6 @@ public class SettingsFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_settings, container, false);
 
         // אתחול Firebase
@@ -46,6 +45,7 @@ public class SettingsFragment extends Fragment {
         tvProfileName = view.findViewById(R.id.tvProfileName);
         btnEditProfile = view.findViewById(R.id.btnEditProfile);
         btnFavorites = view.findViewById(R.id.btnFavorites);
+        btnHistory = view.findViewById(R.id.btnHistory); // חיבור הכפתור החדש
         btnLogout = view.findViewById(R.id.btnLogout);
 
         // --- מאזינים ללחיצות ---
@@ -57,30 +57,29 @@ public class SettingsFragment extends Fragment {
         });
 
         // מעבר למועדפים
-        // שים לב: כאן הנחתי שיצרת Activity בשם FavoritesActivity
-        // אם זה פרגמנט אחר, תצטרך להשתמש ב-FragmentManager
         btnFavorites.setOnClickListener(v -> {
-            Intent intent = new Intent(getActivity(), FavoritesActivity.class); // וודא שיש לך Activity כזה
+            Intent intent = new Intent(getActivity(), FavoritesActivity.class);
             startActivity(intent);
         });
 
+        // מעבר להיסטורית תורים (הפונקציה החדשה!)
+        btnHistory.setOnClickListener(v -> {
+            requireActivity().getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_container, new CustomerHistoryFragment()) // וודא ש-ID של הקונטיינר שלך הוא באמת fragment_container
+                    .addToBackStack(null) // מאפשר לחזור אחורה להגדרות
+                    .commit();
+        });
+
         btnLogout.setOnClickListener(v -> {
-            // 1. ניתוק מ-Firebase
             mAuth.signOut();
-
-            // 2. מעבר למסך הכניסה (תוודא שקוראים לו אצלך LoginActivity)
             Intent intent = new Intent(getActivity(), LoginActivity.class);
-
-            // 3. מחיקת ההיסטוריה - כדי שהמשתמש לא יוכל ללחוץ "Back" ולחזור לאפליקציה בלי להירשם
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-
             startActivity(intent);
         });
 
         return view;
     }
 
-    // הפונקציה הזו רצה בכל פעם שהמסך מוצג למשתמש (כולל בחזרה ממסך אחר)
     @Override
     public void onResume() {
         super.onResume();
@@ -101,7 +100,7 @@ public class SettingsFragment extends Fragment {
                                 tvProfileName.setText("שלום אורח");
                             }
 
-                            // טעינת תמונה (אותה לוגיקה כמו ב-SetProfileActivity)
+                            // טעינת תמונה
                             Blob imageBlob = documentSnapshot.getBlob("profileImageBlob");
                             if (imageBlob != null) {
                                 byte[] bytes = imageBlob.toBytes();
@@ -111,7 +110,6 @@ public class SettingsFragment extends Fragment {
                         }
                     })
                     .addOnFailureListener(e -> {
-                        // אפשר להציג הודעה אם רוצים, אבל בדרך כלל מתעלמים מכשל טעינה שקטה ב-Settings
                     });
         }
     }

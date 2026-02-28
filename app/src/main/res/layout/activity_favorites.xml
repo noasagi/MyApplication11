@@ -3,17 +3,17 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/backgroundColor"
-    android:padding="16dp">
+    android:background="@color/jobsy_background"
+    android:layoutDirection="rtl"
+    android:padding="24dp">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="המועדפים שלי"
-        android:textSize="26sp"
+        android:textSize="28sp"
         android:textStyle="bold"
-        android:textColor="@color/textColor"
-        android:gravity="center"
+        android:textColor="@color/jobsy_text_primary"
         android:layout_marginTop="16dp"
         android:layout_marginBottom="24dp"/>
 
@@ -22,15 +22,17 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="אין עדיין עסקים במועדפים..."
-        android:textColor="#9E9E9E"
+        android:textColor="@color/jobsy_text_secondary"
         android:gravity="center"
-        android:textSize="18sp"
+        android:textSize="16sp"
         android:visibility="gone"
         android:layout_marginTop="50dp"/>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerViewFavorites"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingBottom="16dp"/>
 
 </LinearLayout>

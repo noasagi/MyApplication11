@@ -3,13 +3,14 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F5F5F5">
+    android:background="@color/jobsy_background"
+    android:layoutDirection="rtl">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="24dp">
 
         <TextView
             android:layout_width="wrap_content"
@@ -17,17 +18,19 @@
             android:text="הגדרות וניהול"
             android:textSize="28sp"
             android:textStyle="bold"
-            android:textColor="#333333"
-            android:layout_marginBottom="24dp"
-            android:layout_gravity="center_horizontal"/>
+            android:textColor="@color/jobsy_text_primary"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="32dp"
+            android:layout_gravity="start"/>
 
         <androidx.cardview.widget.CardView
             android:id="@+id/cardEditProfile"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="@color/jobsy_card_bg"
             android:clickable="true"
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground">
@@ -40,26 +43,26 @@
                 android:padding="20dp">
 
                 <ImageView
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
                     android:src="@android:drawable/ic_menu_myplaces"
-                    app:tint="#4CAF50"/>
+                    app:tint="@color/jobsy_primary"/>
 
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="עריכת פרטי העסק (תמונות, שם)"
+                    android:text="עריכת פרטי העסק"
                     android:textSize="18sp"
-                    android:textColor="#333333"
+                    android:textColor="@color/jobsy_text_primary"
                     android:layout_marginStart="16dp"/>
 
                 <ImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@android:drawable/arrow_down_float"
-                    android:rotation="270"
-                    app:tint="#BDBDBD"/>
+                    android:rotation="90"
+                    app:tint="@color/jobsy_text_secondary"/>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
@@ -68,8 +71,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="@color/jobsy_card_bg"
             android:clickable="true"
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground">
@@ -82,10 +86,10 @@
                 android:padding="20dp">
 
                 <ImageView
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
                     android:src="@android:drawable/ic_menu_edit"
-                    app:tint="#2196F3"/>
+                    app:tint="@color/jobsy_primary"/>
 
                 <TextView
                     android:layout_width="0dp"
@@ -93,15 +97,15 @@
                     android:layout_weight="1"
                     android:text="ניהול טיפולים ומחירים"
                     android:textSize="18sp"
-                    android:textColor="#333333"
+                    android:textColor="@color/jobsy_text_primary"
                     android:layout_marginStart="16dp"/>
 
                 <ImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@android:drawable/arrow_down_float"
-                    android:rotation="270"
-                    app:tint="#BDBDBD"/>
+                    android:rotation="90"
+                    app:tint="@color/jobsy_text_secondary"/>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
@@ -110,8 +114,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="@color/jobsy_card_bg"
             android:clickable="true"
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground">
@@ -124,10 +129,10 @@
                 android:padding="20dp">
 
                 <ImageView
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
                     android:src="@android:drawable/ic_menu_recent_history"
-                    app:tint="#FF9800"/>
+                    app:tint="@color/jobsy_primary"/>
 
                 <TextView
                     android:layout_width="0dp"
@@ -135,15 +140,15 @@
                     android:layout_weight="1"
                     android:text="שעות פעילות קבועות"
                     android:textSize="18sp"
-                    android:textColor="#333333"
+                    android:textColor="@color/jobsy_text_primary"
                     android:layout_marginStart="16dp"/>
 
                 <ImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@android:drawable/arrow_down_float"
-                    android:rotation="270"
-                    app:tint="#BDBDBD"/>
+                    android:rotation="90"
+                    app:tint="@color/jobsy_text_secondary"/>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
@@ -152,8 +157,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="@color/jobsy_card_bg"
             android:clickable="true"
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground">
@@ -166,10 +172,10 @@
                 android:padding="20dp">
 
                 <ImageView
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
                     android:src="@android:drawable/ic_lock_idle_lock"
-                    app:tint="#D32F2F"/>
+                    app:tint="@color/jobsy_primary"/>
 
                 <TextView
                     android:layout_width="0dp"
@@ -177,15 +183,15 @@
                     android:layout_weight="1"
                     android:text="חסימת שעות / חופשה"
                     android:textSize="18sp"
-                    android:textColor="#333333"
+                    android:textColor="@color/jobsy_text_primary"
                     android:layout_marginStart="16dp"/>
 
                 <ImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@android:drawable/arrow_down_float"
-                    android:rotation="270"
-                    app:tint="#BDBDBD"/>
+                    android:rotation="90"
+                    app:tint="@color/jobsy_text_secondary"/>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
@@ -193,9 +199,10 @@
             android:id="@+id/cardStatistics"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp"
+            android:layout_marginBottom="32dp"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="@color/jobsy_card_bg"
             android:clickable="true"
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground">
@@ -208,10 +215,10 @@
                 android:padding="20dp">
 
                 <ImageView
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
                     android:src="@android:drawable/ic_menu_sort_by_size"
-                    app:tint="#9C27B0"/>
+                    app:tint="@color/jobsy_primary"/>
 
                 <TextView
                     android:layout_width="0dp"
@@ -219,28 +226,28 @@
                     android:layout_weight="1"
                     android:text="סטטיסטיקות עסק"
                     android:textSize="18sp"
-                    android:textColor="#333333"
+                    android:textColor="@color/jobsy_text_primary"
                     android:layout_marginStart="16dp"/>
 
                 <ImageView
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@android:drawable/arrow_down_float"
-                    android:rotation="270"
-                    app:tint="#BDBDBD"/>
+                    android:rotation="90"
+                    app:tint="@color/jobsy_text_secondary"/>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnLogout"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="התנתק מהמערכת"
-            android:backgroundTint="#607D8B"
-            android:textColor="#FFFFFF"
-            android:padding="16dp"
-            android:layout_marginTop="24dp"
-            app:cornerRadius="8dp"/>
+            android:layout_height="56dp"
+            android:text="התנתקות"
+            android:textSize="16sp"
+            app:cornerRadius="16dp"
+            android:textColor="@color/jobsy_text_secondary"
+            app:backgroundTint="#F1F5F9"
+            style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
 
     </LinearLayout>
 </ScrollView>

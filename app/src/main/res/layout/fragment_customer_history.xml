@@ -10,18 +10,28 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="התורים שלי"
+        android:text="היסטורית תורים"
         android:textSize="28sp"
         android:textStyle="bold"
         android:textColor="@color/jobsy_text_primary"
-        android:layout_marginBottom="24dp"
-        android:layout_marginTop="16dp"/>
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:id="@+id/tvNoHistory"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="אין לך היסטורית תורים עדיין"
+        android:textSize="16sp"
+        android:textColor="@color/jobsy_text_secondary"
+        android:gravity="center"
+        android:visibility="gone"
+        android:layout_marginTop="50dp"/>
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvMyAppointments"
+        android:id="@+id/rvCustomerHistory"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="false"
-        android:paddingBottom="16dp"/>
+        android:paddingBottom="20dp"/>
 
 </LinearLayout>

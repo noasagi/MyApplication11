@@ -4,9 +4,11 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="12dp"
+    android:layout_marginHorizontal="8dp"
     app:cardCornerRadius="16dp"
     app:cardElevation="2dp"
-    app:cardBackgroundColor="#FFFFFF">
+    app:cardBackgroundColor="@color/jobsy_card_bg"
+    android:layoutDirection="rtl">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -16,9 +18,9 @@
         android:gravity="center_vertical">
 
         <androidx.cardview.widget.CardView
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            app:cardCornerRadius="25dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            app:cardCornerRadius="24dp"
             app:cardElevation="0dp">
 
             <ImageView
@@ -27,7 +29,9 @@
                 android:layout_height="match_parent"
                 android:scaleType="centerCrop"
                 android:src="@android:drawable/ic_menu_camera"
-                android:background="#EFEBE9"/>
+                app:tint="@color/jobsy_text_secondary"
+                android:background="#F5F5F5"
+                android:padding="10dp"/>
         </androidx.cardview.widget.CardView>
 
         <TextView
@@ -38,19 +42,20 @@
             android:layout_marginStart="16dp"
             android:layout_marginEnd="16dp"
             android:text="טוען..."
-            android:textSize="18sp"
+            android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="#333333"/>
+            android:textColor="@color/jobsy_text_primary"/>
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnBookAgain"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="40dp"
             android:text="הזמן שוב"
             android:textSize="14sp"
-            android:backgroundTint="#8BDC8D"
-            android:textColor="#FFFFFF"
-            app:cornerRadius="8dp"/>
+            app:backgroundTint="@color/jobsy_primary"
+            android:textColor="@color/white"
+            app:cornerRadius="12dp"
+            style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
 
     </LinearLayout>
 </androidx.cardview.widget.CardView>

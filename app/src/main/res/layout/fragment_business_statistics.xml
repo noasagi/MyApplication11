@@ -3,7 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FAFAFA"
+    android:background="@color/jobsy_background"
+    android:layoutDirection="rtl"
     android:fillViewport="true">
 
     <LinearLayout
@@ -18,7 +19,7 @@
             android:text="הסטטיסטיקות שלי"
             android:textSize="28sp"
             android:textStyle="bold"
-            android:textColor="#333333"
+            android:textColor="@color/jobsy_text_primary"
             android:layout_marginBottom="24dp"/>
 
         <LinearLayout
@@ -32,9 +33,9 @@
                 android:layout_height="120dp"
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="4dp"
-                app:cardBackgroundColor="#E3F2FD">
+                app:cardCornerRadius="20dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/jobsy_card_bg">
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
@@ -44,14 +45,14 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="סה״כ תורים"
-                        android:textColor="#1976D2"
-                        android:textSize="16sp"/>
+                        android:textColor="@color/jobsy_text_secondary"
+                        android:textSize="14sp"/>
                     <TextView
                         android:id="@+id/tvTotalOrders"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="..."
-                        android:textColor="#0D47A1"
+                        android:textColor="@color/jobsy_primary"
                         android:textStyle="bold"
                         android:textSize="32sp"
                         android:layout_marginTop="8dp"/>
@@ -63,9 +64,9 @@
                 android:layout_height="120dp"
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="4dp"
-                app:cardBackgroundColor="#FFF8E1">
+                app:cardCornerRadius="20dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/jobsy_card_bg">
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
@@ -75,8 +76,8 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="דירוג ממוצע"
-                        android:textColor="#F57F17"
-                        android:textSize="16sp"/>
+                        android:textColor="@color/jobsy_text_secondary"
+                        android:textSize="14sp"/>
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -88,14 +89,14 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="..."
-                            android:textColor="#E65100"
+                            android:textColor="@color/jobsy_text_primary"
                             android:textStyle="bold"
                             android:textSize="32sp"/>
                         <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
                             android:src="@android:drawable/btn_star_big_on"
-                            app:tint="#FFC107"
+                            app:tint="@color/jobsy_primary"
                             android:layout_marginStart="4dp"/>
                     </LinearLayout>
                 </LinearLayout>
@@ -114,9 +115,9 @@
                 android:layout_height="120dp"
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="4dp"
-                app:cardBackgroundColor="#E8F5E9">
+                app:cardCornerRadius="20dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/jobsy_card_bg">
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
@@ -126,14 +127,14 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="לקוחות חוזרים"
-                        android:textColor="#388E3C"
-                        android:textSize="16sp"/>
+                        android:textColor="@color/jobsy_text_secondary"
+                        android:textSize="14sp"/>
                     <TextView
                         android:id="@+id/tvReturningCustomers"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="..."
-                        android:textColor="#1B5E20"
+                        android:textColor="@color/jobsy_text_primary"
                         android:textStyle="bold"
                         android:textSize="32sp"
                         android:layout_marginTop="8dp"/>
@@ -145,9 +146,9 @@
                 android:layout_height="120dp"
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="4dp"
-                app:cardBackgroundColor="#F3E5F5">
+                app:cardCornerRadius="20dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@color/jobsy_card_bg">
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
@@ -158,14 +159,14 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="שעת עומס"
-                        android:textColor="#7B1FA2"
-                        android:textSize="16sp"/>
+                        android:textColor="@color/jobsy_text_secondary"
+                        android:textSize="14sp"/>
                     <TextView
                         android:id="@+id/tvPeakHour"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="..."
-                        android:textColor="#4A148C"
+                        android:textColor="@color/jobsy_text_primary"
                         android:textStyle="bold"
                         android:textSize="24sp"
                         android:gravity="center"
@@ -178,9 +179,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="4dp"
-            app:cardBackgroundColor="#FFF3E0">
+            app:cardCornerRadius="20dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="@color/jobsy_card_bg">
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -189,10 +190,10 @@
                 android:padding="20dp">
 
                 <ImageView
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
                     android:src="@android:drawable/btn_star"
-                    app:tint="#E65100"/>
+                    app:tint="@color/jobsy_primary"/>
 
                 <LinearLayout
                     android:layout_width="wrap_content"
@@ -203,14 +204,14 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="השירות הפופולרי ביותר"
-                        android:textColor="#E65100"
-                        android:textSize="16sp"/>
+                        android:textColor="@color/jobsy_text_secondary"
+                        android:textSize="14sp"/>
                     <TextView
                         android:id="@+id/tvPopularService"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="..."
-                        android:textColor="#BF360C"
+                        android:textColor="@color/jobsy_text_primary"
                         android:textStyle="bold"
                         android:textSize="20sp"
                         android:layout_marginTop="4dp"/>

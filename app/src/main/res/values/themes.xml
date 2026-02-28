@@ -1,6 +1,12 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Base.Theme.MyApplication" parent="Theme.Material3.DayNight.NoActionBar">
     </style>
+    <style name="Base.Theme.Jobsy" parent="Theme.Material3.DayNight.NoActionBar">
+    </style>
 
+    <style name="JobsySearchViewTheme" parent="Widget.AppCompat.SearchView">
+        <item name="queryBackground">@android:color/transparent</item>
+        <item name="submitBackground">@android:color/transparent</item>
+    </style>
     <style name="Theme.MyApplication" parent="Base.Theme.MyApplication" />
 </resources>

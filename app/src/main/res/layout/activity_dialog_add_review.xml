@@ -1,29 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    android:background="@color/jobsy_card_bg"
+    android:layoutDirection="rtl">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp"
-        android:background="@color/cardColor">
+        android:padding="32dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="כתוב ביקורת"
-            android:textSize="22sp"
+            android:text="איך היה הטיפול?"
+            android:textSize="26sp"
             android:textStyle="bold"
-            android:layout_marginBottom="16dp"
-            android:textColor="@color/textColor"/>
+            android:layout_marginBottom="24dp"
+            android:textColor="@color/jobsy_text_primary"/>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="מקצועיות"
-            android:textColor="@color/textColor"
+            android:textSize="16sp"
+            android:textColor="@color/jobsy_text_secondary"
             android:layout_marginTop="8dp"/>
 
         <RatingBar
@@ -33,16 +36,16 @@
             style="?android:attr/ratingBarStyleIndicator"
             android:numStars="5"
             android:stepSize="1"
-            android:progressTint="@color/colorAccent"
-            android:secondaryProgressTint="@color/colorPrimary"
+            android:progressTint="@color/jobsy_primary"
             android:isIndicator="false"/>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="אמינות"
-            android:textColor="@color/textColor"
-            android:layout_marginTop="8dp"/>
+            android:textSize="16sp"
+            android:textColor="@color/jobsy_text_secondary"
+            android:layout_marginTop="16dp"/>
 
         <RatingBar
             android:id="@+id/rbReliability"
@@ -51,16 +54,16 @@
             style="?android:attr/ratingBarStyleIndicator"
             android:numStars="5"
             android:stepSize="1"
-            android:progressTint="@color/colorAccent"
-            android:secondaryProgressTint="@color/colorPrimary"
+            android:progressTint="@color/jobsy_primary"
             android:isIndicator="false"/>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="מחיר הוגן"
-            android:textColor="@color/textColor"
-            android:layout_marginTop="8dp"/>
+            android:textSize="16sp"
+            android:textColor="@color/jobsy_text_secondary"
+            android:layout_marginTop="16dp"/>
 
         <RatingBar
             android:id="@+id/rbPrice"
@@ -69,30 +72,32 @@
             style="?android:attr/ratingBarStyleIndicator"
             android:numStars="5"
             android:stepSize="1"
-            android:progressTint="@color/colorAccent"
-            android:secondaryProgressTint="@color/colorPrimary"
+            android:progressTint="@color/jobsy_primary"
             android:isIndicator="false"/>
 
         <EditText
             android:id="@+id/etComment"
             android:layout_width="match_parent"
-            android:layout_height="100dp"
+            android:layout_height="120dp"
             android:hint="ספר על החוויה שלך..."
-            android:gravity="top"
-            android:background="@android:drawable/edit_text"
-            android:textColor="@color/textColor"
-            android:textColorHint="#9E9E9E"
-            android:backgroundTint="@color/colorPrimary"
-            android:layout_marginTop="16dp"/>
+            android:gravity="top|start"
+            android:padding="16dp"
+            android:backgroundTint="@color/jobsy_background"
+            android:textColor="@color/jobsy_text_primary"
+            android:textColorHint="@color/jobsy_text_secondary"
+            android:layout_marginTop="24dp"/>
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSubmitReview"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
             android:text="פרסם ביקורת"
-            android:layout_marginTop="24dp"
-            android:textColor="#FFFFFF"
-            android:backgroundTint="@color/colorPrimary"/>
+            android:textSize="16sp"
+            android:layout_marginTop="32dp"
+            app:cornerRadius="16dp"
+            android:textColor="@color/white"
+            app:backgroundTint="@color/jobsy_primary"
+            style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
 
     </LinearLayout>
 </ScrollView>

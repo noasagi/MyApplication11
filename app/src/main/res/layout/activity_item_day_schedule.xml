@@ -1,17 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="8dp"
-    android:elevation="4dp"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    app:cardCornerRadius="8dp">
+    android:layout_marginBottom="12dp"
+    android:layout_marginHorizontal="4dp"
+    app:cardBackgroundColor="@color/jobsy_card_bg"
+    app:cardElevation="2dp"
+    app:cardCornerRadius="16dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="12dp"
+        android:padding="16dp"
         android:gravity="center_vertical">
 
         <LinearLayout
@@ -25,14 +27,17 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="יום ראשון"
+                android:textColor="@color/jobsy_text_primary"
                 android:textStyle="bold"
-                android:textSize="16sp"/>
+                android:textSize="18sp"/>
 
             <Switch
                 android:id="@+id/switchIsOpen"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="פתוח/סגור"/>
+                android:text="פעיל"
+                android:textColor="@color/jobsy_text_secondary"
+                android:layout_marginTop="4dp"/>
         </LinearLayout>
 
         <LinearLayout
@@ -41,22 +46,28 @@
             android:orientation="vertical"
             android:gravity="end">
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnStartTime"
                 android:layout_width="100dp"
-                android:layout_height="40dp"
+                android:layout_height="48dp"
                 android:text="09:00"
-                android:textSize="12sp"
-                android:backgroundTint="#2196F3"
-                android:layout_marginBottom="4dp"/>
+                android:textSize="14sp"
+                app:cornerRadius="12dp"
+                android:textColor="@color/jobsy_primary"
+                app:backgroundTint="@color/jobsy_primary_soft"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                android:layout_marginBottom="8dp"/>
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnEndTime"
                 android:layout_width="100dp"
-                android:layout_height="40dp"
+                android:layout_height="48dp"
                 android:text="17:00"
-                android:textSize="12sp"
-                android:backgroundTint="#2196F3"/>
+                android:textSize="14sp"
+                app:cornerRadius="12dp"
+                android:textColor="@color/jobsy_primary"
+                app:backgroundTint="@color/jobsy_primary_soft"
+                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
         </LinearLayout>
 
     </LinearLayout>

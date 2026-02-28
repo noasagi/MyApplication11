@@ -4,13 +4,12 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginStart="16dp"
-    android:layout_marginEnd="16dp"
-    android:layout_marginBottom="16dp"
-    android:layout_marginTop="8dp"
-    app:cardBackgroundColor="@color/cardColor"
+    android:layout_marginHorizontal="16dp"
+    android:layout_marginVertical="8dp"
+    app:cardBackgroundColor="@color/jobsy_card_bg"
     app:cardCornerRadius="16dp"
-    app:cardElevation="4dp">
+    app:cardElevation="2dp"
+    android:layoutDirection="rtl">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
@@ -29,7 +28,7 @@
         <View
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:background="#40000000"
+            android:background="@drawable/gradient_shadow_bottom"
             app:layout_constraintTop_toTopOf="@id/imgBusiness"
             app:layout_constraintBottom_toBottomOf="@id/imgBusiness"
             app:layout_constraintStart_toStartOf="@id/imgBusiness"
@@ -67,7 +66,7 @@
                 android:text="סוג: מסעדה / ספא"
                 android:textSize="14sp"
                 android:textStyle="bold"
-                android:textColor="@color/colorAccent" />
+                android:textColor="@color/jobsy_primary" />
 
             <TextView
                 android:id="@+id/tvBusinessDescription"
@@ -75,7 +74,7 @@
                 android:layout_height="wrap_content"
                 android:text="תיאור קצר של העסק..."
                 android:textSize="14sp"
-                android:textColor="@color/textColor"
+                android:textColor="@color/jobsy_text_secondary"
                 android:maxLines="2"
                 android:ellipsize="end"
                 android:layout_marginTop="6dp"/>

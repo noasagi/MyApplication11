@@ -1,121 +1,123 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="24dp"
-    android:background="@color/backgroundColor"
+    android:background="@color/jobsy_background"
+    android:layoutDirection="rtl"
+    android:fillViewport="true"
     tools:context=".RegisterActivity">
 
-    <EditText
-        android:id="@+id/eTEmail"
-        android:layout_width="0dp"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="הכנס אימייל"
-        android:inputType="textEmailAddress"
-        android:padding="16dp"
-        android:textColor="@color/textColor"
-        android:textColorHint="#9E9E9E"
-        android:textSize="16sp"
-        android:backgroundTint="@color/colorPrimary"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="80dp"
-        android:layout_marginHorizontal="16dp" />
+        android:orientation="vertical"
+        android:padding="24dp">
 
-    <EditText
-        android:id="@+id/eTPass"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:hint="הכנס סיסמה"
-        android:inputType="textPassword"
-        android:padding="16dp"
-        android:textColor="@color/textColor"
-        android:textColorHint="#9E9E9E"
-        android:textSize="16sp"
-        android:backgroundTint="@color/colorPrimary"
-        app:layout_constraintTop_toBottomOf="@id/eTEmail"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp"
-        android:layout_marginHorizontal="16dp" />
-
-    <TextView
-        android:id="@+id/tVTypeTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="בחר סוג משתמש:"
-        android:textColor="@color/textColor"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        app:layout_constraintTop_toBottomOf="@id/eTPass"
-        app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginTop="32dp"
-        android:layout_marginStart="16dp" />
-
-    <RadioGroup
-        android:id="@+id/radioGroupType"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@id/tVTypeTitle"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="8dp"
-        android:layout_marginHorizontal="16dp">
-
-        <RadioButton
-            android:id="@+id/rbBusiness"
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="בעל עסק"
-            android:textColor="@color/textColor"
-            android:buttonTint="@color/colorAccent"
-            android:layout_marginBottom="8dp"/>
+            android:text="יצירת חשבון"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:textColor="@color/jobsy_text_primary"
+            android:layout_marginTop="40dp"
+            android:layout_marginBottom="32dp" />
 
-        <RadioButton
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="@color/jobsy_card_bg"
+            android:layout_marginBottom="16dp">
+            <EditText
+                android:id="@+id/eTEmail"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:hint="אימייל"
+                android:inputType="textEmailAddress"
+                android:paddingHorizontal="16dp"
+                android:background="@null"
+                android:textColor="@color/jobsy_text_primary"
+                android:textColorHint="@color/jobsy_text_secondary"
+                android:textSize="16sp" />
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="@color/jobsy_card_bg"
+            android:layout_marginBottom="32dp">
+            <EditText
+                android:id="@+id/eTPass"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:hint="סיסמה"
+                android:inputType="textPassword"
+                android:paddingHorizontal="16dp"
+                android:background="@null"
+                android:textColor="@color/jobsy_text_primary"
+                android:textColorHint="@color/jobsy_text_secondary"
+                android:textSize="16sp" />
+        </androidx.cardview.widget.CardView>
+
+        <TextView
+            android:id="@+id/tVTypeTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="משתמש רגיל"
-            android:textColor="@color/textColor"
-            android:buttonTint="@color/colorAccent"/>
+            android:text="אני רוצה להצטרף כ:"
+            android:textColor="@color/jobsy_text_primary"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp" />
 
-    </RadioGroup>
+        <RadioGroup
+            android:id="@+id/radioGroupType"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="32dp">
 
+            <RadioButton
+                android:id="@+id/rbBusiness"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="בעל עסק (נותן שירות)"
+                android:textColor="@color/jobsy_text_primary"
+                android:buttonTint="@color/jobsy_primary"
+                android:layout_marginBottom="12dp"/>
 
-    <Button
-        android:id="@+id/createUser"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="16dp"
-        android:layout_marginTop="48dp"
-        android:backgroundTint="@color/colorPrimary"
-        android:padding="16dp"
-        android:text="צור משתמש"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        app:cornerRadius="24dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/radioGroupType" />
+            <RadioButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="לקוח (מחפש שירות)"
+                android:textColor="@color/jobsy_text_primary"
+                android:buttonTint="@color/jobsy_primary"/>
+        </RadioGroup>
 
-    <TextView
-        android:id="@+id/tVMsg"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="32dp"
-        android:layout_marginTop="24dp"
-        android:gravity="center"
-        android:text=""
-        android:textColor="#D32F2F"
-        android:textSize="16sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/createUser" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/createUser"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="צור משתמש"
+            android:textColor="@color/white"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            app:backgroundTint="@color/jobsy_primary"
+            app:cornerRadius="16dp"
+            style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <TextView
+            android:id="@+id/tVMsg"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="center"
+            android:textColor="@color/jobsy_error"
+            android:textSize="14sp" />
+
+    </LinearLayout>
+</ScrollView>

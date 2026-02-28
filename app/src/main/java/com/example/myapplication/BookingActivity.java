@@ -218,7 +218,6 @@ public class BookingActivity extends AppCompatActivity {
                 .whereEqualTo("date", selectedDate)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
-                    // *** האלגוריתם החדש: שומר טווחי זמן (התחלה וסיום) במקום שעות בודדות ***
                     List<int[]> bookedRanges = new ArrayList<>();
 
                     for (QueryDocumentSnapshot doc : querySnapshot) {
@@ -227,7 +226,6 @@ public class BookingActivity extends AppCompatActivity {
                             String time = doc.getString("time");
                             Long durationLong = doc.getLong("duration");
 
-                            // אם זה תור ישן שאין לו אורך, נניח שהוא 30 דקות כברירת מחדל
                             int bookedDuration = (durationLong != null) ? durationLong.intValue() : 30;
 
                             if (time != null) {
@@ -247,7 +245,6 @@ public class BookingActivity extends AppCompatActivity {
         int startMins = convertTimeToMinutes(start);
         int endMins = convertTimeToMinutes(end);
 
-        // התיקון: קפיצות קבועות ביומן (כל 30 דקות) במקום קפיצות לפי אורך הטיפול
         int intervalMinutes = 30;
 
         while (startMins + durationMinutes <= endMins) {
@@ -255,7 +252,6 @@ public class BookingActivity extends AppCompatActivity {
             int proposedEnd = startMins + durationMinutes;
             boolean isOverlapping = false;
 
-            // בדיקת חפיפה
             for (int[] range : bookedRanges) {
                 int bookedStart = range[0];
                 int bookedEnd = range[1];
@@ -271,7 +267,6 @@ public class BookingActivity extends AppCompatActivity {
                 timeSlotsList.add(timeString);
             }
 
-            // מתקדמים ביומן בחצאי שעות (כדי לא לפספס חורים של 10:30 למשל)
             startMins += intervalMinutes;
         }
 
@@ -318,12 +313,20 @@ public class BookingActivity extends AppCompatActivity {
         data.put("status", "PENDING");
         data.put("timestamp", System.currentTimeMillis());
         data.put("description", description);
-
-        // *** חדש: שומרים את משך הזמן בדאטה בייס ***
         data.put("duration", selectedTreatment.getDurationMinutes());
 
         db.collection("appointments").document(appointmentId).set(data)
                 .addOnSuccessListener(aVoid -> {
+
+                    // הפעלת ההתראות המקומיות שלנו כאן! ⏰
+                    NotificationHelper.scheduleAppointmentNotifications(
+                            BookingActivity.this,
+                            appointmentId,
+                            selectedDate,
+                            selectedTime,
+                            currentBusinessName
+                    );
+
                     Toast.makeText(this, "התור נשלח לאישור בעל העסק!", Toast.LENGTH_LONG).show();
                     finish();
                 })

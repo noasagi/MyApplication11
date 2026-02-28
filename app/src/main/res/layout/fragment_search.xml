@@ -6,7 +6,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/backgroundColor"
+    android:background="@color/jobsy_background"
+    android:layoutDirection="rtl"
     tools:context=".SearchFragment">
 
     <TextView
@@ -15,19 +16,28 @@
         android:text="חיפוש עסקים"
         android:textSize="24sp"
         android:textStyle="bold"
-        android:gravity="center"
-        android:padding="16dp"
-        android:background="@android:color/white"
-        android:elevation="4dp"/>
+        android:textColor="@color/jobsy_text_primary"
+        android:padding="24dp"
+        android:background="@color/jobsy_background"/>
 
-    <androidx.appcompat.widget.SearchView
-        android:id="@+id/searchView"
+    <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="12dp"
-        android:background="@android:color/white"
-        app:iconifiedByDefault="false"
-        app:queryHint="חפש לפי שם העסק..." />
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginBottom="16dp"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="2dp"
+        app:cardBackgroundColor="@color/jobsy_card_bg">
+
+        <androidx.appcompat.widget.SearchView
+            android:id="@+id/searchView"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            app:iconifiedByDefault="false"
+            app:queryHint="חפש לפי שם העסק..."
+            app:searchIcon="@android:drawable/ic_menu_search"
+            android:theme="@style/JobsySearchViewTheme"/>
+    </androidx.cardview.widget.CardView>
 
     <LinearLayout
         android:id="@+id/filterContainer"
@@ -35,22 +45,23 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="12dp"
-        android:background="#F5F5F5">
+        android:paddingHorizontal="24dp"
+        android:paddingBottom="16dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="סנן לפי:"
-            android:textColor="@color/textColor"
+            android:textColor="@color/jobsy_text_primary"
             android:textStyle="bold"
-            android:layout_marginStart="8dp"/>
+            android:layout_marginEnd="12dp"/>
 
         <Spinner
             android:id="@+id/spinnerCategories"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"/>
+            android:layout_height="48dp"
+            android:background="@color/jobsy_card_bg"
+            android:paddingHorizontal="8dp"/>
     </LinearLayout>
 
     <FrameLayout
@@ -61,7 +72,8 @@
             android:id="@+id/rvBusinesses"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding="8dp"
+            android:paddingHorizontal="24dp"
+            android:paddingBottom="24dp"
             android:clipToPadding="false" />
 
         <TextView
@@ -70,9 +82,9 @@
             android:layout_height="wrap_content"
             android:text="לא נמצאו עסקים תואמים"
             android:visibility="gone"
-            android:textSize="18sp"
+            android:textSize="16sp"
             android:layout_gravity="center"
-            android:textColor="@color/colorPrimaryDark"/>
+            android:textColor="@color/jobsy_text_secondary"/>
 
     </FrameLayout>
 

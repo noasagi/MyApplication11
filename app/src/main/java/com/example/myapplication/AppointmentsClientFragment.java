@@ -35,20 +35,28 @@ public class AppointmentsClientFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        // וודאי ששם הקובץ fragment_appointments תואם לקובץ ה-XML ששלחת לי
         View view = inflater.inflate(R.layout.fragment_appointments, container, false);
 
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
-        rvMyAppointments = view.findViewById(R.id.rvMyAppointments);
+        // התיקון: השם שונה מ-rvMyAppointments ל-rvAppointments כדי להתאים ל-XML
+        rvMyAppointments = view.findViewById(R.id.rvAppointments);
 
-        if (getContext() != null) {
-            rvMyAppointments.setLayoutManager(new LinearLayoutManager(getContext()));
+        // בדיקת בטיחות: אם ה-RecyclerView לא נמצא, נדפיס לוג ולא נקרוס
+        if (rvMyAppointments != null) {
+            if (getContext() != null) {
+                rvMyAppointments.setLayoutManager(new LinearLayoutManager(getContext()));
+            }
+
+            list = new ArrayList<>();
+            adapter = new UserAppointmentsAdapter(list);
+            rvMyAppointments.setAdapter(adapter);
+        } else {
+            // אם את רואה את זה בלוג, סימן שה-ID ב-XML עדיין לא תואם
+            android.util.Log.e("AppointmentsFragment", "Error: RecyclerView rvAppointments not found in XML!");
         }
-
-        list = new ArrayList<>();
-        adapter = new UserAppointmentsAdapter(list);
-        rvMyAppointments.setAdapter(adapter);
 
         loadUserAppointments();
 
