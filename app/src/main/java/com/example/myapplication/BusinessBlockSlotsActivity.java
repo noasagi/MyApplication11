@@ -49,8 +49,6 @@ public class BusinessBlockSlotsActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
-        // כאן אנחנו מניחים שהבעל עסק נכנס, אז נשלוף את ה-ID שלו
-        // במידה ויש לך לוגיקה אחרת להעברת ה-ID, השתמשי בה
         fetchMyBusinessId();
 
         tvSelectedDate = findViewById(R.id.tvSelectedDate);
@@ -79,7 +77,8 @@ public class BusinessBlockSlotsActivity extends AppCompatActivity {
                     } else {
                         Toast.makeText(this, "לא נמצא עסק", Toast.LENGTH_SHORT).show();
                     }
-                });
+                })
+                .addOnFailureListener(e -> Toast.makeText(this, "שגיאה בטעינת פרטי העסק", Toast.LENGTH_SHORT).show());
     }
 
     private void showDatePicker() {
@@ -100,33 +99,47 @@ public class BusinessBlockSlotsActivity extends AppCompatActivity {
     }
 
     private void loadSlotsForDate(Calendar cal) {
-        if (businessId == null) return;
+        if (businessId == null) {
+            tvStatusMessage.setText("עדיין טוען נתוני עסק, נסה שוב בעוד רגע...");
+            return;
+        }
 
         tvStatusMessage.setText("טוען שעות...");
         slotsList.clear();
         adapter.notifyDataSetChanged();
 
-        String dayKey = getHebrewDayName(cal.get(Calendar.DAY_OF_WEEK));
+        // התיקון: התאמה למבנה במסד הנתונים (0 עד 6) בדיוק כמו בדף ההזמנות של הלקוח
+        String dayKey = String.valueOf(cal.get(Calendar.DAY_OF_WEEK) - 1);
 
         db.collection("businesses").document(businessId).get()
                 .addOnSuccessListener(doc -> {
+                    if (!doc.exists()) {
+                        tvStatusMessage.setText("העסק לא נמצא");
+                        return;
+                    }
+
                     Map<String, Object> schedule = (Map<String, Object>) doc.get("weeklySchedule");
                     if (schedule != null && schedule.containsKey(dayKey)) {
                         Map<String, Object> dayData = (Map<String, Object>) schedule.get(dayKey);
-                        if ((boolean) dayData.get("isOpen")) {
+
+                        Boolean isOpen = (Boolean) dayData.get("isOpen"); // מונע קריסה במקרה של Null
+                        if (isOpen != null && isOpen) {
                             String start = (String) dayData.get("start");
                             String end = (String) dayData.get("end");
-                            long duration = doc.getLong("appointmentDuration");
+
+                            Long durationLong = doc.getLong("appointmentDuration");
+                            int duration = (durationLong != null) ? durationLong.intValue() : 30; // ברירת מחדל לביטחון
 
                             // עכשיו נבדוק איזה תורים כבר קיימים (לקוחות או חסימות)
-                            fetchExistingAppointments(start, end, (int) duration);
+                            fetchExistingAppointments(start, end, duration);
                         } else {
                             tvStatusMessage.setText("העסק סגור ביום זה");
                         }
                     } else {
                         tvStatusMessage.setText("אין שעות פעילות מוגדרות");
                     }
-                });
+                })
+                .addOnFailureListener(e -> tvStatusMessage.setText("שגיאה בתקשורת מול השרת"));
     }
 
     private void fetchExistingAppointments(String start, String end, int duration) {
@@ -146,7 +159,8 @@ public class BusinessBlockSlotsActivity extends AppCompatActivity {
                         }
                     }
                     generateSlotsList(start, end, duration, bookedMap);
-                });
+                })
+                .addOnFailureListener(e -> tvStatusMessage.setText("שגיאה בבדיקת תורים קיימים"));
     }
 
     private void generateSlotsList(String start, String end, int duration, Map<String, Appointment> bookedMap) {
@@ -218,25 +232,14 @@ public class BusinessBlockSlotsActivity extends AppCompatActivity {
 
     // --- עזרים ---
     private int convertTimeToMinutes(String time) {
-        String[] parts = time.split(":");
-        return Integer.parseInt(parts[0]) * 60 + Integer.parseInt(parts[1]);
+        try {
+            String[] parts = time.split(":");
+            return Integer.parseInt(parts[0]) * 60 + Integer.parseInt(parts[1]);
+        } catch (Exception e) { return 0; }
     }
 
     private String convertMinutesToTime(int totalMinutes) {
         return String.format("%02d:%02d", totalMinutes / 60, totalMinutes % 60);
-    }
-
-    private String getHebrewDayName(int day) {
-        switch (day) {
-            case Calendar.SUNDAY: return "יום ראשון";
-            case Calendar.MONDAY: return "יום שני";
-            case Calendar.TUESDAY: return "יום שלישי";
-            case Calendar.WEDNESDAY: return "יום רביעי";
-            case Calendar.THURSDAY: return "יום חמישי";
-            case Calendar.FRIDAY: return "יום שישי";
-            case Calendar.SATURDAY: return "יום שבת";
-            default: return "";
-        }
     }
 
     // --- מחלקה פנימית לייצוג שעה ברשימה ---
