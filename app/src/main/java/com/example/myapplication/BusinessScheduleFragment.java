@@ -109,7 +109,8 @@ public class BusinessScheduleFragment extends Fragment {
         String status = app.getStatus();
         if (status == null) status = "PENDING";
 
-        if (status.equals("REJECTED")) return false;
+        // אם התור בוטל או שזה חסימה של בעל העסק - אל תציג!
+        if (status.equals("REJECTED") || status.equals("BLOCKED")) return false;
 
         if (status.equals("APPROVED")) {
             if (isDateInPast(app.getDate())) return false;
@@ -117,7 +118,6 @@ public class BusinessScheduleFragment extends Fragment {
 
         return true;
     }
-
     private boolean isDateInPast(String dateStr) {
         if (dateStr == null || dateStr.isEmpty()) return false;
         SimpleDateFormat sdf = new SimpleDateFormat("d/M/yyyy", Locale.getDefault());

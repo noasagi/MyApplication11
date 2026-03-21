@@ -52,10 +52,8 @@ public class BusinessStatisticsFragment extends Fragment {
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     if (!queryDocumentSnapshots.isEmpty()) {
-                        businessId = queryDocumentSnapshots.getDocuments().get(0).getString("businessId");
-                        if (businessId == null) {
-                            businessId = queryDocumentSnapshots.getDocuments().get(0).getId();
-                        }
+                        // התיקון: לוקחים ישירות את מזהה המסמך האמיתי, בלי להסתמך על שדות פנימיים
+                        businessId = queryDocumentSnapshots.getDocuments().get(0).getId();
 
                         // קריאה לפונקציות החישוב
                         calculateAppointmentsStats();
@@ -71,7 +69,7 @@ public class BusinessStatisticsFragment extends Fragment {
     private void calculateAppointmentsStats() {
         if (businessId == null) return;
 
-        // משיכת כל התורים של העסק (לא כולל תורים שנדחו)
+        // משיכת כל התורים של העסק
         db.collection("appointments")
                 .whereEqualTo("businessId", businessId)
                 .get()
@@ -85,7 +83,9 @@ public class BusinessStatisticsFragment extends Fragment {
 
                     for (DocumentSnapshot doc : queryDocumentSnapshots) {
                         String status = doc.getString("status");
-                        if ("REJECTED".equals(status)) continue; // מתעלמים מתורים מבוטלים
+
+                        // כאן התיקון: דילוג על תורים מבוטלים או חסימות פיקטיביות
+                        if ("REJECTED".equals(status) || "BLOCKED".equals(status)) continue;
 
                         totalValidOrders++;
 
@@ -99,14 +99,20 @@ public class BusinessStatisticsFragment extends Fragment {
                             hoursMap.put(hour, hoursMap.getOrDefault(hour, 0) + 1);
                         }
 
-                        // ספירת שירותים (מנקים את המחיר מהמחרוזת למשל מ-"תספורת (₪50)")
+                        // ספירת שירותים
                         if (desc != null && !desc.isEmpty()) {
-                            String serviceName = desc.split(" \\(")[0]; // חותך הכל לפני סוגריים המחיר
-                            servicesMap.put(serviceName, servicesMap.getOrDefault(serviceName, 0) + 1);
+                            // הגנה נוספת: בודקים אם יש סוגריים לפני שחותכים
+                            if (desc.contains(" (")) {
+                                String serviceName = desc.split(" \\(")[0]; // חותך הכל לפני סוגריים המחיר
+                                servicesMap.put(serviceName, servicesMap.getOrDefault(serviceName, 0) + 1);
+                            } else {
+                                servicesMap.put(desc, servicesMap.getOrDefault(desc, 0) + 1);
+                            }
                         }
 
                         // ספירת משתמשים (לקוחות)
-                        if (userId != null) {
+                        // חסימות פיקטיביות לרוב אין להן userId, אבל ליתר ביטחון נוודא שהוא לא ריק
+                        if (userId != null && !userId.trim().isEmpty()) {
                             usersMap.put(userId, usersMap.getOrDefault(userId, 0) + 1);
                         }
                     }
@@ -147,7 +153,6 @@ public class BusinessStatisticsFragment extends Fragment {
 
                 });
     }
-
     private void calculateAverageRating() {
         if (businessId == null) return;
 
@@ -161,25 +166,36 @@ public class BusinessStatisticsFragment extends Fragment {
                         return;
                     }
 
-                    double sum = 0;
+                    double sumTotalReviews = 0;
                     int count = 0;
 
                     for (DocumentSnapshot doc : queryDocumentSnapshots) {
-                        // בהנחה שהשדה של הציון נקרא "rating"
-                        Double rating = doc.getDouble("rating");
-                        if (rating != null) {
-                            sum += rating;
+                        // משיכת 3 הקטגוריות כפי שנשמרו בדאטה בייס
+                        Double prof = doc.getDouble("ratingProf");
+                        Double rel = doc.getDouble("ratingRel");
+                        Double price = doc.getDouble("ratingPrice");
+
+                        // מוודאים שכל הציונים קיימים בביקורת הזו
+                        if (prof != null && rel != null && price != null) {
+                            // ממוצע של הביקורת הספציפית הזו
+                            double reviewAverage = (prof + rel + price) / 3.0;
+
+                            sumTotalReviews += reviewAverage;
                             count++;
                         }
                     }
 
                     if (count > 0) {
-                        double average = sum / count;
+                        // ממוצע של כל הביקורות יחד
+                        double finalAverage = sumTotalReviews / count;
                         // עיגול לספרה עשרונית אחת (למשל 4.5)
-                        tvAvgRating.setText(String.format(java.util.Locale.getDefault(), "%.1f", average));
+                        tvAvgRating.setText(String.format(java.util.Locale.getDefault(), "%.1f", finalAverage));
                     } else {
                         tvAvgRating.setText("טרם דורג");
                     }
+                })
+                .addOnFailureListener(e -> {
+                    tvAvgRating.setText("שגיאה");
                 });
     }
 }

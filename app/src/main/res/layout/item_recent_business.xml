@@ -29,9 +29,7 @@
                 android:layout_height="match_parent"
                 android:scaleType="centerCrop"
                 android:src="@android:drawable/ic_menu_camera"
-                app:tint="@color/jobsy_text_secondary"
-                android:background="#F5F5F5"
-                android:padding="10dp"/>
+                android:background="#F5F5F5" />
         </androidx.cardview.widget.CardView>
 
         <TextView

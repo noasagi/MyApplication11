@@ -134,6 +134,8 @@
                 android:textColor="@color/jobsy_text_primary"
                 android:textColorHint="@color/jobsy_text_secondary"
                 android:textSize="16sp" />
+
+
         </androidx.cardview.widget.CardView>
 
         <androidx.cardview.widget.CardView
@@ -148,6 +150,26 @@
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:hint="סוג עסק (מספרה, קוסמטיקה...)"
+                android:paddingHorizontal="16dp"
+                android:background="@null"
+                android:textColor="@color/jobsy_text_primary"
+                android:textColorHint="@color/jobsy_text_secondary"
+                android:textSize="16sp" />
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="@color/jobsy_card_bg"
+            android:layout_marginBottom="16dp">
+            <EditText
+                android:id="@+id/eTBusinessAddress"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:hint="כתובת העסק (לדוגמה: ויצמן 10, כפר סבא)"
+                android:inputType="textPostalAddress"
                 android:paddingHorizontal="16dp"
                 android:background="@null"
                 android:textColor="@color/jobsy_text_primary"
@@ -176,6 +198,18 @@
                 android:textColorHint="@color/jobsy_text_secondary"
                 android:textSize="16sp" />
         </androidx.cardview.widget.CardView>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnUpdateLocation"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="עדכן מיקום עסק (GPS)"
+            android:textSize="16sp"
+            app:cornerRadius="16dp"
+            android:textColor="@color/jobsy_primary"
+            app:backgroundTint="@color/jobsy_primary_soft"
+            style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+            android:layout_marginBottom="16dp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnManageHours"

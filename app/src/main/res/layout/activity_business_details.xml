@@ -62,11 +62,41 @@
                     android:id="@+id/tvDetailPhone"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="24dp"
+                    android:layout_marginBottom="16dp"
                     android:text="050-0000000"
                     android:textSize="20sp"
                     android:textColor="@color/jobsy_text_primary"
                     android:autoLink="phone"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="כתובת"
+                    android:textColor="@color/jobsy_text_secondary"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/tvDetailAddress"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:text="כתובת העסק..."
+                    android:textSize="18sp"
+                    android:textColor="@color/jobsy_text_primary" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnWaze"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="24dp"
+                    android:text="ניווט לכתובת ב-Waze"
+                    android:textColor="@color/white"
+                    app:backgroundTint="#0099FF"
+                    app:cornerRadius="16dp"
+                    app:icon="@android:drawable/ic_dialog_map"
+                    app:iconGravity="textStart"
+                    app:iconTint="@color/white"
+                    style="@style/Widget.MaterialComponents.Button.UnelevatedButton" />
 
                 <TextView
                     android:layout_width="wrap_content"

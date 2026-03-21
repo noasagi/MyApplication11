@@ -30,13 +30,10 @@ import java.util.Map;
 
 public class BusinessDetailsActivity extends AppCompatActivity {
 
-    private TextView tvName, tvType, tvPhone, tvDescription;
+    private TextView tvName, tvType, tvPhone, tvDescription, tvAddress;
     private LinearLayout galleryContainer;
     private FloatingActionButton btnFavorite;
-    private Button btnWhatsApp;
-
-    // כפתור קביעת תור
-    private Button btnBookAppointment;
+    private Button btnWhatsApp, btnWaze, btnBookAppointment;
 
     private FirebaseFirestore db;
     private FirebaseAuth auth;
@@ -62,13 +59,13 @@ public class BusinessDetailsActivity extends AppCompatActivity {
         tvType = findViewById(R.id.tvDetailType);
         tvPhone = findViewById(R.id.tvDetailPhone);
         tvDescription = findViewById(R.id.tvDetailDescription);
+        tvAddress = findViewById(R.id.tvDetailAddress); // חיבור הכתובת
         galleryContainer = findViewById(R.id.galleryContainer);
         btnFavorite = findViewById(R.id.btnFavorite);
         btnWhatsApp = findViewById(R.id.btnWhatsApp);
-        rvReviews = findViewById(R.id.rvReviewsList);
-
-        // מציאת הכפתור החדש
+        btnWaze = findViewById(R.id.btnWaze); // חיבור כפתור ווייז
         btnBookAppointment = findViewById(R.id.btnBookAppointment);
+        rvReviews = findViewById(R.id.rvReviewsList);
 
         // הגדרת הרשימה
         rvReviews.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(this));
@@ -97,7 +94,6 @@ public class BusinessDetailsActivity extends AppCompatActivity {
         // מאזינים לכפתורים
         btnFavorite.setOnClickListener(v -> toggleFavorite());
 
-        // --- התיקון החשוב כאן: כפתור קביעת תור ---
         btnBookAppointment.setOnClickListener(v -> {
             if (currentBusinessId == null || currentBusinessId.isEmpty()) {
                 Toast.makeText(this, "אנא המתן לטעינת הנתונים...", Toast.LENGTH_SHORT).show();
@@ -151,6 +147,35 @@ public class BusinessDetailsActivity extends AppCompatActivity {
         tvType.setText(business.getBusinessType());
         tvPhone.setText(business.getPhone());
         tvDescription.setText(business.getDescription());
+
+        // טיפול בכתובת ובווייז
+        String address = business.getAddress();
+        if (address != null && !address.trim().isEmpty()) {
+            tvAddress.setText(address);
+
+            // אם הכתובת היא משהו כמו "מגיע עד בית הלקוח", נסתיר את הווייז
+            if (address.contains("מגיע") || address.contains("לקוח")) {
+                btnWaze.setVisibility(View.GONE);
+            } else {
+                btnWaze.setVisibility(View.VISIBLE);
+                btnWaze.setOnClickListener(v -> {
+                    // פתיחת Waze לחיפוש הכתובת
+                    try {
+                        String url = "waze://?q=" + Uri.encode(address);
+                        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                        startActivity(intent);
+                    } catch (Exception ex) {
+                        // אם Waze לא מותקן, נפתח בדפדפן או בגוגל מפות
+                        String url = "https://waze.com/ul?q=" + Uri.encode(address);
+                        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                        startActivity(intent);
+                    }
+                });
+            }
+        } else {
+            tvAddress.setText("לא צוינה כתובת");
+            btnWaze.setVisibility(View.GONE); // מסתירים אם אין כתובת
+        }
 
         // חייגן
         tvPhone.setOnClickListener(v -> {
