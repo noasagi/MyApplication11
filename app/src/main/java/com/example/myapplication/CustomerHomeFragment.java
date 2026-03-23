@@ -1,5 +1,6 @@
 package com.example.myapplication;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -8,9 +9,12 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RatingBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -128,12 +132,74 @@ public class CustomerHomeFragment extends Fragment {
         tvRateBusinessName.setText("איך היה אצל " + app.getBusinessName() + "?");
 
         btnRateNow.setOnClickListener(v -> {
-            Intent intent = new Intent(getActivity(), DialogAddReviewActivity.class);
-            intent.putExtra("appointmentId", app.getAppointmentId());
-            intent.putExtra("businessId", app.getBusinessId());
-            intent.putExtra("businessName", app.getBusinessName());
-            startActivity(intent);
+            // במקום לפתוח אקטיביטי חדש, אנחנו מציגים את החלון הקופץ!
+            showAddReviewDialog(app);
         });
+    }
+
+    // הפונקציה החדשה של החלון הקופץ
+    private void showAddReviewDialog(Appointment app) {
+        if (getContext() == null) return;
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        View view = LayoutInflater.from(getContext()).inflate(R.layout.activity_dialog_add_review, null);
+        builder.setView(view);
+
+        AlertDialog dialog = builder.create();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        RatingBar rbProfessionalism = view.findViewById(R.id.rbProfessionalism);
+        RatingBar rbReliability = view.findViewById(R.id.rbReliability);
+        RatingBar rbPrice = view.findViewById(R.id.rbPrice);
+        EditText etComment = view.findViewById(R.id.etComment);
+        Button btnSubmit = view.findViewById(R.id.btnSubmitReview);
+
+        btnSubmit.setOnClickListener(v -> {
+            float ratingProf = rbProfessionalism.getRating();
+            float ratingRel = rbReliability.getRating();
+            float ratingPrice = rbPrice.getRating();
+            String comment = etComment.getText().toString().trim();
+
+            if (ratingProf == 0 || ratingRel == 0 || ratingPrice == 0) {
+                Toast.makeText(getContext(), "אנא דרג את כל הקטגוריות", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            String reviewId = db.collection("reviews").document().getId();
+
+            ReviewModel newReview = new ReviewModel(
+                    reviewId,
+                    app.getBusinessId(),
+                    app.getUserId(),
+                    app.getUserName(),
+                    comment,
+                    app.getAppointmentId(),
+                    ratingProf,
+                    ratingRel,
+                    ratingPrice,
+                    com.google.firebase.Timestamp.now()
+            );
+
+            db.collection("reviews").document(reviewId).set(newReview)
+                    .addOnSuccessListener(aVoid -> {
+                        // עדכון התור שהוא כבר דורג
+                        db.collection("appointments").document(app.getAppointmentId())
+                                .update("isReviewed", true);
+
+                        Toast.makeText(getContext(), "תודה על הדירוג!", Toast.LENGTH_SHORT).show();
+                        dialog.dismiss();
+
+                        // העלמת כרטיסיית הדירוג ממסך הבית אחרי שסיימנו
+                        cardRateUs.setVisibility(View.GONE);
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(getContext(), "שגיאה בשמירה: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    });
+        });
+
+        dialog.show();
     }
 
     private void loadUserName() {
@@ -221,22 +287,19 @@ public class CustomerHomeFragment extends Fragment {
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             Appointment app = recentAppointments.get(position);
 
-            // שליפת שם העסק והלוגו מתוך קולקציית businesses
             if (app.getBusinessId() != null) {
                 db.collection("businesses").document(app.getBusinessId()).get()
                         .addOnSuccessListener(ds -> {
                             if (ds.exists()) {
-                                // 1. עדכון שם העסק לפי השדה "name" שיש לך בדאטה בייס
                                 String name = ds.getString("name");
                                 if (name != null) {
                                     holder.tvRecentBusinessName.setText(name);
-                                    app.setBusinessName(name); // שומרים כדי להעביר למסך הבא
+                                    app.setBusinessName(name);
                                 }
 
-                                // 2. טעינת התמונה הראשונה מתוך המערך "imageBlobs"
                                 List<Blob> imageBlobs = (List<Blob>) ds.get("imageBlobs");
                                 if (imageBlobs != null && !imageBlobs.isEmpty()) {
-                                    Blob firstImage = imageBlobs.get(0); // לוקחים את התמונה הראשונה
+                                    Blob firstImage = imageBlobs.get(0);
                                     if (firstImage != null) {
                                         byte[] bytes = firstImage.toBytes();
                                         Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
@@ -251,7 +314,6 @@ public class CustomerHomeFragment extends Fragment {
                 holder.tvRecentBusinessName.setText("עסק לא ידוע");
             }
 
-            // לחיצה על כפתור "הזמן שוב" מעבירה למסך BookingActivity
             holder.btnBookAgain.setOnClickListener(v -> {
                 Intent intent = new Intent(getActivity(), BookingActivity.class);
                 intent.putExtra("businessId", app.getBusinessId());

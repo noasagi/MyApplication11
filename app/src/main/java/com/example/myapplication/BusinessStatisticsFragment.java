@@ -170,9 +170,8 @@ public class BusinessStatisticsFragment extends Fragment {
                     int count = 0;
 
                     for (DocumentSnapshot doc : queryDocumentSnapshots) {
-                        // משיכת 3 הקטגוריות כפי שנשמרו בדאטה בייס
-                        Double prof = doc.getDouble("ratingProf");
-                        Double rel = doc.getDouble("ratingRel");
+                        Double prof = doc.getDouble("ratingProfessionalism");
+                        Double rel = doc.getDouble("ratingReliability");
                         Double price = doc.getDouble("ratingPrice");
 
                         // מוודאים שכל הציונים קיימים בביקורת הזו

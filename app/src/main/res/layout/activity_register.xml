@@ -56,13 +56,13 @@
                 android:id="@+id/eTPass"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
-                android:hint="סיסמה"
+                android:hint="סיסמה (מינימום 8 תווים, אות גדולה ומספר)"
                 android:inputType="textPassword"
                 android:paddingHorizontal="16dp"
                 android:background="@null"
                 android:textColor="@color/jobsy_text_primary"
                 android:textColorHint="@color/jobsy_text_secondary"
-                android:textSize="16sp" />
+                android:textSize="14sp" />
         </androidx.cardview.widget.CardView>
 
         <TextView
@@ -91,6 +91,7 @@
                 android:layout_marginBottom="12dp"/>
 
             <RadioButton
+                android:id="@+id/rbClient"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="לקוח (מחפש שירות)"
@@ -109,6 +110,32 @@
             app:backgroundTint="@color/jobsy_primary"
             app:cornerRadius="16dp"
             style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp">
+            <View android:layout_width="0dp" android:layout_weight="1" android:layout_height="1dp" android:background="#E0E0E0"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text=" או " android:textColor="#9E9E9E" android:paddingHorizontal="8dp"/>
+            <View android:layout_width="0dp" android:layout_weight="1" android:layout_height="1dp" android:background="#E0E0E0"/>
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnGoogleRegister"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="הרשמה עם Google"
+            android:textColor="@color/jobsy_text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            app:backgroundTint="@color/jobsy_card_bg"
+            app:strokeColor="#E0E0E0"
+            app:strokeWidth="1dp"
+            app:cornerRadius="16dp"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
 
         <TextView
             android:id="@+id/tVMsg"

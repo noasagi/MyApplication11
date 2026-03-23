@@ -6,7 +6,10 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.RatingBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -35,16 +38,13 @@ public class AppointmentsClientFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        // וודאי ששם הקובץ fragment_appointments תואם לקובץ ה-XML ששלחת לי
         View view = inflater.inflate(R.layout.fragment_appointments, container, false);
 
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
-        // התיקון: השם שונה מ-rvMyAppointments ל-rvAppointments כדי להתאים ל-XML
         rvMyAppointments = view.findViewById(R.id.rvAppointments);
 
-        // בדיקת בטיחות: אם ה-RecyclerView לא נמצא, נדפיס לוג ולא נקרוס
         if (rvMyAppointments != null) {
             if (getContext() != null) {
                 rvMyAppointments.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -54,7 +54,6 @@ public class AppointmentsClientFragment extends Fragment {
             adapter = new UserAppointmentsAdapter(list);
             rvMyAppointments.setAdapter(adapter);
         } else {
-            // אם את רואה את זה בלוג, סימן שה-ID ב-XML עדיין לא תואם
             android.util.Log.e("AppointmentsFragment", "Error: RecyclerView rvAppointments not found in XML!");
         }
 
@@ -73,7 +72,6 @@ public class AppointmentsClientFragment extends Fragment {
                     if (getContext() == null) return;
 
                     if (error != null) {
-                        // Toast.makeText(getContext(), "שגיאה בטעינה", Toast.LENGTH_SHORT).show();
                         return;
                     }
 
@@ -81,7 +79,7 @@ public class AppointmentsClientFragment extends Fragment {
                     if (value != null) {
                         for (QueryDocumentSnapshot doc : value) {
                             Appointment app = doc.toObject(Appointment.class);
-                            app.setAppointmentId(doc.getId()); // חובה לשמור ID בשביל המחיקה!
+                            app.setAppointmentId(doc.getId());
                             list.add(app);
                         }
                     }
@@ -100,7 +98,6 @@ public class AppointmentsClientFragment extends Fragment {
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            // כאן אנחנו טוענים את ה-XML החדש שיצרנו למעלה
             View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_user_appointment, parent, false);
             return new ViewHolder(view);
         }
@@ -148,9 +145,18 @@ public class AppointmentsClientFragment extends Fragment {
                     holder.tvStatus.setTextColor(Color.GRAY);
             }
 
+            // --- לוגיקת הצגת כפתור הדירוג ---
+            if ("APPROVED".equals(status) && !app.getIsReviewed()) {
+                holder.btnRate.setVisibility(View.VISIBLE);
+                holder.btnRate.setOnClickListener(v -> {
+                    showAddReviewDialog(app);
+                });
+            } else {
+                holder.btnRate.setVisibility(View.GONE);
+            }
+
             // --- לוגיקה של כפתור המחיקה ---
             holder.btnDelete.setOnClickListener(v -> {
-                // הצגת דיאלוג "האם אתה בטוח?"
                 new AlertDialog.Builder(getContext())
                         .setTitle("ביטול תור")
                         .setMessage("האם אתה בטוח שברצונך למחוק את התור הזה?")
@@ -167,19 +173,20 @@ public class AppointmentsClientFragment extends Fragment {
 
         class ViewHolder extends RecyclerView.ViewHolder {
             TextView tvBusinessName, tvDateTime, tvStatus;
-            ImageView btnDelete; // הוספנו את המשתנה הזה
+            ImageView btnDelete;
+            Button btnRate;
 
             public ViewHolder(@NonNull View itemView) {
                 super(itemView);
                 tvBusinessName = itemView.findViewById(R.id.tvBusinessName);
                 tvDateTime = itemView.findViewById(R.id.tvDateTime);
                 tvStatus = itemView.findViewById(R.id.tvStatus);
-                btnDelete = itemView.findViewById(R.id.btnDelete); // חיבור ל-XML
+                btnDelete = itemView.findViewById(R.id.btnDelete);
+                btnRate = itemView.findViewById(R.id.btnRate);
             }
         }
     }
 
-    // פונקציה למחיקת התור מ-Firestore
     private void deleteAppointment(String docId) {
         if (docId == null) return;
 
@@ -187,10 +194,70 @@ public class AppointmentsClientFragment extends Fragment {
                 .delete()
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(getContext(), "התור נמחק בהצלחה", Toast.LENGTH_SHORT).show();
-                    // הרשימה תתעדכן אוטומטית בגלל ה-SnapshotListener ב-loadUserAppointments
                 })
                 .addOnFailureListener(e -> {
                     Toast.makeText(getContext(), "שגיאה במחיקה: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
+    }
+
+    private void showAddReviewDialog(Appointment app) {
+        if (getContext() == null) return;
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        View view = LayoutInflater.from(getContext()).inflate(R.layout.activity_dialog_add_review, null);
+        builder.setView(view);
+
+        AlertDialog dialog = builder.create();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        RatingBar rbProfessionalism = view.findViewById(R.id.rbProfessionalism);
+        RatingBar rbReliability = view.findViewById(R.id.rbReliability);
+        RatingBar rbPrice = view.findViewById(R.id.rbPrice);
+        EditText etComment = view.findViewById(R.id.etComment);
+        Button btnSubmit = view.findViewById(R.id.btnSubmitReview);
+
+        btnSubmit.setOnClickListener(v -> {
+            float ratingProf = rbProfessionalism.getRating();
+            float ratingRel = rbReliability.getRating();
+            float ratingPrice = rbPrice.getRating();
+            String comment = etComment.getText().toString().trim();
+
+            if (ratingProf == 0 || ratingRel == 0 || ratingPrice == 0) {
+                Toast.makeText(getContext(), "אנא דרג את כל הקטגוריות", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            String reviewId = db.collection("reviews").document().getId();
+
+            ReviewModel newReview = new ReviewModel(
+                    reviewId,
+                    app.getBusinessId(),
+                    app.getUserId(),
+                    app.getUserName(),
+                    comment,
+                    app.getAppointmentId(),
+                    ratingProf,
+                    ratingRel,
+                    ratingPrice,
+                    com.google.firebase.Timestamp.now()
+            );
+
+            db.collection("reviews").document(reviewId).set(newReview)
+                    .addOnSuccessListener(aVoid -> {
+                        // עדכון התור שהוא כבר דורג
+                        db.collection("appointments").document(app.getAppointmentId())
+                                .update("isReviewed", true);
+
+                        Toast.makeText(getContext(), "תודה על הדירוג!", Toast.LENGTH_SHORT).show();
+                        dialog.dismiss();
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(getContext(), "שגיאה בשמירה: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    });
+        });
+
+        dialog.show();
     }
 }

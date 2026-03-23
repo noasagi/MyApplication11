@@ -22,12 +22,13 @@ public class ReviewModel {
         // בנאי ריק חובה לפיירבייס
     }
 
-    public ReviewModel(String reviewId, String businessId, String userId, String userName, String comment, float ratingProfessionalism, float ratingReliability, float ratingPrice, Timestamp timestamp) {
+    public ReviewModel(String reviewId, String businessId, String userId, String userName, String comment, String appointmentId, float ratingProfessionalism, float ratingReliability, float ratingPrice, Timestamp timestamp) {
         this.reviewId = reviewId;
         this.businessId = businessId;
         this.userId = userId;
         this.userName = userName;
         this.comment = comment;
+        this.appointmentId = appointmentId; // הוספנו את זה לכאן!
         this.ratingProfessionalism = ratingProfessionalism;
         this.ratingReliability = ratingReliability;
         this.ratingPrice = ratingPrice;

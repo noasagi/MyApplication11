@@ -7,6 +7,7 @@
     android:layout_height="match_parent"
     android:background="@color/jobsy_background"
     android:fillViewport="true"
+    android:layoutDirection="rtl"
     tools:context=".LoginActivity">
 
     <LinearLayout
@@ -24,7 +25,7 @@
             android:textSize="28sp"
             android:textStyle="bold"
             android:textColor="@color/jobsy_text_primary"
-            android:layout_marginTop="80dp"
+            android:layout_marginTop="60dp"
             android:layout_marginBottom="40dp" />
 
         <androidx.cardview.widget.CardView
@@ -54,7 +55,7 @@
             app:cardCornerRadius="16dp"
             app:cardElevation="2dp"
             app:cardBackgroundColor="@color/jobsy_card_bg"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="8dp">
 
             <EditText
                 android:id="@+id/eTPass"
@@ -69,15 +70,36 @@
                 android:textSize="16sp" />
         </androidx.cardview.widget.CardView>
 
-        <CheckBox
-            android:id="@+id/cBStayConnect"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="start"
-            android:text="הישאר מחובר"
-            android:textColor="@color/jobsy_text_secondary"
-            android:buttonTint="@color/jobsy_primary"
-            android:textSize="14sp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <CheckBox
+                android:id="@+id/cBStayConnect"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="הישאר מחובר"
+                android:textColor="@color/jobsy_text_secondary"
+                android:buttonTint="@color/jobsy_primary"
+                android:textSize="14sp" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/tvForgotPassword"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="שכחתי סיסמה?"
+                android:textColor="@color/jobsy_primary"
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:paddingVertical="8dp"/>
+        </LinearLayout>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/loginUser"
@@ -89,14 +111,14 @@
             android:textStyle="bold"
             app:backgroundTint="@color/jobsy_primary"
             app:cornerRadius="16dp"
-            android:layout_marginTop="32dp"
+            android:layout_marginTop="24dp"
             style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
 
         <TextView
             android:id="@+id/tVMsg"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="8dp"
             android:gravity="center"
             android:textColor="@color/jobsy_error"
             android:textSize="14sp" />
@@ -109,8 +131,52 @@
             android:textColor="@color/jobsy_primary"
             android:background="@android:color/transparent"
             android:textSize="16sp"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="8dp"
             android:textAllCaps="false"/>
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp">
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1"
+                android:background="#E0E0E0" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="או"
+                android:textColor="@color/jobsy_text_secondary"
+                android:paddingHorizontal="16dp" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1"
+                android:background="#E0E0E0" />
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnGoogleLogin"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="התחברות עם Google"
+            android:textColor="@color/jobsy_text_primary"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:backgroundTint="@color/jobsy_card_bg"
+            app:strokeColor="#E0E0E0"
+            app:strokeWidth="1dp"
+            app:cornerRadius="16dp"
+            app:icon="@android:drawable/ic_menu_myplaces"
+            app:iconTint="@null"
+            app:iconGravity="textStart"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
     </LinearLayout>
 </ScrollView>

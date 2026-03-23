@@ -7,10 +7,8 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.RatingBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -46,7 +44,6 @@ public class BusinessDetailsActivity extends AppCompatActivity {
     private ReviewAdapter reviewAdapter;
     private List<ReviewModel> reviewsList;
 
-    // משתנה לשמירת שם המשתמש הנוכחי (כדי שלא יהיה אנונימי)
     private String currentUserName = "אורח";
 
     @Override
@@ -54,20 +51,18 @@ public class BusinessDetailsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_business_details);
 
-        // חיבור לרכיבים
         tvName = findViewById(R.id.tvDetailName);
         tvType = findViewById(R.id.tvDetailType);
         tvPhone = findViewById(R.id.tvDetailPhone);
         tvDescription = findViewById(R.id.tvDetailDescription);
-        tvAddress = findViewById(R.id.tvDetailAddress); // חיבור הכתובת
+        tvAddress = findViewById(R.id.tvDetailAddress);
         galleryContainer = findViewById(R.id.galleryContainer);
         btnFavorite = findViewById(R.id.btnFavorite);
         btnWhatsApp = findViewById(R.id.btnWhatsApp);
-        btnWaze = findViewById(R.id.btnWaze); // חיבור כפתור ווייז
+        btnWaze = findViewById(R.id.btnWaze);
         btnBookAppointment = findViewById(R.id.btnBookAppointment);
         rvReviews = findViewById(R.id.rvReviewsList);
 
-        // הגדרת הרשימה
         rvReviews.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(this));
         reviewsList = new java.util.ArrayList<>();
         reviewAdapter = new ReviewAdapter(reviewsList);
@@ -76,7 +71,6 @@ public class BusinessDetailsActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
-        // קבלת ה-ID של העסק מהמסך הקודם
         currentBusinessId = getIntent().getStringExtra("BUSINESS_ID");
 
         if (currentBusinessId != null) {
@@ -88,10 +82,8 @@ public class BusinessDetailsActivity extends AppCompatActivity {
             finish();
         }
 
-        // טעינת שם המשתמש הנוכחי (לצורך הביקורות)
         fetchCurrentUserName();
 
-        // מאזינים לכפתורים
         btnFavorite.setOnClickListener(v -> toggleFavorite());
 
         btnBookAppointment.setOnClickListener(v -> {
@@ -100,18 +92,14 @@ public class BusinessDetailsActivity extends AppCompatActivity {
                 return;
             }
 
-            // יצירת מעבר למסך קביעת התור
             Intent intent = new Intent(BusinessDetailsActivity.this, BookingActivity.class);
-
-            // שליחת המידע למסך הבא
-            intent.putExtra("businessId", currentBusinessId); // מעביר את ה-ID
-            intent.putExtra("businessName", tvName.getText().toString()); // מעביר את השם
+            intent.putExtra("businessId", currentBusinessId);
+            intent.putExtra("businessName", tvName.getText().toString());
 
             startActivity(intent);
         });
     }
 
-    // פונקציה שמביאה את השם של המשתמש מהדאטה בייס
     private void fetchCurrentUserName() {
         FirebaseUser user = auth.getCurrentUser();
         if (user != null) {
@@ -148,24 +136,20 @@ public class BusinessDetailsActivity extends AppCompatActivity {
         tvPhone.setText(business.getPhone());
         tvDescription.setText(business.getDescription());
 
-        // טיפול בכתובת ובווייז
         String address = business.getAddress();
         if (address != null && !address.trim().isEmpty()) {
             tvAddress.setText(address);
 
-            // אם הכתובת היא משהו כמו "מגיע עד בית הלקוח", נסתיר את הווייז
             if (address.contains("מגיע") || address.contains("לקוח")) {
                 btnWaze.setVisibility(View.GONE);
             } else {
                 btnWaze.setVisibility(View.VISIBLE);
                 btnWaze.setOnClickListener(v -> {
-                    // פתיחת Waze לחיפוש הכתובת
                     try {
                         String url = "waze://?q=" + Uri.encode(address);
                         Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
                         startActivity(intent);
                     } catch (Exception ex) {
-                        // אם Waze לא מותקן, נפתח בדפדפן או בגוגל מפות
                         String url = "https://waze.com/ul?q=" + Uri.encode(address);
                         Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
                         startActivity(intent);
@@ -174,10 +158,9 @@ public class BusinessDetailsActivity extends AppCompatActivity {
             }
         } else {
             tvAddress.setText("לא צוינה כתובת");
-            btnWaze.setVisibility(View.GONE); // מסתירים אם אין כתובת
+            btnWaze.setVisibility(View.GONE);
         }
 
-        // חייגן
         tvPhone.setOnClickListener(v -> {
             String phoneNumber = business.getPhone();
             if (phoneNumber != null && !phoneNumber.isEmpty()) {
@@ -191,7 +174,6 @@ public class BusinessDetailsActivity extends AppCompatActivity {
             }
         });
 
-        // גלריה
         galleryContainer.removeAllViews();
         List<Blob> blobs = business.getImageBlobs();
         if (blobs != null && !blobs.isEmpty()) {
@@ -200,7 +182,6 @@ public class BusinessDetailsActivity extends AppCompatActivity {
             }
         }
 
-        // כפתור וואטסאפ
         btnWhatsApp.setOnClickListener(v -> {
             String phone = business.getPhone();
 
@@ -222,10 +203,8 @@ public class BusinessDetailsActivity extends AppCompatActivity {
                 Toast.makeText(this, "לא קיים מספר טלפון לעסק זה", Toast.LENGTH_SHORT).show();
             }
         });
-
     }
 
-    // --- לוגיקת מועדפים ---
     private void checkIfFavorite() {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) {
@@ -294,68 +273,6 @@ public class BusinessDetailsActivity extends AppCompatActivity {
         imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
         imageView.setImageBitmap(bitmap);
         galleryContainer.addView(imageView);
-    }
-
-    private void showAddReviewDialog(String businessId) {
-        if (auth.getCurrentUser() == null) {
-            Toast.makeText(this, "עליך להתחבר כדי לכתוב ביקורת", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(this);
-        View view = getLayoutInflater().inflate(R.layout.activity_dialog_add_review, null);
-        builder.setView(view);
-
-        androidx.appcompat.app.AlertDialog dialog = builder.create();
-        if (dialog.getWindow() != null) {
-            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
-        }
-
-        RatingBar rbProfessionalism = view.findViewById(R.id.rbProfessionalism);
-        RatingBar rbReliability = view.findViewById(R.id.rbReliability);
-        RatingBar rbPrice = view.findViewById(R.id.rbPrice);
-        EditText etComment = view.findViewById(R.id.etComment);
-        Button btnSubmit = view.findViewById(R.id.btnSubmitReview);
-
-        btnSubmit.setOnClickListener(v -> {
-            float ratingProf = rbProfessionalism.getRating();
-            float ratingRel = rbReliability.getRating();
-            float ratingPrice = rbPrice.getRating();
-            String comment = etComment.getText().toString().trim();
-
-            if (ratingProf == 0 || ratingRel == 0 || ratingPrice == 0) {
-                Toast.makeText(this, "אנא דרג את כל הקטגוריות", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            String reviewId = db.collection("reviews").document().getId();
-            String userId = auth.getCurrentUser().getUid();
-
-            String userName = currentUserName;
-
-            ReviewModel newReview = new ReviewModel(
-                    reviewId,
-                    businessId,
-                    userId,
-                    userName,
-                    comment,
-                    ratingProf,
-                    ratingRel,
-                    ratingPrice,
-                    com.google.firebase.Timestamp.now()
-            );
-
-            db.collection("reviews").document(reviewId).set(newReview)
-                    .addOnSuccessListener(aVoid -> {
-                        Toast.makeText(this, "תודה על הדירוג!", Toast.LENGTH_SHORT).show();
-                        dialog.dismiss();
-                    })
-                    .addOnFailureListener(e -> {
-                        Toast.makeText(this, "שגיאה בשמירה: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    });
-        });
-
-        dialog.show();
     }
 
     private void loadReviews(String businessId) {
