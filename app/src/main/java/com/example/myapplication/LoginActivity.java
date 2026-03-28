@@ -39,9 +39,6 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.firestore.FirebaseFirestore;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class LoginActivity extends AppCompatActivity {
 
     private EditText eTEmail, eTPass;
@@ -54,7 +51,6 @@ public class LoginActivity extends AppCompatActivity {
     private SharedPreferences sharedPref;
     private UserHelper userHelper;
 
-    // משתנים עבור התחברות עם גוגל
     private GoogleSignInClient mGoogleSignInClient;
     private ActivityResultLauncher<Intent> googleSignInLauncher;
 
@@ -78,13 +74,14 @@ public class LoginActivity extends AppCompatActivity {
         Button btnGoToRegister = findViewById(R.id.btnGoToRegister);
         btnGoogleLogin = findViewById(R.id.btnGoogleLogin);
 
-        // --- הגדרת גוגל Sign-In ---
+        // תוקן: הורדתי את הרווחים וה-\n המיותרים שהיו בסוף ה-Token
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestIdToken("        784460475101-3si8ujd61vnj3s4nn9b0v9f24cn2jvh0.apps.googleusercontent.com\n")
+                .requestIdToken("784460475101-3si8ujd61vnj3s4nn9b0v9f24cn2jvh0.apps.googleusercontent.com") // שמתי פה את ה-ID שעבד לך בהרשמה!
                 .requestEmail()
                 .build();
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
-        // מאזין לתוצאה של חלונית גוגל
+
+        // הגדרת מאזין התוצאה
         googleSignInLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
@@ -95,9 +92,12 @@ public class LoginActivity extends AppCompatActivity {
                             GoogleSignInAccount account = task.getResult(ApiException.class);
                             firebaseAuthWithGoogle(account.getIdToken());
                         } catch (ApiException e) {
-                            tVMsg.setText("שגיאה בהתחברות לגוגל.");
-                            Log.w("LoginActivity", "Google sign in failed", e);
+                            Log.e("GoogleLoginError", "Google sign in failed. Error Code: " + e.getStatusCode());
+                            tVMsg.setText("שגיאה בהתחברות לגוגל. קוד: " + e.getStatusCode());
                         }
+                    } else {
+                        Log.e("GoogleLoginError", "Result Code is not OK. It is: " + result.getResultCode());
+                        tVMsg.setText("הפעולה בוטלה או נכשלה במסך של גוגל.");
                     }
                 }
         );
@@ -106,6 +106,7 @@ public class LoginActivity extends AppCompatActivity {
         loginUser.setOnClickListener(this::loginUser);
         btnGoToRegister.setOnClickListener(v -> startActivity(new Intent(LoginActivity.this, RegisterActivity.class)));
         tvForgotPassword.setOnClickListener(v -> showRecoverPasswordDialog());
+
         btnGoogleLogin.setOnClickListener(v -> {
             Intent signInIntent = mGoogleSignInClient.getSignInIntent();
             googleSignInLauncher.launch(signInIntent);
@@ -128,7 +129,6 @@ public class LoginActivity extends AppCompatActivity {
         }
     }
 
-    // --- התחברות רגילה (אימייל וסיסמה) ---
     public void loginUser(View view) {
         String email = eTEmail.getText().toString().trim();
         String pass = eTPass.getText().toString().trim();
@@ -170,7 +170,6 @@ public class LoginActivity extends AppCompatActivity {
                 });
     }
 
-    // --- התחברות עם גוגל בפיירבייס ---
     private void firebaseAuthWithGoogle(String idToken) {
         ProgressDialog pd = new ProgressDialog(this);
         pd.setMessage("מתחבר עם גוגל...");
@@ -193,19 +192,14 @@ public class LoginActivity extends AppCompatActivity {
                 });
     }
 
-    // בודק אם המשתמש כבר במסד הנתונים, ואם לא - יוצר אותו כלקוח
-// בודק אם המשתמש כבר במסד הנתונים. אם לא - חוסם את ההתחברות ומפנה להרשמה.
     private void checkAndCreateGoogleUser(FirebaseUser user) {
         if (user == null) return;
 
         db.collection("users").document(user.getUid()).get()
                 .addOnSuccessListener(doc -> {
                     if (doc.exists()) {
-                        // מעולה, המשתמש קיים במסד הנתונים - נכניס אותו פנימה
                         redirectUser(user.getUid());
                     } else {
-                        // המשתמש לא קיים!
-                        // ננתק אותו מפיירבייס ומגוגל, כדי שלא יישאר מחובר "באוויר"
                         refAuth.signOut();
                         mGoogleSignInClient.signOut().addOnCompleteListener(task -> {
                             tVMsg.setText("אין לך חשבון קיים. אנא עבור למסך ההרשמה קודם.");
@@ -215,7 +209,6 @@ public class LoginActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> tVMsg.setText("שגיאה בבדיקת משתמש: " + e.getMessage()));
     }
 
-    // --- שחזור סיסמה ---
     private void showRecoverPasswordDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("שחזור סיסמה");
@@ -260,7 +253,6 @@ public class LoginActivity extends AppCompatActivity {
                 });
     }
 
-    // --- ניתוב משתמשים ---
     private void redirectUser(String uid) {
         db.collection("users").document(uid).get()
                 .addOnSuccessListener(documentSnapshot -> {

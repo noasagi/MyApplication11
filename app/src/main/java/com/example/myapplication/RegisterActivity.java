@@ -68,7 +68,7 @@ public class RegisterActivity extends AppCompatActivity {
 
         // הגדרת גוגל - תדביקי כאן שוב את ה-ID שלך אם הוא שונה מהקודם
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestIdToken("109968417936-m7hno01b67k1u0k1q2u6k1q2u6k1q2u6.apps.googleusercontent.com") // כאן להדביק את ה-ID
+                .requestIdToken("784460475101-3si8ujd61vnj3s4nn9b0v9f24cn2jvh0.apps.googleusercontent.com") // כאן להדביק את ה-ID
                 .requestEmail()
                 .build();
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
@@ -83,8 +83,15 @@ public class RegisterActivity extends AppCompatActivity {
                             GoogleSignInAccount account = task.getResult(ApiException.class);
                             firebaseRegisterWithGoogle(account.getIdToken());
                         } catch (ApiException e) {
-                            tVMsg.setText("שגיאה בהרשמה לגוגל.");
+                            // כאן הוספנו את ההדפסה של קוד השגיאה!
+                            int statusCode = e.getStatusCode();
+                            Log.e("GoogleAuthError", "Google sign in failed. Error Code: " + statusCode);
+                            tVMsg.setText("שגיאה בהרשמה לגוגל. קוד: " + statusCode);
+                            Toast.makeText(this, "שגיאת גוגל קוד: " + statusCode, Toast.LENGTH_LONG).show();
                         }
+                    } else {
+                        Log.e("GoogleAuthError", "Result Code is not OK. It is: " + result.getResultCode());
+                        tVMsg.setText("הפעולה בוטלה או נכשלה במסך של גוגל.");
                     }
                 }
         );

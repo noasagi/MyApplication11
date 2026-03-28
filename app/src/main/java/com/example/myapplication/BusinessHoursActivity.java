@@ -2,6 +2,7 @@ package com.example.myapplication;
 
 import android.app.TimePickerDialog;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -88,14 +89,25 @@ public class BusinessHoursActivity extends AppCompatActivity {
                         Map<String, Object> weeklySchedule = (Map<String, Object>) documentSnapshot.get("weeklySchedule");
                         if (weeklySchedule != null) {
                             for (DaySchedule day : daysList) {
-                                // חיפוש לפי האינדקס (כדי למנוע בעיות עברית)
                                 String key = String.valueOf(day.dayIndex);
                                 if (weeklySchedule.containsKey(key)) {
                                     Map<String, Object> dayData = (Map<String, Object>) weeklySchedule.get(key);
                                     if (dayData != null) {
-                                        day.startTime = (String) dayData.get("start");
-                                        day.endTime = (String) dayData.get("end");
-                                        day.isOpen = (Boolean) dayData.get("isOpen");
+                                        // גישה בטוחה לנתונים כדי למנוע קריסות
+                                        if (dayData.containsKey("start") && dayData.get("start") != null) {
+                                            day.startTime = String.valueOf(dayData.get("start"));
+                                        }
+                                        if (dayData.containsKey("end") && dayData.get("end") != null) {
+                                            day.endTime = String.valueOf(dayData.get("end"));
+                                        }
+                                        if (dayData.containsKey("isOpen") && dayData.get("isOpen") != null) {
+                                            Object isOpenObj = dayData.get("isOpen");
+                                            if (isOpenObj instanceof Boolean) {
+                                                day.isOpen = (Boolean) isOpenObj;
+                                            } else if (isOpenObj instanceof String) {
+                                                day.isOpen = Boolean.parseBoolean((String) isOpenObj);
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -110,6 +122,9 @@ public class BusinessHoursActivity extends AppCompatActivity {
             Toast.makeText(this, "שגיאה: חסר מזהה עסק", Toast.LENGTH_SHORT).show();
             return;
         }
+
+        // הדפסה ל-Logcat כדי שנוכל לוודא שאנחנו שומרים למקום הנכון
+        Log.d("BusinessHours", "Saving to businessId: " + businessId);
 
         String durationStr = etDuration.getText().toString();
         if (durationStr.isEmpty()) {
@@ -182,10 +197,14 @@ public class BusinessHoursActivity extends AppCompatActivity {
             holder.tvDayName.setText(day.dayName);
             holder.btnStartTime.setText(day.startTime);
             holder.btnEndTime.setText(day.endTime);
-            holder.switchIsOpen.setChecked(day.isOpen);
 
+            // --- התיקון הקריטי: ניתוק הליסנר לפני העדכון כדי למנוע דריסת נתונים ---
+            holder.switchIsOpen.setOnCheckedChangeListener(null);
+
+            holder.switchIsOpen.setChecked(day.isOpen);
             updateVisibility(holder, day.isOpen);
 
+            // --- חיבור הליסנר מחדש ---
             holder.switchIsOpen.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 day.isOpen = isChecked;
                 updateVisibility(holder, isChecked);
