@@ -14,9 +14,6 @@
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />
-    <uses-feature
-        android:name="android.hardware.camera"
-        android:required="false" />
 
     <application
         android:allowBackup="true"
@@ -27,14 +24,9 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
+
         <activity
             android:name=".FragmentCustomerHistoryActivity"
-            android:exported="false" />
-        <activity
-            android:name=".BusinessStatisticsFragment"
-            android:exported="false" />
-        <activity
-            android:name=".fragment_business_statistics"
             android:exported="false" />
         <activity
             android:name=".BusinessBlockSlotsActivity"
@@ -59,7 +51,6 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -92,7 +83,17 @@
             android:name=".ClientMainActivity"
             android:exported="false" />
 
-        <receiver android:name=".NotificationReceiver" android:exported="false" />
+        <activity
+            android:name=".ChatActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ClientChatsActivity"
+            android:exported="false" />
+
+        <receiver
+            android:name=".NotificationReceiver"
+            android:exported="false" />
 
     </application>
 

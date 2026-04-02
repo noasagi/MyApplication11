@@ -25,7 +25,7 @@ public class SettingsFragment extends Fragment {
 
     private ImageView imgProfileSmall;
     private TextView tvProfileName;
-    private CardView btnEditProfile, btnFavorites, btnHistory; // הוספנו את btnHistory כאן
+    private CardView btnEditProfile, btnFavorites, btnHistory, btnMyChats; // הוספנו את btnMyChats
     private Button btnLogout;
 
     private FirebaseAuth mAuth;
@@ -45,7 +45,8 @@ public class SettingsFragment extends Fragment {
         tvProfileName = view.findViewById(R.id.tvProfileName);
         btnEditProfile = view.findViewById(R.id.btnEditProfile);
         btnFavorites = view.findViewById(R.id.btnFavorites);
-        btnHistory = view.findViewById(R.id.btnHistory); // חיבור הכפתור החדש
+        btnHistory = view.findViewById(R.id.btnHistory);
+        btnMyChats = view.findViewById(R.id.btnMyChats); // חיבור הכפתור החדש
         btnLogout = view.findViewById(R.id.btnLogout);
 
         // --- מאזינים ללחיצות ---
@@ -62,11 +63,17 @@ public class SettingsFragment extends Fragment {
             startActivity(intent);
         });
 
-        // מעבר להיסטורית תורים (הפונקציה החדשה!)
+        // מעבר להודעות שלי (הפונקציה החדשה)
+        btnMyChats.setOnClickListener(v -> {
+            Intent intent = new Intent(getActivity(), ClientChatsActivity.class);
+            startActivity(intent);
+        });
+
+        // מעבר להיסטורית תורים
         btnHistory.setOnClickListener(v -> {
             requireActivity().getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.fragment_container, new CustomerHistoryFragment()) // וודא ש-ID של הקונטיינר שלך הוא באמת fragment_container
-                    .addToBackStack(null) // מאפשר לחזור אחורה להגדרות
+                    .replace(R.id.fragment_container, new CustomerHistoryFragment())
+                    .addToBackStack(null)
                     .commit();
         });
 

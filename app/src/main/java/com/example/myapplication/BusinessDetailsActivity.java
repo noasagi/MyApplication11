@@ -31,7 +31,7 @@ public class BusinessDetailsActivity extends AppCompatActivity {
     private TextView tvName, tvType, tvPhone, tvDescription, tvAddress;
     private LinearLayout galleryContainer;
     private FloatingActionButton btnFavorite;
-    private Button btnWhatsApp, btnWaze, btnBookAppointment;
+    private Button btnWhatsApp, btnWaze, btnBookAppointment, btnAppChat;
 
     private FirebaseFirestore db;
     private FirebaseAuth auth;
@@ -61,6 +61,8 @@ public class BusinessDetailsActivity extends AppCompatActivity {
         btnWhatsApp = findViewById(R.id.btnWhatsApp);
         btnWaze = findViewById(R.id.btnWaze);
         btnBookAppointment = findViewById(R.id.btnBookAppointment);
+        btnAppChat = findViewById(R.id.btnAppChat); // הוספנו את הכפתור החדש
+
         rvReviews = findViewById(R.id.rvReviewsList);
 
         rvReviews.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(this));
@@ -96,6 +98,36 @@ public class BusinessDetailsActivity extends AppCompatActivity {
             intent.putExtra("businessId", currentBusinessId);
             intent.putExtra("businessName", tvName.getText().toString());
 
+            startActivity(intent);
+        });
+
+        // התיקון שלנו: הלוגיקה החדשה של פתיחת הצ'אט באפליקציה
+        btnAppChat.setOnClickListener(v -> {
+            FirebaseUser user = auth.getCurrentUser();
+            if (user == null) {
+                Toast.makeText(this, "יש להתחבר תחילה כדי לשלוח הודעה", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // מוודאים שנתוני העסק (currentBusiness) כבר נטענו מהפיירבייס
+            if (currentBusiness == null) {
+                Toast.makeText(this, "אנא המתן לטעינת הנתונים...", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // לוקחים את ה-UID של בעל העסק מתוך המודל
+            // הערה: אם הקוד צועק לך שגיאה על getUserId(), זה אומר שב-BusinessModel קראת לזה בשם קצת אחר (כמו getUid או getOwnerId). פשוט תשני לשם הנכון!
+            String ownerId = currentBusiness.getOwnerId();
+            if (ownerId == null || ownerId.isEmpty()) {
+                Toast.makeText(this, "שגיאה: חסר מזהה בעל העסק", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // יצירת מזהה ייחודי לחדר: ID של הלקוח + ID האמיתי של בעל העסק!
+            String chatRoomId = user.getUid() + "_" + ownerId;
+
+            Intent intent = new Intent(BusinessDetailsActivity.this, ChatActivity.class);
+            intent.putExtra("chatRoomId", chatRoomId);
             startActivity(intent);
         });
     }
