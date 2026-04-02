@@ -18,16 +18,15 @@ public class BusinessMainActivity extends AppCompatActivity {
             Fragment selectedFragment = null;
             int id = item.getItemId();
 
-            // 1. הוספנו את המקרה הזה:
             if (id == R.id.nav_business_home) {
                 selectedFragment = new BusinessHomeFragment();
-            }
-            // שאר המקרים הרגילים:
-            else if (id == R.id.nav_business_schedule) {
+            } else if (id == R.id.nav_business_schedule) {
                 selectedFragment = new BusinessScheduleFragment();
-
+            } else if (id == R.id.nav_business_chats) {
+                // הנה החיבור למסך ההודעות (הצ'אטים) החדש שהוספנו!
+                selectedFragment = new BusinessChatsFragment();
             } else if (id == R.id.nav_business_settings) {
-                // כאן עמוד ההגדרות והניהול החדש
+                // כאן עמוד ההגדרות והניהול
                 selectedFragment = new BusinessSettingsFragment();
             }
 
@@ -39,11 +38,11 @@ public class BusinessMainActivity extends AppCompatActivity {
             return true;
         });
 
-        // 2. שינינו את זה כך שיפתח את דף הבית בהתחלה (במקום היומן)
+        // פתיחת דף הבית כברירת מחדל בהפעלת האפליקציה
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
                     .replace(R.id.fragment_container, new BusinessHomeFragment())
                     .commit();
         }
     }
-    }
+}

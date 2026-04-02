@@ -130,6 +130,20 @@
                     style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
 
                 <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnAppChat"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="16dp"
+                    android:text="צ'אט עם בית העסק"
+                    android:textSize="16sp"
+                    app:icon="@android:drawable/stat_notify_chat"
+                    app:iconGravity="textStart"
+                    android:textColor="@color/jobsy_primary"
+                    app:backgroundTint="#E0E7FF"
+                    app:cornerRadius="16dp"
+                    style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnBookAppointment"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
