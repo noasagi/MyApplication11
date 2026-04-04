@@ -12,6 +12,9 @@ import androidx.fragment.app.Fragment;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+// --- הייבוא שהוספנו ---
+import com.onesignal.OneSignal;
+
 public class BusinessSettingsFragment extends Fragment {
 
     public BusinessSettingsFragment() { }
@@ -25,7 +28,7 @@ public class BusinessSettingsFragment extends Fragment {
         CardView cardTreatments = view.findViewById(R.id.cardTreatments);
         CardView cardBusinessHours = view.findViewById(R.id.cardBusinessHours);
         CardView cardBlockHours = view.findViewById(R.id.cardBlockHours);
-        CardView cardStatistics = view.findViewById(R.id.cardStatistics); // השורה החדשה!
+        CardView cardStatistics = view.findViewById(R.id.cardStatistics);
         Button btnLogout = view.findViewById(R.id.btnLogout);
 
         // 1. כפתור לעריכת פרטי עסק
@@ -78,7 +81,7 @@ public class BusinessSettingsFragment extends Fragment {
             startActivity(intent);
         });
 
-        // 5. סטטיסטיקות עסק (הפונקציה החדשה!)
+        // 5. סטטיסטיקות עסק
         cardStatistics.setOnClickListener(v -> {
             requireActivity().getSupportFragmentManager().beginTransaction()
                     .replace(R.id.fragment_container, new BusinessStatisticsFragment())
@@ -88,6 +91,9 @@ public class BusinessSettingsFragment extends Fragment {
 
         // 6. התנתקות
         btnLogout.setOnClickListener(v -> {
+            // --- תוספת: מנתקים את הטלפון מהתראות הפוש של העסק ---
+            OneSignal.logout();
+
             FirebaseAuth.getInstance().signOut();
             Intent intent = new Intent(getActivity(), LoginActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);

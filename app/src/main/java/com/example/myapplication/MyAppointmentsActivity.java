@@ -21,7 +21,7 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MyAppointmentsActivity extends AppCompatActivity {
+public class MyAppointmentsActivity extends BaseActivity {
 
     private RecyclerView rvMyAppointments;
     private UserAppointmentsAdapter adapter;

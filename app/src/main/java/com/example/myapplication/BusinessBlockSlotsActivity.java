@@ -27,7 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class BusinessBlockSlotsActivity extends AppCompatActivity {
+public class BusinessBlockSlotsActivity extends BaseActivity {
 
     private TextView tvSelectedDate, tvStatusMessage;
     private RecyclerView rvSlots;

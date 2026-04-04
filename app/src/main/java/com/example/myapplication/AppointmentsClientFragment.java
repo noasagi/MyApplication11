@@ -155,13 +155,13 @@ public class AppointmentsClientFragment extends Fragment {
                 holder.btnRate.setVisibility(View.GONE);
             }
 
-            // --- לוגיקה של כפתור המחיקה ---
+            // --- לוגיקה של כפתור המחיקה (העברנו פה את כל האובייקט app) ---
             holder.btnDelete.setOnClickListener(v -> {
                 new AlertDialog.Builder(getContext())
                         .setTitle("ביטול תור")
                         .setMessage("האם אתה בטוח שברצונך למחוק את התור הזה?")
                         .setPositiveButton("כן, מחק", (dialog, which) -> {
-                            deleteAppointment(app.getAppointmentId());
+                            deleteAppointment(app);
                         })
                         .setNegativeButton("ביטול", null)
                         .show();
@@ -187,13 +187,28 @@ public class AppointmentsClientFragment extends Fragment {
         }
     }
 
-    private void deleteAppointment(String docId) {
-        if (docId == null) return;
+    // --- הפונקציה המעודכנת שמטפלת במחיקה ושולחת התראה לעסק ---
+    private void deleteAppointment(Appointment app) {
+        if (app == null || app.getAppointmentId() == null) return;
 
-        db.collection("appointments").document(docId)
+        db.collection("appointments").document(app.getAppointmentId())
                 .delete()
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(getContext(), "התור נמחק בהצלחה", Toast.LENGTH_SHORT).show();
+
+                    // --- תוספת ההתראות: שליחה לבעל העסק שהלקוח ביטל ---
+                    if (app.getBusinessId() != null) {
+                        db.collection("businesses").document(app.getBusinessId()).get()
+                                .addOnSuccessListener(doc -> {
+                                    String ownerId = doc.getString("ownerId");
+                                    if (ownerId != null) {
+                                        String title = "לקוח ביטל תור";
+                                        String msg = "הלקוח " + app.getUserName() + " ביטל את התור שנקבע ל-" + app.getDate() + " בשעה " + app.getTime();
+                                        PushNotificationHelper.sendNotification(ownerId, title, msg);
+                                    }
+                                });
+                    }
+                    // ------------------------------------------------
                 })
                 .addOnFailureListener(e -> {
                     Toast.makeText(getContext(), "שגיאה במחיקה: " + e.getMessage(), Toast.LENGTH_SHORT).show();

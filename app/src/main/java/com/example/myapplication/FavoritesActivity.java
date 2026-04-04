@@ -17,7 +17,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FavoritesActivity extends AppCompatActivity {
+public class FavoritesActivity extends BaseActivity {
 
     private RecyclerView recyclerView;
     private BusinessAdapter adapter; // משתמשים באדפטר הקיים והמושקע

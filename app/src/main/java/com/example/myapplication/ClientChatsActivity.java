@@ -14,7 +14,7 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ClientChatsActivity extends AppCompatActivity {
+public class ClientChatsActivity extends BaseActivity {
 
     private RecyclerView rvClientChats;
     private ClientChatsAdapter adapter;

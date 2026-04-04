@@ -39,6 +39,9 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+// --- הייבוא שהוספנו ---
+import com.onesignal.OneSignal;
+
 public class LoginActivity extends AppCompatActivity {
 
     private EditText eTEmail, eTPass;
@@ -74,14 +77,12 @@ public class LoginActivity extends AppCompatActivity {
         Button btnGoToRegister = findViewById(R.id.btnGoToRegister);
         btnGoogleLogin = findViewById(R.id.btnGoogleLogin);
 
-        // תוקן: הורדתי את הרווחים וה-\n המיותרים שהיו בסוף ה-Token
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestIdToken("784460475101-3si8ujd61vnj3s4nn9b0v9f24cn2jvh0.apps.googleusercontent.com") // שמתי פה את ה-ID שעבד לך בהרשמה!
+                .requestIdToken("784460475101-3si8ujd61vnj3s4nn9b0v9f24cn2jvh0.apps.googleusercontent.com")
                 .requestEmail()
                 .build();
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
 
-        // הגדרת מאזין התוצאה
         googleSignInLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
@@ -102,7 +103,6 @@ public class LoginActivity extends AppCompatActivity {
                 }
         );
 
-        // לחיצות כפתורים
         loginUser.setOnClickListener(this::loginUser);
         btnGoToRegister.setOnClickListener(v -> startActivity(new Intent(LoginActivity.this, RegisterActivity.class)));
         tvForgotPassword.setOnClickListener(v -> showRecoverPasswordDialog());
@@ -264,6 +264,10 @@ public class LoginActivity extends AppCompatActivity {
                         } else {
                             userHelper.setRole(UserHelper.ROLE_CLIENT);
                         }
+
+                        // --- הקסם של OneSignal ---
+                        // רושמים את המשתמש במערכת ההתראות לפי ה-UID שלו מפיירבייס
+                        OneSignal.login(uid);
 
                         Intent intent;
                         if (UserHelper.ROLE_BUSINESS.equals(userType)) {

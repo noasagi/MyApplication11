@@ -32,7 +32,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Locale;
 
-public class BookingActivity extends AppCompatActivity {
+public class BookingActivity extends BaseActivity {
 
     private TextView tvSelectedDate, tvNoSlots;
     private RecyclerView rvTimeSlots;
@@ -318,7 +318,18 @@ public class BookingActivity extends AppCompatActivity {
         db.collection("appointments").document(appointmentId).set(data)
                 .addOnSuccessListener(aVoid -> {
 
-                    // הפעלת ההתראות המקומיות שלנו כאן! ⏰
+                    // --- תוספת ההתראות שלנו: שליחה לבעל העסק ---
+                    db.collection("businesses").document(currentBusinessId).get()
+                            .addOnSuccessListener(doc -> {
+                                String ownerId = doc.getString("ownerId");
+                                if (ownerId != null) {
+                                    String msg = "נקבע תור חדש ל-" + selectedDate + " בשעה " + selectedTime;
+                                    PushNotificationHelper.sendNotification(ownerId, "תור חדש ממתין לאישור!", msg);
+                                }
+                            });
+                    // ----------------------------------------
+
+                    // הפעלת ההתראות המקומיות שלנו כאן!
                     NotificationHelper.scheduleAppointmentNotifications(
                             BookingActivity.this,
                             appointmentId,

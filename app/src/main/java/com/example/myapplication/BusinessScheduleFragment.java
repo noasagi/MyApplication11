@@ -118,6 +118,7 @@ public class BusinessScheduleFragment extends Fragment {
 
         return true;
     }
+
     private boolean isDateInPast(String dateStr) {
         if (dateStr == null || dateStr.isEmpty()) return false;
         SimpleDateFormat sdf = new SimpleDateFormat("d/M/yyyy", Locale.getDefault());
@@ -176,13 +177,25 @@ public class BusinessScheduleFragment extends Fragment {
                 holder.btnReject.setText("בטל תור");
             }
 
-            holder.btnApprove.setOnClickListener(v -> updateStatus(app.getAppointmentId(), "APPROVED"));
-            holder.btnReject.setOnClickListener(v -> updateStatus(app.getAppointmentId(), "REJECTED"));
+            // עדכנו כאן כדי שיעביר את כל האובייקט app
+            holder.btnApprove.setOnClickListener(v -> updateStatus(app, "APPROVED"));
+            holder.btnReject.setOnClickListener(v -> updateStatus(app, "REJECTED"));
         }
 
-        private void updateStatus(String docId, String newStatus) {
-            db.collection("appointments").document(docId).update("status", newStatus)
-                    .addOnSuccessListener(aVoid -> Toast.makeText(getContext(), "סטטוס עודכן", Toast.LENGTH_SHORT).show());
+        private void updateStatus(Appointment app, String newStatus) {
+            db.collection("appointments").document(app.getAppointmentId()).update("status", newStatus)
+                    .addOnSuccessListener(aVoid -> {
+                        Toast.makeText(getContext(), "סטטוס עודכן", Toast.LENGTH_SHORT).show();
+
+                        // --- תוספת ההתראות: שליחה ללקוח ---
+                        String title = "עדכון לגבי התור שלך";
+                        String msg = newStatus.equals("APPROVED") ?
+                                "איזה יופי! התור שלך אושר." :
+                                "לצערנו, התור שלך נדחה או בוטל.";
+
+                        PushNotificationHelper.sendNotification(app.getUserId(), title, msg);
+                        // ---------------------------------
+                    });
         }
 
         @Override

@@ -15,7 +15,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.Date;
 
-public class DialogAddReviewActivity extends AppCompatActivity {
+public class DialogAddReviewActivity extends BaseActivity {
 
     private RatingBar rbProfessionalism, rbReliability, rbPrice;
     private EditText etComment;

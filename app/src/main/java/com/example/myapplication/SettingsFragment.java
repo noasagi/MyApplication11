@@ -21,11 +21,14 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.Blob;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+// --- הייבוא של OneSignal ---
+import com.onesignal.OneSignal;
+
 public class SettingsFragment extends Fragment {
 
     private ImageView imgProfileSmall;
     private TextView tvProfileName;
-    private CardView btnEditProfile, btnFavorites, btnHistory, btnMyChats; // הוספנו את btnMyChats
+    private CardView btnEditProfile, btnFavorites, btnHistory, btnMyChats;
     private Button btnLogout;
 
     private FirebaseAuth mAuth;
@@ -46,7 +49,7 @@ public class SettingsFragment extends Fragment {
         btnEditProfile = view.findViewById(R.id.btnEditProfile);
         btnFavorites = view.findViewById(R.id.btnFavorites);
         btnHistory = view.findViewById(R.id.btnHistory);
-        btnMyChats = view.findViewById(R.id.btnMyChats); // חיבור הכפתור החדש
+        btnMyChats = view.findViewById(R.id.btnMyChats);
         btnLogout = view.findViewById(R.id.btnLogout);
 
         // --- מאזינים ללחיצות ---
@@ -63,7 +66,7 @@ public class SettingsFragment extends Fragment {
             startActivity(intent);
         });
 
-        // מעבר להודעות שלי (הפונקציה החדשה)
+        // מעבר להודעות שלי
         btnMyChats.setOnClickListener(v -> {
             Intent intent = new Intent(getActivity(), ClientChatsActivity.class);
             startActivity(intent);
@@ -78,6 +81,9 @@ public class SettingsFragment extends Fragment {
         });
 
         btnLogout.setOnClickListener(v -> {
+            // --- תוספת: מנתקים את הטלפון מהתראות הפוש של הלקוח ---
+            OneSignal.logout();
+
             mAuth.signOut();
             Intent intent = new Intent(getActivity(), LoginActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);

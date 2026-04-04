@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class BusinessHoursActivity extends AppCompatActivity {
+public class BusinessHoursActivity extends BaseActivity {
 
     private RecyclerView rvDays;
     private EditText etDuration;

@@ -36,6 +36,9 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.HashMap;
 import java.util.Map;
 
+// --- הייבוא של OneSignal ---
+import com.onesignal.OneSignal;
+
 public class RegisterActivity extends AppCompatActivity {
 
     private EditText eTEmail, eTPass;
@@ -53,7 +56,6 @@ public class RegisterActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // ביטלנו את ה-EdgeToEdge הבעייתי שגרם לקריסה
         setContentView(R.layout.activity_register);
 
         eTEmail = findViewById(R.id.eTEmail);
@@ -66,9 +68,8 @@ public class RegisterActivity extends AppCompatActivity {
         refAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
 
-        // הגדרת גוגל - תדביקי כאן שוב את ה-ID שלך אם הוא שונה מהקודם
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestIdToken("784460475101-3si8ujd61vnj3s4nn9b0v9f24cn2jvh0.apps.googleusercontent.com") // כאן להדביק את ה-ID
+                .requestIdToken("784460475101-3si8ujd61vnj3s4nn9b0v9f24cn2jvh0.apps.googleusercontent.com")
                 .requestEmail()
                 .build();
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
@@ -83,7 +84,6 @@ public class RegisterActivity extends AppCompatActivity {
                             GoogleSignInAccount account = task.getResult(ApiException.class);
                             firebaseRegisterWithGoogle(account.getIdToken());
                         } catch (ApiException e) {
-                            // כאן הוספנו את ההדפסה של קוד השגיאה!
                             int statusCode = e.getStatusCode();
                             Log.e("GoogleAuthError", "Google sign in failed. Error Code: " + statusCode);
                             tVMsg.setText("שגיאה בהרשמה לגוגל. קוד: " + statusCode);
@@ -187,6 +187,11 @@ public class RegisterActivity extends AppCompatActivity {
 
         db.collection("users").document(user.getUid()).set(userData).addOnSuccessListener(aVoid -> {
             new UserHelper(this).setRole(userType);
+
+            // --- הקסם של OneSignal ---
+            // רושמים את המשתמש החדש כדי שיוכל לקבל התראות
+            OneSignal.login(user.getUid());
+
             Intent intent = userType.equals(UserHelper.ROLE_BUSINESS) ?
                     new Intent(this, BusinessMainActivity.class) : new Intent(this, ClientMainActivity.class);
             startActivity(intent);

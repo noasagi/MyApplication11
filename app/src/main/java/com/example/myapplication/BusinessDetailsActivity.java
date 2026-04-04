@@ -26,7 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class BusinessDetailsActivity extends AppCompatActivity {
+public class BusinessDetailsActivity extends BaseActivity {
 
     private TextView tvName, tvType, tvPhone, tvDescription, tvAddress;
     private LinearLayout galleryContainer;
