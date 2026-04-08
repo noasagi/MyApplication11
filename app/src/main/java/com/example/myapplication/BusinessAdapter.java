@@ -13,86 +13,84 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.firebase.firestore.Blob;
-
 import java.util.List;
+import java.util.Locale;
 
 public class BusinessAdapter extends RecyclerView.Adapter<BusinessAdapter.BusinessViewHolder> {
 
-    private final Context context;
-    private List<BusinessModel> businessesList;
+    private Context context;
+    private List<BusinessModel> businessList;
 
-    public BusinessAdapter(Context context, List<BusinessModel> businessesList) {
+    public BusinessAdapter(Context context, List<BusinessModel> businessList) {
         this.context = context;
-        this.businessesList = businessesList;
+        this.businessList = businessList;
     }
 
-    public void setBusinesses(List<BusinessModel> newBusinessesList) {
-        this.businessesList = newBusinessesList;
-        notifyDataSetChanged();
+    public void setBusinesses(List<BusinessModel> list) {
+        this.businessList = list;
     }
 
     @NonNull
     @Override
     public BusinessViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        // כאן אנחנו מחברים את ה-XML של הכרטיסייה (item_business)
         View view = LayoutInflater.from(context).inflate(R.layout.item_business_card, parent, false);
         return new BusinessViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull BusinessViewHolder holder, int position) {
-        if (businessesList == null || businessesList.isEmpty()) return;
+        BusinessModel business = businessList.get(position);
 
-        BusinessModel currentBusiness = businessesList.get(position);
+        // עדכון טקסטים בסיסיים
+        holder.tvBusinessName.setText(business.getName());
+        holder.tvBusinessType.setText(business.getBusinessType());
+        holder.tvBusinessDescription.setText(business.getDescription());
 
-        // הצגת טקסטים
-        holder.tvBusinessName.setText(currentBusiness.getName() != null ? currentBusiness.getName() : "");
-        holder.tvBusinessType.setText("סוג: " + (currentBusiness.getBusinessType() != null ? currentBusiness.getBusinessType() : ""));
-        holder.tvBusinessDescription.setText(currentBusiness.getDescription() != null ? currentBusiness.getDescription() : "");
+        // --- עדכון הדירוג בזמן אמת ---
+        float rating = business.getOverallRating();
+        int totalReviews = business.getTotalReviews();
 
-        // הצגת תמונה ראשית בלבד בכרטיס
-        boolean imageSet = false;
-        if (currentBusiness.getImageBlobs() != null && !currentBusiness.getImageBlobs().isEmpty()) {
-            Blob firstBlob = currentBusiness.getImageBlobs().get(0);
-            if (firstBlob != null) {
-                byte[] bytes = firstBlob.toBytes();
-                Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-                if (bitmap != null) {
-                    holder.imgBusiness.setImageBitmap(bitmap);
-                    imageSet = true;
-                }
-            }
+        if (totalReviews > 0) {
+            // מעדכן לטקסט כמו: ⭐ 4.8 (12)
+            holder.tvBusinessRating.setText(String.format(Locale.getDefault(), "⭐ %.1f (%d)", rating, totalReviews));
+        } else {
+            holder.tvBusinessRating.setText("⭐ חדש!");
         }
 
-        if (!imageSet) {
-            holder.imgBusiness.setImageResource(android.R.drawable.ic_menu_gallery);
+        // טעינת תמונה (מה-Blob הראשון ברשימה)
+        if (business.getImageBlobs() != null && !business.getImageBlobs().isEmpty()) {
+            byte[] bytes = business.getImageBlobs().get(0).toBytes();
+            Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+            holder.imgBusiness.setImageBitmap(bitmap);
         }
 
-        // --- כאן השינוי: לחיצה על הכרטיס מעבירה לדף העסק המלא ---
+        // לחיצה על הכרטיס למעבר למסך פרטים
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(context, BusinessDetailsActivity.class);
-            intent.putExtra("BUSINESS_ID", currentBusiness.getBusinessId());
+            intent.putExtra("BUSINESS_ID", business.getBusinessId());
             context.startActivity(intent);
         });
     }
 
     @Override
     public int getItemCount() {
-        return (businessesList == null) ? 0 : businessesList.size();
+        return businessList.size();
     }
 
+    // ה-ViewHolder שמחזיק את הקישורים לרכיבי ה-XML
     public static class BusinessViewHolder extends RecyclerView.ViewHolder {
+        TextView tvBusinessName, tvBusinessType, tvBusinessDescription, tvBusinessRating;
         ImageView imgBusiness;
-        TextView tvBusinessName;
-        TextView tvBusinessType;
-        TextView tvBusinessDescription;
 
         public BusinessViewHolder(@NonNull View itemView) {
             super(itemView);
-            imgBusiness = itemView.findViewById(R.id.imgBusiness);
             tvBusinessName = itemView.findViewById(R.id.tvBusinessName);
             tvBusinessType = itemView.findViewById(R.id.tvBusinessType);
             tvBusinessDescription = itemView.findViewById(R.id.tvBusinessDescription);
+            // זה ה-ID מה-XML ששלחת לי עכשיו
+            tvBusinessRating = itemView.findViewById(R.id.tvBusinessRating);
+            imgBusiness = itemView.findViewById(R.id.imgBusiness);
         }
     }
 }

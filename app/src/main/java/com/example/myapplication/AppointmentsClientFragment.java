@@ -72,43 +72,53 @@ public class AppointmentsClientFragment extends Fragment {
                 .whereEqualTo("userId", auth.getCurrentUser().getUid())
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .addSnapshotListener((value, error) -> {
-                    if (getContext() == null) return;
-
-                    if (error != null) {
-                        return;
-                    }
+                    if (getContext() == null || error != null || value == null) return;
 
                     list.clear();
                     long currentTime = System.currentTimeMillis();
 
-                    if (value != null) {
-                        for (QueryDocumentSnapshot doc : value) {
-                            Appointment app = doc.toObject(Appointment.class);
-                            app.setAppointmentId(doc.getId());
+                    // הגדרת "זמן חסד" לדירוג - למשל 3 ימים (במילישניות)
+                    long threeDaysInMillis = 3L * 24 * 60 * 60 * 1000;
 
-                            // חישוב הזמן האמיתי
-                            long appointmentTimeInMillis = 0;
-                            try {
-                                String dateTimeStr = app.getDate() + " " + app.getTime();
-                                SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
-                                Date date = sdf.parse(dateTimeStr);
-                                if (date != null) appointmentTimeInMillis = date.getTime();
-                            } catch (Exception e) {
-                                appointmentTimeInMillis = app.getTimestamp();
-                            }
+                    for (QueryDocumentSnapshot doc : value) {
+                        Appointment app = doc.toObject(Appointment.class);
+                        app.setAppointmentId(doc.getId());
 
-                            boolean isPast = appointmentTimeInMillis < currentTime;
-                            boolean isRejected = "REJECTED".equals(app.getStatus());
-                            boolean needsReview = "APPROVED".equals(app.getStatus()) && !app.getIsReviewed();
+                        long appointmentTimeInMillis = calculateMillis(app);
+                        boolean isPast = appointmentTimeInMillis < currentTime;
+                        boolean isRejected = "REJECTED".equals(app.getStatus());
+                        boolean needsReview = "APPROVED".equals(app.getStatus()) && !app.getIsReviewed();
 
-                            // נציג כאן רק תורים עתידיים, או תורים שעברו אבל ממתינים לדירוג
-                            if ((!isPast && !isRejected) || (isPast && needsReview)) {
+                        // תנאי הצגה חדש:
+                        // 1. תור עתידי שאינו דחוי - תמיד נציג.
+                        // 2. תור שעבר - נציג רק אם הוא צריך דירוג ועדיין לא עברו 3 ימים מהתור.
+
+                        boolean withinGracePeriod = (currentTime - appointmentTimeInMillis) < threeDaysInMillis;
+
+                        if (!isRejected) {
+                            if (!isPast) {
+                                // תור עתידי - תמיד להציג
+                                list.add(app);
+                            } else if (needsReview && withinGracePeriod) {
+                                // תור שעבר, צריך דירוג ועדיין בתוך "זמן החסד"
                                 list.add(app);
                             }
                         }
                     }
                     adapter.notifyDataSetChanged();
                 });
+    }
+
+    // פונקציית עזר לחישוב זמן כדי שלא תשכפלי קוד
+    private long calculateMillis(Appointment app) {
+        try {
+            String dateTimeStr = app.getDate() + " " + app.getTime();
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
+            Date date = sdf.parse(dateTimeStr);
+            return (date != null) ? date.getTime() : app.getTimestamp();
+        } catch (Exception e) {
+            return app.getTimestamp();
+        }
     }
 
     // --- האדפטר הפנימי ---

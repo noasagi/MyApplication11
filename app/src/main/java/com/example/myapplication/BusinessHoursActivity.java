@@ -41,11 +41,14 @@ public class BusinessHoursActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_business_hours);
 
-        // ניסיון לקבל ID מכל המקורות האפשריים
         businessId = getIntent().getStringExtra("BUSINESS_ID");
         if (businessId == null) businessId = getIntent().getStringExtra("businessId");
         if (businessId == null && FirebaseAuth.getInstance().getCurrentUser() != null) {
             businessId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        }
+
+        if (businessId != null) {
+            businessId = businessId.trim();
         }
 
         etDuration = findViewById(R.id.etDuration);
@@ -65,7 +68,6 @@ public class BusinessHoursActivity extends BaseActivity {
 
     private void initDaysList() {
         daysList = new ArrayList<>();
-        // רשימת ימים מלאה כולל שבת
         String[] dayNames = {"יום ראשון", "יום שני", "יום שלישי", "יום רביעי", "יום חמישי", "יום שישי", "יום שבת"};
         for (int i = 0; i < dayNames.length; i++) {
             daysList.add(new DaySchedule(i, dayNames[i], "09:00", "17:00", true));
@@ -86,35 +88,51 @@ public class BusinessHoursActivity extends BaseActivity {
                             if (duration != null) etDuration.setText(String.valueOf(duration));
                         }
 
-                        Map<String, Object> weeklySchedule = (Map<String, Object>) documentSnapshot.get("weeklySchedule");
-                        if (weeklySchedule != null) {
+                        Object scheduleObj = documentSnapshot.get("weeklySchedule");
+
+                        // טיפול במצב שפיירבייס החזיר Map
+                        if (scheduleObj instanceof Map) {
+                            Map<String, Object> weeklySchedule = (Map<String, Object>) scheduleObj;
                             for (DaySchedule day : daysList) {
                                 String key = String.valueOf(day.dayIndex);
                                 if (weeklySchedule.containsKey(key)) {
-                                    Map<String, Object> dayData = (Map<String, Object>) weeklySchedule.get(key);
-                                    if (dayData != null) {
-                                        // גישה בטוחה לנתונים כדי למנוע קריסות
-                                        if (dayData.containsKey("start") && dayData.get("start") != null) {
-                                            day.startTime = String.valueOf(dayData.get("start"));
-                                        }
-                                        if (dayData.containsKey("end") && dayData.get("end") != null) {
-                                            day.endTime = String.valueOf(dayData.get("end"));
-                                        }
-                                        if (dayData.containsKey("isOpen") && dayData.get("isOpen") != null) {
-                                            Object isOpenObj = dayData.get("isOpen");
-                                            if (isOpenObj instanceof Boolean) {
-                                                day.isOpen = (Boolean) isOpenObj;
-                                            } else if (isOpenObj instanceof String) {
-                                                day.isOpen = Boolean.parseBoolean((String) isOpenObj);
-                                            }
-                                        }
-                                    }
+                                    updateDayFromMap(day, (Map<String, Object>) weeklySchedule.get(key));
+                                } else if (weeklySchedule.containsKey(day.dayName)) {
+                                    updateDayFromMap(day, (Map<String, Object>) weeklySchedule.get(day.dayName));
                                 }
                             }
-                            adapter.notifyDataSetChanged();
                         }
+                        // טיפול במצב שפיירבייס החזיר List
+                        else if (scheduleObj instanceof List) {
+                            List<Object> weeklySchedule = (List<Object>) scheduleObj;
+                            for (int i = 0; i < weeklySchedule.size() && i < daysList.size(); i++) {
+                                Object item = weeklySchedule.get(i);
+                                if (item instanceof Map) {
+                                    updateDayFromMap(daysList.get(i), (Map<String, Object>) item);
+                                }
+                            }
+                        }
+                        adapter.notifyDataSetChanged();
                     }
                 });
+    }
+
+    private void updateDayFromMap(DaySchedule day, Map<String, Object> dayData) {
+        if (dayData == null) return;
+        if (dayData.containsKey("start") && dayData.get("start") != null) {
+            day.startTime = String.valueOf(dayData.get("start"));
+        }
+        if (dayData.containsKey("end") && dayData.get("end") != null) {
+            day.endTime = String.valueOf(dayData.get("end"));
+        }
+        if (dayData.containsKey("isOpen") && dayData.get("isOpen") != null) {
+            Object isOpenObj = dayData.get("isOpen");
+            if (isOpenObj instanceof Boolean) {
+                day.isOpen = (Boolean) isOpenObj;
+            } else if (isOpenObj instanceof String) {
+                day.isOpen = Boolean.parseBoolean((String) isOpenObj);
+            }
+        }
     }
 
     private void saveToFirebase() {
@@ -123,7 +141,6 @@ public class BusinessHoursActivity extends BaseActivity {
             return;
         }
 
-        // הדפסה ל-Logcat כדי שנוכל לוודא שאנחנו שומרים למקום הנכון
         Log.d("BusinessHours", "Saving to businessId: " + businessId);
 
         String durationStr = etDuration.getText().toString();
@@ -135,12 +152,11 @@ public class BusinessHoursActivity extends BaseActivity {
         Map<String, Object> weeklySchedule = new HashMap<>();
         for (DaySchedule day : daysList) {
             Map<String, Object> dayData = new HashMap<>();
-            dayData.put("dayName", day.dayName); // שומרים את השם רק ליופי ב-DB
+            dayData.put("dayName", day.dayName);
             dayData.put("start", day.startTime);
             dayData.put("end", day.endTime);
             dayData.put("isOpen", day.isOpen);
 
-            // המפתח ב-Map הוא המספר של היום (0-6)
             weeklySchedule.put(String.valueOf(day.dayIndex), dayData);
         }
 
@@ -160,7 +176,7 @@ public class BusinessHoursActivity extends BaseActivity {
     }
 
     public static class DaySchedule {
-        int dayIndex; // 0 לראשון, 1 לשני וכו'
+        int dayIndex;
         String dayName;
         String startTime;
         String endTime;
@@ -198,13 +214,10 @@ public class BusinessHoursActivity extends BaseActivity {
             holder.btnStartTime.setText(day.startTime);
             holder.btnEndTime.setText(day.endTime);
 
-            // --- התיקון הקריטי: ניתוק הליסנר לפני העדכון כדי למנוע דריסת נתונים ---
             holder.switchIsOpen.setOnCheckedChangeListener(null);
-
             holder.switchIsOpen.setChecked(day.isOpen);
             updateVisibility(holder, day.isOpen);
 
-            // --- חיבור הליסנר מחדש ---
             holder.switchIsOpen.setOnCheckedChangeListener((buttonView, isChecked) -> {
                 day.isOpen = isChecked;
                 updateVisibility(holder, isChecked);

@@ -26,10 +26,8 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Locale;
 
 public class BookingActivity extends BaseActivity {
@@ -67,7 +65,12 @@ public class BookingActivity extends BaseActivity {
             currentBusinessId = getIntent().getStringExtra("BUSINESS_ID");
         }
 
-        if (currentBusinessId == null) {
+        // מניעת שגיאות מרווחים נסתרים
+        if (currentBusinessId != null) {
+            currentBusinessId = currentBusinessId.trim();
+        }
+
+        if (currentBusinessId == null || currentBusinessId.isEmpty()) {
             Toast.makeText(this, "שגיאה: לא זוהה עסק", Toast.LENGTH_SHORT).show();
             finish();
             return;
@@ -158,19 +161,18 @@ public class BookingActivity extends BaseActivity {
                     selectedCalendar = Calendar.getInstance();
                     selectedCalendar.set(year1, month1, dayOfMonth);
 
-                    selectedDate = dayOfMonth + "/" + (month1 + 1) + "/" + year1;
-                    tvSelectedDate.setText("תאריך נבחר: " + selectedDate);
+                    // התיקון הקריטי: פורמט DD/MM/YYYY עם אפסים מובילים
+                    selectedDate = String.format(Locale.getDefault(), "%02d/%02d/%04d", dayOfMonth, month1 + 1, year1);
 
+                    tvSelectedDate.setText("תאריך נבחר: " + selectedDate);
                     selectedTime = "";
                     btnConfirmBooking.setEnabled(false);
-
                     loadRealTimeSlots(selectedCalendar);
                 }, year, month, day);
 
         datePickerDialog.getDatePicker().setMinDate(System.currentTimeMillis() - 1000);
         datePickerDialog.show();
     }
-
     private void loadRealTimeSlots(Calendar selectedDateCal) {
         if (selectedTreatment == null) return;
 
@@ -190,20 +192,57 @@ public class BookingActivity extends BaseActivity {
                     }
 
                     int appointmentDuration = selectedTreatment.getDurationMinutes();
-                    Map<String, Object> weeklySchedule = (Map<String, Object>) businessDoc.get("weeklySchedule");
+                    Object scheduleObj = businessDoc.get("weeklySchedule");
+                    Map<String, Object> dayData = null;
 
-                    if (weeklySchedule != null && weeklySchedule.containsKey(dayOfWeekKey)) {
-                        Map<String, Object> dayData = (Map<String, Object>) weeklySchedule.get(dayOfWeekKey);
+                    // טיפול חכם ב-Firestore שהופך לעיתים מפות למערכים
+                    if (scheduleObj instanceof Map) {
+                        Map<String, Object> weeklyMap = (Map<String, Object>) scheduleObj;
+                        if (weeklyMap.containsKey(dayOfWeekKey)) {
+                            dayData = (Map<String, Object>) weeklyMap.get(dayOfWeekKey);
+                        } else {
+                            // ניסיון לחפש לפי שם היום בעברית
+                            String[] dayNamesHebrew = {"יום ראשון", "יום שני", "יום שלישי", "יום רביעי", "יום חמישי", "יום שישי", "יום שבת"};
+                            int dayIndex = Integer.parseInt(dayOfWeekKey);
+                            if (dayIndex >= 0 && dayIndex < dayNamesHebrew.length) {
+                                String dayNameKey = dayNamesHebrew[dayIndex];
+                                if (weeklyMap.containsKey(dayNameKey)) {
+                                    dayData = (Map<String, Object>) weeklyMap.get(dayNameKey);
+                                }
+                            }
+                        }
+                    } else if (scheduleObj instanceof List) {
+                        List<Object> weeklyList = (List<Object>) scheduleObj;
+                        int dayIndex = Integer.parseInt(dayOfWeekKey);
+                        if (dayIndex >= 0 && dayIndex < weeklyList.size()) {
+                            Object item = weeklyList.get(dayIndex);
+                            if (item instanceof Map) {
+                                dayData = (Map<String, Object>) item;
+                            }
+                        }
+                    }
 
-                        if (dayData != null) {
-                            Boolean isOpen = (Boolean) dayData.get("isOpen");
-                            if (isOpen != null && isOpen) {
-                                String startTime = (String) dayData.get("start");
-                                String endTime = (String) dayData.get("end");
+                    if (dayData != null) {
+                        boolean isOpenBool = false;
+                        Object isOpenObj = dayData.get("isOpen");
+
+                        // המרה בטוחה לבוליאני
+                        if (isOpenObj instanceof Boolean) {
+                            isOpenBool = (Boolean) isOpenObj;
+                        } else if (isOpenObj instanceof String) {
+                            isOpenBool = Boolean.parseBoolean((String) isOpenObj);
+                        }
+
+                        if (isOpenBool) {
+                            String startTime = (String) dayData.get("start");
+                            String endTime = (String) dayData.get("end");
+                            if (startTime != null && endTime != null) {
                                 fetchBookedSlotsAndGenerate(startTime, endTime, appointmentDuration);
                             } else {
-                                showNoSlots("העסק סגור ביום זה");
+                                showNoSlots("חסרות שעות פתיחה ליום זה");
                             }
+                        } else {
+                            showNoSlots("העסק סגור ביום זה");
                         }
                     } else {
                         showNoSlots("לא הוגדרו שעות פעילות ליום זה");

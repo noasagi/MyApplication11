@@ -34,15 +34,13 @@ public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ReviewView
 
         holder.tvName.setText(review.getUserName());
         holder.tvComment.setText(review.getComment());
-
-        // חישוב הממוצע (יש לך פונקציה מוכנה במודל שעשינו)
         holder.rbRating.setRating(review.calculateAverage());
 
-        // עיצוב התאריך
         if (review.getTimestamp() != null) {
             SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
-            String dateStr = sdf.format(review.getTimestamp().toDate());
-            holder.tvDate.setText(dateStr);
+            holder.tvDate.setText(sdf.format(review.getTimestamp().toDate()));
+        } else {
+            holder.tvDate.setText(""); // מניעת הצגת תאריך שגוי
         }
     }
 

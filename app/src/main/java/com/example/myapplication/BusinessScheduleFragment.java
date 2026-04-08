@@ -109,13 +109,16 @@ public class BusinessScheduleFragment extends Fragment {
         String status = app.getStatus();
         if (status == null) status = "PENDING";
 
-        // אם התור בוטל או שזה חסימה של בעל העסק - אל תציג!
+        // 1. תורים שנדחו או נחסמו - אף פעם לא נציג ברשימה הזו
         if (status.equals("REJECTED") || status.equals("BLOCKED")) return false;
 
-        if (status.equals("APPROVED")) {
-            if (isDateInPast(app.getDate())) return false;
+        // 2. בדיקת תאריך - אם התאריך עבר (אתמול ומטה), אל תציג
+        // זה יתפוס גם תורים מאושרים וגם כאלה ששכחת לאשר/לדחות
+        if (isDateInPast(app.getDate())) {
+            return false;
         }
 
+        // 3. אם התאריך הוא היום או בעתיד, והסטטוס תקין - נציג
         return true;
     }
 

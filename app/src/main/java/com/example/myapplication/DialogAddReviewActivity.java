@@ -7,11 +7,13 @@ import android.widget.RatingBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
+import com.google.firebase.firestore.Transaction;
 
 import java.util.Date;
 
@@ -20,7 +22,6 @@ public class DialogAddReviewActivity extends BaseActivity {
     private RatingBar rbProfessionalism, rbReliability, rbPrice;
     private EditText etComment;
     private Button btnSubmitReview;
-    private TextView tvTitle;
 
     private FirebaseFirestore db;
     private FirebaseAuth auth;
@@ -35,77 +36,95 @@ public class DialogAddReviewActivity extends BaseActivity {
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
-        // קבלת הנתונים מהפרגמנט
         if (getIntent() != null) {
             appointmentId = getIntent().getStringExtra("appointmentId");
             businessId = getIntent().getStringExtra("businessId");
             businessName = getIntent().getStringExtra("businessName");
         }
 
-        // קישור רכיבים
         rbProfessionalism = findViewById(R.id.rbProfessionalism);
         rbReliability = findViewById(R.id.rbReliability);
         rbPrice = findViewById(R.id.rbPrice);
         etComment = findViewById(R.id.etComment);
         btnSubmitReview = findViewById(R.id.btnSubmitReview);
 
-        // עדכון כותרת (אופציונלי, צריך להוסיף ID ב-XML אם רוצים)
-        // TextView tvTitle = findViewById(R.id.tvTitle);
-        // tvTitle.setText("ביקורת על " + businessName);
-
         btnSubmitReview.setOnClickListener(v -> submitReview());
     }
 
     private void submitReview() {
-        float ratingProf = rbProfessionalism.getRating();
-        float ratingRel = rbReliability.getRating();
-        float ratingPrice = rbPrice.getRating();
-        String comment = etComment.getText().toString().trim();
+        final float ratingProf = rbProfessionalism.getRating();
+        final float ratingRel = rbReliability.getRating();
+        final float ratingPrice = rbPrice.getRating();
+        final String comment = etComment.getText().toString().trim();
 
         if (ratingProf == 0 || ratingRel == 0 || ratingPrice == 0) {
             Toast.makeText(this, "אנא דרג את כל הקטגוריות", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        if (auth.getCurrentUser() == null) return;
+        if (auth.getCurrentUser() == null || businessId == null) return;
 
-        // 1. קודם שולפים את שם המשתמש הנוכחי (לצורך התצוגה בביקורת)
+        btnSubmitReview.setEnabled(false); // מניעת לחיצות כפולות
         String userId = auth.getCurrentUser().getUid();
 
+        // שליפת שם המשתמש לפני תחילת הטרנזקציה
         db.collection("users").document(userId).get().addOnSuccessListener(userDoc -> {
             String userName = userDoc.getString("name");
+            if (userName == null) userName = userDoc.getString("fullName");
             if (userName == null) userName = "משתמש אנונימי";
 
-            // יצירת אובייקט הביקורת
-            ReviewModel review = new ReviewModel();
-            review.setBusinessId(businessId);
-            review.setUserId(userId);
-            review.setUserName(userName);
-            review.setAppointmentId(appointmentId); // הקישור החשוב!
-            review.setComment(comment);
-            review.setRatingProfessionalism(ratingProf);
-            review.setRatingReliability(ratingRel);
-            review.setRatingPrice(ratingPrice);
-            review.setTimestamp(new Timestamp(new Date()));
+            final String finalUserName = userName;
 
-            // 2. שמירת הביקורת ב-Firebase
-            db.collection("reviews").add(review)
-                    .addOnSuccessListener(documentReference -> {
-                        review.setReviewId(documentReference.getId()); // עדכון ID אם צריך
+            // התחלת טרנזקציה לעדכון הסטטיסטיקה של העסק
+            DocumentReference businessRef = db.collection("businesses").document(businessId);
+            DocumentReference appointmentRef = db.collection("appointments").document(appointmentId);
+            DocumentReference reviewRef = db.collection("reviews").document(); // ID חדש לביקורת
 
-                        // 3. עדכון התור שהוא דורג (כדי שהכרטיס ייעלם מדף הבית)
-                        if (appointmentId != null) {
-                            db.collection("appointments").document(appointmentId)
-                                    .update("isReviewed", true)
-                                    .addOnSuccessListener(aVoid -> {
-                                        Toast.makeText(DialogAddReviewActivity.this, "הביקורת פורסמה!", Toast.LENGTH_SHORT).show();
-                                        finish(); // סגירת המסך
-                                    });
-                        } else {
-                            finish();
-                        }
-                    })
-                    .addOnFailureListener(e -> Toast.makeText(DialogAddReviewActivity.this, "שגיאה: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+            db.runTransaction(transaction -> {
+                DocumentSnapshot businessSnap = transaction.get(businessRef);
+
+                // 1. חישוב ממוצעים חדשים
+                long totalReviews = 0;
+                if (businessSnap.contains("totalReviews")) {
+                    totalReviews = businessSnap.getLong("totalReviews");
+                }
+
+                float oldProf = 0, oldRel = 0, oldPrice = 0;
+                if (businessSnap.contains("avgProfessionalism")) oldProf = businessSnap.getDouble("avgProfessionalism").floatValue();
+                if (businessSnap.contains("avgReliability")) oldRel = businessSnap.getDouble("avgReliability").floatValue();
+                if (businessSnap.contains("avgPrice")) oldPrice = businessSnap.getDouble("avgPrice").floatValue();
+
+                long newTotal = totalReviews + 1;
+                float newProf = ((oldProf * totalReviews) + ratingProf) / newTotal;
+                float newRel = ((oldRel * totalReviews) + ratingRel) / newTotal;
+                float newPrice = ((oldPrice * totalReviews) + ratingPrice) / newTotal;
+
+                // 2. עדכון העסק
+                transaction.update(businessRef,
+                        "totalReviews", newTotal,
+                        "avgProfessionalism", newProf,
+                        "avgReliability", newRel,
+                        "avgPrice", newPrice);
+
+                // 3. יצירת אובייקט הביקורת
+                ReviewModel review = new ReviewModel(
+                        reviewRef.getId(), businessId, userId, finalUserName,
+                        comment, appointmentId, ratingProf, ratingRel, ratingPrice,
+                        new Timestamp(new Date())
+                );
+                transaction.set(reviewRef, review);
+
+                // 4. עדכון התור שבוצע
+                transaction.update(appointmentRef, "isReviewed", true);
+
+                return null;
+            }).addOnSuccessListener(result -> {
+                Toast.makeText(this, "הביקורת פורסמה בהצלחה!", Toast.LENGTH_SHORT).show();
+                finish();
+            }).addOnFailureListener(e -> {
+                btnSubmitReview.setEnabled(true);
+                Toast.makeText(this, "שגיאה בעדכון: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            });
         });
     }
 }
