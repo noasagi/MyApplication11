@@ -19,8 +19,11 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class CustomerHistoryFragment extends Fragment {
 
@@ -71,9 +74,22 @@ public class CustomerHistoryFragment extends Fragment {
                         Appointment app = doc.toObject(Appointment.class);
                         app.setAppointmentId(doc.getId());
 
-                        // מסננים: מציגים רק תורים שהזמן שלהם כבר עבר (היסטוריה)
-                        // או תורים שבוטלו (REJECTED)
-                        boolean isPast = app.getTimestamp() < currentTime;
+                        // --- חישוב הזמן האמיתי של התור ---
+                        long appointmentTimeInMillis = 0;
+                        try {
+                            String dateTimeStr = app.getDate() + " " + app.getTime();
+                            // שימי לב: בהנחה שהתאריך נשמר בפורמט DD/MM/YYYY (למשל 15/04/2024)
+                            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
+                            Date date = sdf.parse(dateTimeStr);
+                            if (date != null) {
+                                appointmentTimeInMillis = date.getTime();
+                            }
+                        } catch (Exception e) {
+                            appointmentTimeInMillis = app.getTimestamp(); // גיבוי למקרה של שגיאה בטקסט
+                        }
+
+                        // מסננים: מציגים רק תורים שהזמן שלהם באמת עבר או שנדחו
+                        boolean isPast = appointmentTimeInMillis < currentTime;
                         boolean isRejected = "REJECTED".equals(app.getStatus());
 
                         if (isPast || isRejected) {

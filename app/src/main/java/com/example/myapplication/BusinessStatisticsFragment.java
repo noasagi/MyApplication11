@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.RatingBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -20,7 +21,8 @@ import java.util.Map;
 
 public class BusinessStatisticsFragment extends Fragment {
 
-    private TextView tvTotalOrders, tvAvgRating, tvReturningCustomers, tvPeakHour, tvPopularService;
+    private TextView tvTotalOrders, tvAvgRating, tvReturningCustomers, tvPeakHour, tvPopularService, tvTotalIncome;
+    private RatingBar rbStatsProfessionalism, rbStatsReliability, rbStatsPrice;
     private FirebaseFirestore db;
     private FirebaseAuth auth;
     private String businessId;
@@ -30,11 +32,16 @@ public class BusinessStatisticsFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_business_statistics, container, false);
 
+        tvTotalIncome = view.findViewById(R.id.tvTotalIncome); // השדה החדש!
         tvTotalOrders = view.findViewById(R.id.tvTotalOrders);
         tvAvgRating = view.findViewById(R.id.tvAvgRating);
         tvReturningCustomers = view.findViewById(R.id.tvReturningCustomers);
         tvPeakHour = view.findViewById(R.id.tvPeakHour);
         tvPopularService = view.findViewById(R.id.tvPopularService);
+
+        rbStatsProfessionalism = view.findViewById(R.id.rbStatsProfessionalism);
+        rbStatsReliability = view.findViewById(R.id.rbStatsReliability);
+        rbStatsPrice = view.findViewById(R.id.rbStatsPrice);
 
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
@@ -52,12 +59,25 @@ public class BusinessStatisticsFragment extends Fragment {
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     if (!queryDocumentSnapshots.isEmpty()) {
-                        // התיקון: לוקחים ישירות את מזהה המסמך האמיתי, בלי להסתמך על שדות פנימיים
-                        businessId = queryDocumentSnapshots.getDocuments().get(0).getId();
+                        DocumentSnapshot doc = queryDocumentSnapshots.getDocuments().get(0);
+                        businessId = doc.getId();
 
-                        // קריאה לפונקציות החישוב
+                        BusinessModel business = doc.toObject(BusinessModel.class);
+                        if (business != null) {
+                            if (business.getTotalReviews() > 0) {
+                                tvAvgRating.setText(String.format(java.util.Locale.getDefault(), "%.1f", business.getOverallRating()));
+                                rbStatsProfessionalism.setRating(business.getAvgProfessionalism());
+                                rbStatsReliability.setRating(business.getAvgReliability());
+                                rbStatsPrice.setRating(business.getAvgPrice());
+                            } else {
+                                tvAvgRating.setText("טרם");
+                                rbStatsProfessionalism.setRating(0);
+                                rbStatsReliability.setRating(0);
+                                rbStatsPrice.setRating(0);
+                            }
+                        }
+
                         calculateAppointmentsStats();
-                        calculateAverageRating();
                     }
                 })
                 .addOnFailureListener(e -> {
@@ -69,14 +89,13 @@ public class BusinessStatisticsFragment extends Fragment {
     private void calculateAppointmentsStats() {
         if (businessId == null) return;
 
-        // משיכת כל התורים של העסק
         db.collection("appointments")
                 .whereEqualTo("businessId", businessId)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     int totalValidOrders = 0;
+                    double totalIncome = 0; // משתנה סכימת ההכנסות
 
-                    // מפות (Dictionaries) כדי לספור תדירויות
                     Map<String, Integer> hoursMap = new HashMap<>();
                     Map<String, Integer> servicesMap = new HashMap<>();
                     Map<String, Integer> usersMap = new HashMap<>();
@@ -84,7 +103,6 @@ public class BusinessStatisticsFragment extends Fragment {
                     for (DocumentSnapshot doc : queryDocumentSnapshots) {
                         String status = doc.getString("status");
 
-                        // כאן התיקון: דילוג על תורים מבוטלים או חסימות פיקטיביות
                         if ("REJECTED".equals(status) || "BLOCKED".equals(status)) continue;
 
                         totalValidOrders++;
@@ -93,34 +111,49 @@ public class BusinessStatisticsFragment extends Fragment {
                         String desc = doc.getString("description");
                         String userId = doc.getString("userId");
 
-                        // ספירת שעות (למשל מ-14:30 לוקחים רק "14:00")
+                        // --- חילוץ ההכנסה מתוך התיאור (למשל: "תספורת (50₪)") ---
+                        if (desc != null && desc.contains("(") && desc.contains(")")) {
+                            int start = desc.lastIndexOf("(");
+                            int end = desc.lastIndexOf(")");
+                            if (start < end) {
+                                // מוחק הכל חוץ ממספרים ונקודה עשרונית
+                                String priceStr = desc.substring(start + 1, end).replaceAll("[^\\d.]", "");
+                                if (!priceStr.isEmpty()) {
+                                    try {
+                                        totalIncome += Double.parseDouble(priceStr);
+                                    } catch (NumberFormatException e) {
+                                        // מתעלם משגיאת המרה
+                                    }
+                                }
+                            }
+                        }
+
                         if (time != null && time.contains(":")) {
                             String hour = time.split(":")[0] + ":00";
                             hoursMap.put(hour, hoursMap.getOrDefault(hour, 0) + 1);
                         }
 
-                        // ספירת שירותים
                         if (desc != null && !desc.isEmpty()) {
-                            // הגנה נוספת: בודקים אם יש סוגריים לפני שחותכים
                             if (desc.contains(" (")) {
-                                String serviceName = desc.split(" \\(")[0]; // חותך הכל לפני סוגריים המחיר
+                                String serviceName = desc.split(" \\(")[0];
                                 servicesMap.put(serviceName, servicesMap.getOrDefault(serviceName, 0) + 1);
                             } else {
                                 servicesMap.put(desc, servicesMap.getOrDefault(desc, 0) + 1);
                             }
                         }
 
-                        // ספירת משתמשים (לקוחות)
-                        // חסימות פיקטיביות לרוב אין להן userId, אבל ליתר ביטחון נוודא שהוא לא ריק
                         if (userId != null && !userId.trim().isEmpty()) {
                             usersMap.put(userId, usersMap.getOrDefault(userId, 0) + 1);
                         }
                     }
 
-                    // 1. עדכון סך הכל תורים
+                    // 1. הצגת הכנסות
+                    tvTotalIncome.setText("₪" + String.format(java.util.Locale.getDefault(), "%,.0f", totalIncome));
+
+                    // 2. עדכון סך הכל תורים
                     tvTotalOrders.setText(String.valueOf(totalValidOrders));
 
-                    // 2. חישוב שעת שיא (השעה שהופיעה הכי הרבה)
+                    // 3. חישוב שעת שיא
                     String peakHour = "אין נתונים";
                     int maxHourCount = 0;
                     for (Map.Entry<String, Integer> entry : hoursMap.entrySet()) {
@@ -131,7 +164,7 @@ public class BusinessStatisticsFragment extends Fragment {
                     }
                     tvPeakHour.setText(peakHour);
 
-                    // 3. חישוב שירות פופולרי
+                    // 4. חישוב שירות פופולרי
                     String popularService = "אין נתונים";
                     int maxServiceCount = 0;
                     for (Map.Entry<String, Integer> entry : servicesMap.entrySet()) {
@@ -142,7 +175,7 @@ public class BusinessStatisticsFragment extends Fragment {
                     }
                     tvPopularService.setText(popularService);
 
-                    // 4. חישוב לקוחות חוזרים (כל מי שהזמין יותר מפעם 1)
+                    // 5. חישוב לקוחות חוזרים
                     int returningCustomers = 0;
                     for (int count : usersMap.values()) {
                         if (count > 1) {
@@ -151,50 +184,6 @@ public class BusinessStatisticsFragment extends Fragment {
                     }
                     tvReturningCustomers.setText(String.valueOf(returningCustomers));
 
-                });
-    }
-    private void calculateAverageRating() {
-        if (businessId == null) return;
-
-        // משיכת כל הביקורות על העסק מהקולקציה reviews
-        db.collection("reviews")
-                .whereEqualTo("businessId", businessId)
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    if (queryDocumentSnapshots.isEmpty()) {
-                        tvAvgRating.setText("טרם דורג");
-                        return;
-                    }
-
-                    double sumTotalReviews = 0;
-                    int count = 0;
-
-                    for (DocumentSnapshot doc : queryDocumentSnapshots) {
-                        Double prof = doc.getDouble("ratingProfessionalism");
-                        Double rel = doc.getDouble("ratingReliability");
-                        Double price = doc.getDouble("ratingPrice");
-
-                        // מוודאים שכל הציונים קיימים בביקורת הזו
-                        if (prof != null && rel != null && price != null) {
-                            // ממוצע של הביקורת הספציפית הזו
-                            double reviewAverage = (prof + rel + price) / 3.0;
-
-                            sumTotalReviews += reviewAverage;
-                            count++;
-                        }
-                    }
-
-                    if (count > 0) {
-                        // ממוצע של כל הביקורות יחד
-                        double finalAverage = sumTotalReviews / count;
-                        // עיגול לספרה עשרונית אחת (למשל 4.5)
-                        tvAvgRating.setText(String.format(java.util.Locale.getDefault(), "%.1f", finalAverage));
-                    } else {
-                        tvAvgRating.setText("טרם דורג");
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    tvAvgRating.setText("שגיאה");
                 });
     }
 }

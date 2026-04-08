@@ -59,14 +59,31 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toBottomOf="parent">
 
-            <TextView
-                android:id="@+id/tvBusinessType"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="סוג: מסעדה / ספא"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:textColor="@color/jobsy_primary" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvBusinessType"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:text="סוג: מסעדה / ספא"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/jobsy_primary" />
+
+                <TextView
+                    android:id="@+id/tvBusinessRating"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⭐ 4.5 (12)"
+                    android:textSize="14sp"
+                    android:textColor="#FFB300"
+                    android:textStyle="bold"/>
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/tvBusinessDescription"

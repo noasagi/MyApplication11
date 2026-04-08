@@ -8,13 +8,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.RatingBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.cardview.widget.CardView;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -24,8 +24,11 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class AppointmentsClientFragment extends Fragment {
 
@@ -76,11 +79,32 @@ public class AppointmentsClientFragment extends Fragment {
                     }
 
                     list.clear();
+                    long currentTime = System.currentTimeMillis();
+
                     if (value != null) {
                         for (QueryDocumentSnapshot doc : value) {
                             Appointment app = doc.toObject(Appointment.class);
                             app.setAppointmentId(doc.getId());
-                            list.add(app);
+
+                            // חישוב הזמן האמיתי
+                            long appointmentTimeInMillis = 0;
+                            try {
+                                String dateTimeStr = app.getDate() + " " + app.getTime();
+                                SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
+                                Date date = sdf.parse(dateTimeStr);
+                                if (date != null) appointmentTimeInMillis = date.getTime();
+                            } catch (Exception e) {
+                                appointmentTimeInMillis = app.getTimestamp();
+                            }
+
+                            boolean isPast = appointmentTimeInMillis < currentTime;
+                            boolean isRejected = "REJECTED".equals(app.getStatus());
+                            boolean needsReview = "APPROVED".equals(app.getStatus()) && !app.getIsReviewed();
+
+                            // נציג כאן רק תורים עתידיים, או תורים שעברו אבל ממתינים לדירוג
+                            if ((!isPast && !isRejected) || (isPast && needsReview)) {
+                                list.add(app);
+                            }
                         }
                     }
                     adapter.notifyDataSetChanged();
@@ -145,27 +169,42 @@ public class AppointmentsClientFragment extends Fragment {
                     holder.tvStatus.setTextColor(Color.GRAY);
             }
 
-            // --- לוגיקת הצגת כפתור הדירוג ---
-            if ("APPROVED".equals(status) && !app.getIsReviewed()) {
+            // --- חישוב זמן לתצוגת כפתורים ---
+            long appointmentTimeInMillis = 0;
+            try {
+                String dateTimeStr = app.getDate() + " " + app.getTime();
+                SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
+                Date date = sdf.parse(dateTimeStr);
+                if (date != null) appointmentTimeInMillis = date.getTime();
+            } catch (Exception e) {
+                appointmentTimeInMillis = app.getTimestamp();
+            }
+            boolean isPast = appointmentTimeInMillis < System.currentTimeMillis();
+
+            // --- לוגיקת הצגת כפתור הדירוג (רק אם עבר הזמן!) ---
+            if ("APPROVED".equals(status) && !app.getIsReviewed() && isPast) {
                 holder.btnRate.setVisibility(View.VISIBLE);
-                holder.btnRate.setOnClickListener(v -> {
-                    showAddReviewDialog(app);
-                });
+                holder.btnRate.setOnClickListener(v -> showAddReviewDialog(app));
             } else {
                 holder.btnRate.setVisibility(View.GONE);
             }
 
-            // --- לוגיקה של כפתור המחיקה (העברנו פה את כל האובייקט app) ---
-            holder.btnDelete.setOnClickListener(v -> {
-                new AlertDialog.Builder(getContext())
-                        .setTitle("ביטול תור")
-                        .setMessage("האם אתה בטוח שברצונך למחוק את התור הזה?")
-                        .setPositiveButton("כן, מחק", (dialog, which) -> {
-                            deleteAppointment(app);
-                        })
-                        .setNegativeButton("ביטול", null)
-                        .show();
-            });
+            // --- לוגיקת כפתור ביטול: להסתיר אם התור כבר עבר ---
+            if (isPast) {
+                holder.btnDelete.setVisibility(View.GONE);
+            } else {
+                holder.btnDelete.setVisibility(View.VISIBLE);
+                holder.btnDelete.setOnClickListener(v -> {
+                    new AlertDialog.Builder(getContext())
+                            .setTitle("ביטול תור")
+                            .setMessage("האם אתה בטוח שברצונך לבטל את התור הזה?")
+                            .setPositiveButton("כן, בטל", (dialog, which) -> {
+                                deleteAppointment(app);
+                            })
+                            .setNegativeButton("לא", null)
+                            .show();
+                });
+            }
         }
 
         @Override
@@ -173,7 +212,7 @@ public class AppointmentsClientFragment extends Fragment {
 
         class ViewHolder extends RecyclerView.ViewHolder {
             TextView tvBusinessName, tvDateTime, tvStatus;
-            ImageView btnDelete;
+            CardView btnDelete;
             Button btnRate;
 
             public ViewHolder(@NonNull View itemView) {
@@ -187,16 +226,15 @@ public class AppointmentsClientFragment extends Fragment {
         }
     }
 
-    // --- הפונקציה המעודכנת שמטפלת במחיקה ושולחת התראה לעסק ---
     private void deleteAppointment(Appointment app) {
         if (app == null || app.getAppointmentId() == null) return;
 
         db.collection("appointments").document(app.getAppointmentId())
                 .delete()
                 .addOnSuccessListener(aVoid -> {
-                    Toast.makeText(getContext(), "התור נמחק בהצלחה", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), "התור בוטל בהצלחה", Toast.LENGTH_SHORT).show();
 
-                    // --- תוספת ההתראות: שליחה לבעל העסק שהלקוח ביטל ---
+                    // שליחה לבעל העסק שהלקוח ביטל
                     if (app.getBusinessId() != null) {
                         db.collection("businesses").document(app.getBusinessId()).get()
                                 .addOnSuccessListener(doc -> {
@@ -208,10 +246,9 @@ public class AppointmentsClientFragment extends Fragment {
                                     }
                                 });
                     }
-                    // ------------------------------------------------
                 })
                 .addOnFailureListener(e -> {
-                    Toast.makeText(getContext(), "שגיאה במחיקה: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), "שגיאה בביטול: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
 
@@ -259,11 +296,40 @@ public class AppointmentsClientFragment extends Fragment {
                     com.google.firebase.Timestamp.now()
             );
 
+            // שמירת הביקורת
             db.collection("reviews").document(reviewId).set(newReview)
                     .addOnSuccessListener(aVoid -> {
-                        // עדכון התור שהוא כבר דורג
+                        // 1. עדכון שהתור נבדק
                         db.collection("appointments").document(app.getAppointmentId())
                                 .update("isReviewed", true);
+
+                        // 2. עדכון הממוצעים במסמך העסק (הלוגיקה החדשה!)
+                        if (app.getBusinessId() != null) {
+                            db.collection("businesses").document(app.getBusinessId()).get()
+                                    .addOnSuccessListener(doc -> {
+                                        if (doc.exists()) {
+                                            BusinessModel b = doc.toObject(BusinessModel.class);
+                                            if (b != null) {
+                                                int oldTotal = b.getTotalReviews();
+                                                int newTotal = oldTotal + 1;
+
+                                                // חישוב ממוצעים חדשים
+                                                float newProf = ((b.getAvgProfessionalism() * oldTotal) + ratingProf) / newTotal;
+                                                float newRel = ((b.getAvgReliability() * oldTotal) + ratingRel) / newTotal;
+                                                float newPrice = ((b.getAvgPrice() * oldTotal) + ratingPrice) / newTotal;
+
+                                                // שמירה מחדש לפיירבייס
+                                                db.collection("businesses").document(app.getBusinessId())
+                                                        .update(
+                                                                "avgProfessionalism", newProf,
+                                                                "avgReliability", newRel,
+                                                                "avgPrice", newPrice,
+                                                                "totalReviews", newTotal
+                                                        );
+                                            }
+                                        }
+                                    });
+                        }
 
                         Toast.makeText(getContext(), "תודה על הדירוג!", Toast.LENGTH_SHORT).show();
                         dialog.dismiss();

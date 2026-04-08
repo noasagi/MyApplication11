@@ -11,19 +11,21 @@ public class BusinessModel {
     private String description;
     private String phone;
     private String businessType;
-
-    // --- השדה החדש שהוספנו! ---
     private String address;
-
     private List<Blob> imageBlobs;
     private Double latitude;
     private Double longitude;
+
+    // --- השדות החדשים לביקורות ---
+    private float avgProfessionalism = 0f;
+    private float avgReliability = 0f;
+    private float avgPrice = 0f;
+    private int totalReviews = 0;
 
     public BusinessModel() {
         // דרוש ל-Firestore
     }
 
-    // בנאי עם כל השדות כולל כתובת ומיקום
     public BusinessModel(String businessId, String ownerId, String name,
                          String description, String phone, String businessType,
                          String address, List<Blob> imageBlobs, Double latitude, Double longitude) {
@@ -39,6 +41,13 @@ public class BusinessModel {
         this.longitude = longitude;
     }
 
+    // --- פונקציה לחישוב הציון הכללי הממוצע ---
+    public float getOverallRating() {
+        if (totalReviews == 0) return 0f;
+        return (avgProfessionalism + avgReliability + avgPrice) / 3.0f;
+    }
+
+    // Getters & Setters
     public String getBusinessId() { return businessId; }
     public void setBusinessId(String businessId) { this.businessId = businessId; }
 
@@ -57,7 +66,6 @@ public class BusinessModel {
     public String getBusinessType() { return businessType; }
     public void setBusinessType(String businessType) { this.businessType = businessType; }
 
-    // Getters & Setters לכתובת
     public String getAddress() { return address; }
     public void setAddress(String address) { this.address = address; }
 
@@ -69,4 +77,17 @@ public class BusinessModel {
 
     public Double getLongitude() { return longitude; }
     public void setLongitude(Double longitude) { this.longitude = longitude; }
+
+    // Getters & Setters לביקורות
+    public float getAvgProfessionalism() { return avgProfessionalism; }
+    public void setAvgProfessionalism(float avgProfessionalism) { this.avgProfessionalism = avgProfessionalism; }
+
+    public float getAvgReliability() { return avgReliability; }
+    public void setAvgReliability(float avgReliability) { this.avgReliability = avgReliability; }
+
+    public float getAvgPrice() { return avgPrice; }
+    public void setAvgPrice(float avgPrice) { this.avgPrice = avgPrice; }
+
+    public int getTotalReviews() { return totalReviews; }
+    public void setTotalReviews(int totalReviews) { this.totalReviews = totalReviews; }
 }
