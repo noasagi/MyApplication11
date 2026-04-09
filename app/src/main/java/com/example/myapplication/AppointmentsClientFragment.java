@@ -110,6 +110,9 @@ public class AppointmentsClientFragment extends Fragment {
     }
 
     // פונקציית עזר לחישוב זמן כדי שלא תשכפלי קוד
+    
+
+    // פונקציית עזר לחישוב זמן כדי שלא תשכפלי קוד
     private long calculateMillis(Appointment app) {
         try {
             String dateTimeStr = app.getDate() + " " + app.getTime();

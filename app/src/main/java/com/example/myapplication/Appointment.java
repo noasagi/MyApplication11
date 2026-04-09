@@ -12,13 +12,14 @@ public class Appointment {
     private String status;
     private long timestamp;
     private String description;
-
-    // *** חדש: שדה למשך זמן הטיפול בדקות ***
     private int duration;
+
+    // שדה המחיר החדש
+    private double price;
 
     public Appointment() {}
 
-    public Appointment(String appointmentId, String businessId, String userId, String userName, String date, String time, String status, long timestamp, String description, int duration) {
+    public Appointment(String appointmentId, String businessId, String userId, String userName, String date, String time, String status, long timestamp, String description, int duration, double price) {
         this.appointmentId = appointmentId;
         this.businessId = businessId;
         this.userId = userId;
@@ -28,7 +29,8 @@ public class Appointment {
         this.status = status;
         this.timestamp = timestamp;
         this.description = description;
-        this.duration = duration; // שמירת משך הזמן
+        this.duration = duration;
+        this.price = price;
     }
 
     // Getters & Setters
@@ -65,7 +67,9 @@ public class Appointment {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    // *** חדש: גטר וסטר לזמן הטיפול ***
     public int getDuration() { return duration; }
     public void setDuration(int duration) { this.duration = duration; }
+
+    public double getPrice() { return price; }
+    public void setPrice(double price) { this.price = price; }
 }

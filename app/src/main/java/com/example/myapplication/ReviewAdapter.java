@@ -27,20 +27,34 @@ public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ReviewView
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_review, parent, false);
         return new ReviewViewHolder(view);
     }
-
     @Override
     public void onBindViewHolder(@NonNull ReviewViewHolder holder, int position) {
         ReviewModel review = reviewsList.get(position);
 
         holder.tvName.setText(review.getUserName());
         holder.tvComment.setText(review.getComment());
-        holder.rbRating.setRating(review.calculateAverage());
 
+        // לוגיקת הצגת הדירוג:
+        float finalRating;
+
+        // בדיקה: האם זו ביקורת חדשה עם פירוט?
+        if (review.getRatingProfessionalism() > 0 || review.getRatingReliability() > 0 || review.getRatingPrice() > 0) {
+            // אם כן, נחשב ממוצע של שלושתן
+            finalRating = review.calculateAverage();
+        } else {
+            // אם לא (ביקורת ישנה), נשתמש בשדה הדירוג הישן אם קיים
+            // (אם קראת לשדה הישן 'rating', ודאי שיש לו Getter במודל)
+            finalRating = review.getRatingProfessionalism(); // או השדה שהיה בשימוש קודם
+        }
+
+        holder.rbRating.setRating(finalRating);
+
+        // טיפול בתאריך (כדי למנוע קריסה אם ה-Timestamp ריק)
         if (review.getTimestamp() != null) {
             SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
             holder.tvDate.setText(sdf.format(review.getTimestamp().toDate()));
         } else {
-            holder.tvDate.setText(""); // מניעת הצגת תאריך שגוי
+            holder.tvDate.setText("");
         }
     }
 
