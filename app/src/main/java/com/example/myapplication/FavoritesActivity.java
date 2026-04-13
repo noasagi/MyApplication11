@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import androidx.appcompat.widget.Toolbar;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +32,13 @@ public class FavoritesActivity extends BaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_favorites); // וודאי שיש לך קובץ layout לזה (ראי למטה)
+
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setupSecondaryToolbar(toolbar, true);
+
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayShowTitleEnabled(false);
+        }
 
         recyclerView = findViewById(R.id.recyclerViewFavorites);
         tvEmptyState = findViewById(R.id.tvEmptyState);

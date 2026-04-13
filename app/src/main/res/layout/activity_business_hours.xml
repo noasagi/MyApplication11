@@ -7,15 +7,24 @@
     android:padding="24dp"
     android:background="@color/jobsy_background"
     android:layoutDirection="rtl">
-
-    <TextView
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="שעות פעילות"
-        android:textSize="28sp"
-        android:textStyle="bold"
-        android:textColor="@color/jobsy_text_primary"
-        android:layout_marginBottom="24dp"/>
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/jobsy_background"
+        app:title=""
+        app:contentInsetStartWithNavigation="0dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="שעות פעילות"
+            android:textSize="30sp"
+            android:textStyle="bold"
+            android:textColor="@color/jobsy_text_primary" />
+
+    </androidx.appcompat.widget.Toolbar>
+
 
     <androidx.cardview.widget.CardView
         android:layout_width="match_parent"

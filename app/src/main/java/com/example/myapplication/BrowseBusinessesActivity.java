@@ -14,6 +14,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -44,9 +45,17 @@ public class BrowseBusinessesActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_browse_businesses);
 
-        // הגדרת Toolbar
+
         Toolbar toolbar = findViewById(R.id.toolbar);
         setupSecondaryToolbar(toolbar, true);
+
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayShowTitleEnabled(false);
+        }
+
+        // הגדרת Toolbar
+        Toolbar toolbar1 = findViewById(R.id.toolbar);
+        setupSecondaryToolbar(toolbar1, true);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setTitle("חיפוש עסקים");
         }

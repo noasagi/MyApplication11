@@ -5,7 +5,16 @@
     android:layout_height="match_parent"
     android:background="@color/jobsy_background"
     android:layoutDirection="rtl">
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/jobsy_background"
+        app:title=""
+        app:contentInsetStartWithNavigation="0dp">
 
+
+    </androidx.appcompat.widget.Toolbar>
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"

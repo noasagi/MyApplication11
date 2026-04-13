@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:layoutDirection="rtl"
+    android:background="@color/jobsy_card_bg">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="סינון מתקדם"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@color/jobsy_text_primary"
+        android:layout_marginBottom="24dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="סוג עסק:"
+        android:textColor="@color/jobsy_text_primary"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp"/>
+
+    <Spinner
+        android:id="@+id/spinnerDialogCategory"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@color/jobsy_background"
+        android:layout_marginBottom="24dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="8dp">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="מרחק מקסימלי:"
+            android:textColor="@color/jobsy_text_primary"
+            android:textStyle="bold"/>
+        <TextView
+            android:id="@+id/tvDistanceLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:text="עד 50 ק״מ"
+            android:textColor="@color/jobsy_primary"
+            android:textStyle="bold"/>
+    </LinearLayout>
+
+    <com.google.android.material.slider.Slider
+        android:id="@+id/sliderDistance"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:valueFrom="1.0"
+        android:valueTo="50.0"
+        android:value="50.0"
+        android:stepSize="1.0"
+        app:thumbColor="@color/jobsy_primary"
+        app:trackColorActive="@color/jobsy_primary"
+        app:trackColorInactive="@color/jobsy_primary_soft"
+        android:layout_marginBottom="16dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="8dp">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="דירוג מינימלי:"
+            android:textColor="@color/jobsy_text_primary"
+            android:textStyle="bold"/>
+        <TextView
+            android:id="@+id/tvRatingLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:text="מדירוג 0 ומעלה"
+            android:textColor="@color/jobsy_primary"
+            android:textStyle="bold"/>
+    </LinearLayout>
+
+    <com.google.android.material.slider.Slider
+        android:id="@+id/sliderRating"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:valueFrom="0.0"
+        android:valueTo="5.0"
+        android:value="0.0"
+        android:stepSize="0.5"
+        app:thumbColor="@color/jobsy_primary"
+        app:trackColorActive="@color/jobsy_primary"
+        app:trackColorInactive="@color/jobsy_primary_soft"
+        android:layout_marginBottom="24dp"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnApplyFilters"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="החל סינון"
+        app:cornerRadius="16dp"
+        app:backgroundTint="@color/jobsy_primary"
+        android:textColor="@android:color/white"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        style="@style/Widget.MaterialComponents.Button.UnelevatedButton"/>
+
+</LinearLayout>

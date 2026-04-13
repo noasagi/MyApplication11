@@ -10,7 +10,10 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
+
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 
@@ -104,13 +107,22 @@ public class BusinessHomeFragment extends Fragment {
                     updateNextAppointmentFromList(snapshots);
                 });
 
-        // האזנה לתורים ממתינים (בלי קשר לתאריך)
+        // האזנה לתורים ממתינים (סינון תורים מהעבר כדי שיתאים לעמוד היומן)
         db.collection("appointments")
                 .whereEqualTo("businessId", businessId)
                 .whereEqualTo("status", "PENDING")
                 .addSnapshotListener((snapshots, error) -> {
                     if (error != null || snapshots == null) return;
-                    tvPendingCount.setText(String.valueOf(snapshots.size()));
+
+                    int validPendingCount = 0;
+                    for (QueryDocumentSnapshot doc : snapshots) {
+                        String dateStr = doc.getString("date");
+                        // נספור רק אם התור הוא מהיום או בעתיד
+                        if (!isDateInPast(dateStr)) {
+                            validPendingCount++;
+                        }
+                    }
+                    tvPendingCount.setText(String.valueOf(validPendingCount));
                 });
     }
 
@@ -133,6 +145,26 @@ public class BusinessHomeFragment extends Fragment {
         } else {
             tvNextClientName.setText("אין תורים נוספים");
             tvNextClientInfo.setText("סיימת להיום!");
+        }
+    }
+
+    // פונקציית עזר לסינון תאריכים שעברו (זהה לזו שביומן העסק)
+    private boolean isDateInPast(String dateStr) {
+        if (dateStr == null || dateStr.isEmpty()) return false;
+        SimpleDateFormat sdf = new SimpleDateFormat("d/M/yyyy", Locale.getDefault());
+        try {
+            Date appointmentDate = sdf.parse(dateStr);
+            Date today = new Date();
+            Calendar cal1 = Calendar.getInstance();
+            Calendar cal2 = Calendar.getInstance();
+            if (appointmentDate != null) cal1.setTime(appointmentDate);
+            cal2.setTime(today);
+
+            if (cal1.get(Calendar.YEAR) < cal2.get(Calendar.YEAR)) return true;
+            return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
+                    cal1.get(Calendar.DAY_OF_YEAR) < cal2.get(Calendar.DAY_OF_YEAR);
+        } catch (ParseException e) {
+            return false;
         }
     }
 }

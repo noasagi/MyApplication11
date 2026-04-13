@@ -1,12 +1,13 @@
 package com.example.myapplication;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.location.Address;
+import android.location.Geocoder;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -20,7 +21,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-
+import androidx.appcompat.widget.Toolbar;
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -29,26 +30,27 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationServices;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.Blob;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
 public class MyBusinessMainActivity extends BaseActivity {
 
     private LinearLayout previewContainer;
-    private TextView tvNoImages, tVTitle;
-    private Button btnChooseImage, btnTakePhoto, btnSaveBusiness, btnDeleteBusiness, btnUpdateLocation;
+    private TextView tvNoImages;
+    private Button btnChooseImage, btnTakePhoto, btnSaveBusiness, btnDeleteBusiness;
 
     private EditText eTBusinessName, eTBusinessPhone, eTBusinessDescription, eTBusinessAddress;
     private AutoCompleteTextView autoBusinessType;
@@ -61,18 +63,14 @@ public class MyBusinessMainActivity extends BaseActivity {
     private List<Uri> selectedImageUris = new ArrayList<>();
     private List<Bitmap> selectedCameraBitmaps = new ArrayList<>();
 
-    // ניהול מצב (האם יוצרים או עורכים?)
+    // ניהול מצב
     private boolean isEditMode = false;
     private String currentBusinessId = null;
 
     private final int REQUEST_CAMERA_PERMISSION = 100;
     private final int REQUEST_STORAGE_PERMISSION = 101;
-    private final int REQUEST_LOCATION_PERMISSION = 102;
 
     // --- משתני מיקום ---
-    private FusedLocationProviderClient fusedLocationClient;
-    private Double deviceLat = null;
-    private Double deviceLon = null;
     private Double businessLat = null;
     private Double businessLon = null;
 
@@ -98,15 +96,20 @@ public class MyBusinessMainActivity extends BaseActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_my_business_main);
 
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setupSecondaryToolbar(toolbar, true);
+
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayShowTitleEnabled(false);
+        }
+
         // חיבור ל-XML
-        tVTitle = findViewById(R.id.tVTitle);
         previewContainer = findViewById(R.id.previewContainer);
         tvNoImages = findViewById(R.id.tvNoImages);
         btnChooseImage = findViewById(R.id.btnChooseImage);
         btnTakePhoto = findViewById(R.id.btnTakePhoto);
         btnSaveBusiness = findViewById(R.id.btnSaveBusiness);
         btnDeleteBusiness = findViewById(R.id.btnDeleteBusiness);
-        btnUpdateLocation = findViewById(R.id.btnUpdateLocation);
 
         eTBusinessName = findViewById(R.id.eTBusinessName);
         eTBusinessPhone = findViewById(R.id.eTBusinessPhone);
@@ -119,11 +122,6 @@ public class MyBusinessMainActivity extends BaseActivity {
         auth = FirebaseAuth.getInstance();
         firebaseFirestore = FirebaseFirestore.getInstance();
 
-        // אתחול רכיב מיקום ושליפת המיקום הנוכחי כבר בעליית המסך
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-        fetchDeviceLocation();
-
-        // הגדרת כפתור שעות פעילות
         btnManageHours.setOnClickListener(v -> {
             if (currentBusinessId != null) {
                 Intent intent = new Intent(MyBusinessMainActivity.this, BusinessHoursActivity.class);
@@ -134,27 +132,13 @@ public class MyBusinessMainActivity extends BaseActivity {
             }
         });
 
-        // כפתור עדכון מיקום ידני
-        btnUpdateLocation.setOnClickListener(v -> {
-            if (deviceLat != null && deviceLon != null) {
-                businessLat = deviceLat;
-                businessLon = deviceLon;
-                Toast.makeText(this, "מיקום ה-GPS נדגם! אל תשכח ללחוץ על 'שמור שינויים'", Toast.LENGTH_LONG).show();
-            } else {
-                Toast.makeText(this, "מנסה לאתר מיקום... ודא שה-GPS דלוק ונסה שוב", Toast.LENGTH_SHORT).show();
-                fetchDeviceLocation();
-            }
-        });
-
         // סוגי עסקים
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, getResources().getStringArray(R.array.business_types));
         autoBusinessType.setAdapter(adapter);
         autoBusinessType.setOnClickListener(v -> autoBusinessType.showDropDown());
 
-        // בדיקה אוטומטית: האם למשתמש הזה כבר יש עסק?
         checkIfUserHasBusiness();
 
-        // מאזינים
         btnChooseImage.setOnClickListener(v -> {
             if (checkStoragePermission()) mGetMultipleContent.launch("image/*");
             else requestStoragePermission();
@@ -170,34 +154,6 @@ public class MyBusinessMainActivity extends BaseActivity {
         btnDeleteBusiness.setOnClickListener(v -> showDeleteConfirmation());
     }
 
-    // --- טיפול במיקום (GPS) ---
-    private void fetchDeviceLocation() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, REQUEST_LOCATION_PERMISSION);
-        } else {
-            getLocationNow();
-        }
-    }
-
-    @SuppressLint("MissingPermission")
-    private void getLocationNow() {
-        fusedLocationClient.getLastLocation().addOnSuccessListener(location -> {
-            if (location != null) {
-                deviceLat = location.getLatitude();
-                deviceLon = location.getLongitude();
-            }
-        });
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == REQUEST_LOCATION_PERMISSION && grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            getLocationNow();
-        }
-    }
-
-    // --- לוגיקה לזיהוי עסק קיים ---
     private void checkIfUserHasBusiness() {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) return;
@@ -218,8 +174,6 @@ public class MyBusinessMainActivity extends BaseActivity {
                             switchToEditMode(business);
                         }
                     } else {
-                        // מצב יצירה
-                        tVTitle.setText("יצירת עסק חדש");
                         btnDeleteBusiness.setVisibility(View.GONE);
                         btnManageHours.setVisibility(View.GONE);
                     }
@@ -234,24 +188,19 @@ public class MyBusinessMainActivity extends BaseActivity {
         isEditMode = true;
         currentBusinessId = business.getBusinessId();
 
-        // שמירת המיקום הקיים של העסק (כדי שלא נדרוס אותו בטעות)
         businessLat = business.getLatitude();
         businessLon = business.getLongitude();
 
-        // עדכון כותרות וכפתורים
-        tVTitle.setText("עריכת העסק שלי");
         btnSaveBusiness.setText("עדכן פרטים");
         btnDeleteBusiness.setVisibility(View.VISIBLE);
         btnManageHours.setVisibility(View.VISIBLE);
 
-        // מילוי שדות כולל הכתובת המילולית!
         eTBusinessName.setText(business.getName());
         eTBusinessPhone.setText(business.getPhone());
         eTBusinessDescription.setText(business.getDescription());
         eTBusinessAddress.setText(business.getAddress() != null ? business.getAddress() : "");
         autoBusinessType.setText(business.getBusinessType(), false);
 
-        // טעינת תמונות קיימות
         if (business.getImageBlobs() != null) {
             for (Blob blob : business.getImageBlobs()) {
                 byte[] bytes = blob.toBytes();
@@ -262,7 +211,6 @@ public class MyBusinessMainActivity extends BaseActivity {
         }
     }
 
-    // --- שמירה / עדכון ---
     private void saveOrUpdateBusiness() {
         String name = eTBusinessName.getText().toString().trim();
         String phone = eTBusinessPhone.getText().toString().trim();
@@ -295,10 +243,28 @@ public class MyBusinessMainActivity extends BaseActivity {
                     });
                     return;
                 }
-// אם לעסק עדיין אין מיקום שמור - ניקח אוטומטית את המיקום שדגמנו עכשיו
-                if (businessLat == null || businessLon == null) {
-                    businessLat = deviceLat;
-                    businessLon = deviceLon;
+
+                // --- לוגיקת המרת כתובת לקואורדינטות (Geocoder) ---
+                Geocoder geocoder = new Geocoder(MyBusinessMainActivity.this, new Locale("he", "IL"));
+                try {
+                    // מוסיפים "ישראל" כדי למקד את החיפוש בארץ
+                    List<Address> addresses = geocoder.getFromLocationName(address + ", ישראל", 1);
+                    if (addresses != null && !addresses.isEmpty()) {
+                        businessLat = addresses.get(0).getLatitude();
+                        businessLon = addresses.get(0).getLongitude();
+                    } else {
+                        runOnUiThread(() -> {
+                            pd.dismiss();
+                            Toast.makeText(this, "לא מצאנו את הכתובת. אנא ודא שהיא מדויקת (עיר ורחוב).", Toast.LENGTH_LONG).show();
+                        });
+                        return; // עוצר את השמירה אם הכתובת לא תקינה
+                    }
+                } catch (IOException e) {
+                    runOnUiThread(() -> {
+                        pd.dismiss();
+                        Toast.makeText(this, "שגיאה בחיפוש הכתובת, נסה שוב מאוחר יותר.", Toast.LENGTH_SHORT).show();
+                    });
+                    return;
                 }
 
                 Map<String, Object> businessData = new HashMap<>();
@@ -314,7 +280,7 @@ public class MyBusinessMainActivity extends BaseActivity {
                 businessData.put("longitude", businessLon);
 
                 firebaseFirestore.collection("businesses").document(businessIdToSave)
-                        .set(businessData)
+                        .set(businessData, SetOptions.merge())
                         .addOnSuccessListener(aVoid -> runOnUiThread(() -> {
                             pd.dismiss();
                             Toast.makeText(this, isEditMode ? "עודכן בהצלחה!" : "נוצר בהצלחה!", Toast.LENGTH_SHORT).show();
@@ -324,7 +290,6 @@ public class MyBusinessMainActivity extends BaseActivity {
 
                             btnManageHours.setVisibility(View.VISIBLE);
                             btnDeleteBusiness.setVisibility(View.VISIBLE);
-                            tVTitle.setText("עריכת העסק שלי");
                             btnSaveBusiness.setText("עדכן פרטים");
                         }))
                         .addOnFailureListener(e -> runOnUiThread(() -> {
@@ -338,7 +303,6 @@ public class MyBusinessMainActivity extends BaseActivity {
         }).start();
     }
 
-    // --- מחיקה ---
     private void showDeleteConfirmation() {
         new AlertDialog.Builder(this)
                 .setTitle("מחיקת עסק")
@@ -365,7 +329,6 @@ public class MyBusinessMainActivity extends BaseActivity {
                     currentBusinessId = null;
                     businessLat = null;
                     businessLon = null;
-                    tVTitle.setText("יצירת עסק חדש");
                     btnSaveBusiness.setText("שמור עסק");
 
                     btnDeleteBusiness.setVisibility(View.GONE);
@@ -386,7 +349,6 @@ public class MyBusinessMainActivity extends BaseActivity {
                 });
     }
 
-    // --- עזרים ---
     private List<Blob> processImages() {
         List<Blob> imageBlobs = new ArrayList<>();
         long totalBytes = 0;
@@ -442,7 +404,6 @@ public class MyBusinessMainActivity extends BaseActivity {
         previewContainer.addView(iv);
     }
 
-    // --- הרשאות למצלמה ותמונות ---
     private boolean checkCameraPermission() {
         return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
     }

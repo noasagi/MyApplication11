@@ -16,6 +16,8 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.appcompat.widget.Toolbar;
+
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -41,6 +43,12 @@ public class BusinessHoursActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_business_hours);
 
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setupSecondaryToolbar(toolbar, true);
+
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayShowTitleEnabled(false);
+        }
         businessId = getIntent().getStringExtra("BUSINESS_ID");
         if (businessId == null) businessId = getIntent().getStringExtra("businessId");
         if (businessId == null && FirebaseAuth.getInstance().getCurrentUser() != null) {

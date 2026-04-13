@@ -8,14 +8,15 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.SearchView;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
@@ -24,7 +25,10 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.material.switchmaterial.SwitchMaterial;
+import com.google.android.gms.location.Priority;
+import com.google.android.gms.tasks.CancellationTokenSource;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.slider.Slider;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
@@ -32,7 +36,6 @@ import com.google.firebase.firestore.ListenerRegistration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 public class SearchFragment extends Fragment {
@@ -41,19 +44,19 @@ public class SearchFragment extends Fragment {
     private BusinessAdapter businessAdapter;
     private TextView tvEmptyState;
     private SearchView searchView;
-    private Spinner spinnerCategories;
-    private SwitchMaterial switchNearMe;
+    private MaterialButton btnFilter;
 
     private FirebaseFirestore db;
-    private ListenerRegistration businessListener; // מאזין לשינויים בזמן אמת
+    private ListenerRegistration businessListener;
 
     private List<BusinessModel> originalList = new ArrayList<>();
     private List<BusinessModel> displayedList = new ArrayList<>();
 
+    // --- פרמטרים לסינון ---
     private String currentSearchText = "";
-    private String currentCategory = "הכל";
-    private boolean isNearMeOnly = false;
-    private static final float MAX_DISTANCE_METERS = 15000f;
+    private String currentCategoryFilter = "הכל";
+    private float maxDistanceKmFilter = 50f; // ברירת מחדל: 50 ק"מ
+    private float minRatingFilter = 0f;      // ברירת מחדל: 0 כוכבים
 
     private FusedLocationProviderClient fusedLocationClient;
     private Location userLocation = null;
@@ -67,8 +70,7 @@ public class SearchFragment extends Fragment {
         rvBusinesses = view.findViewById(R.id.rvBusinesses);
         tvEmptyState = view.findViewById(R.id.tvEmptyState);
         searchView = view.findViewById(R.id.searchView);
-        spinnerCategories = view.findViewById(R.id.spinnerCategories);
-        switchNearMe = view.findViewById(R.id.switchNearMe);
+        btnFilter = view.findViewById(R.id.btnFilter); // נוסיף את זה ב-XML תכף
 
         db = FirebaseFirestore.getInstance();
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
@@ -79,20 +81,21 @@ public class SearchFragment extends Fragment {
             rvBusinesses.setAdapter(businessAdapter);
         }
 
-        setupFilters();
-        startListeningForBusinesses(); // שינוי לטעינה חיה
+        setupSearch();
+        btnFilter.setOnClickListener(v -> showFilterDialog());
+
+        startListeningForBusinesses();
+
+        // מבקשים מיקום מיד כדי שיהיה מוכן לחישובי מרחק
         checkLocationPermissionAndFetch();
 
         return view;
     }
 
-    // טעינת עסקים בזמן אמת - אם דירוג משתנה, זה יתעדכן מיד ברשימה
     private void startListeningForBusinesses() {
         businessListener = db.collection("businesses")
                 .addSnapshotListener((querySnapshot, e) -> {
-                    if (e != null) {
-                        return;
-                    }
+                    if (e != null) return;
                     if (querySnapshot != null) {
                         originalList.clear();
                         for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
@@ -110,50 +113,32 @@ public class SearchFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        if (businessListener != null) {
-            businessListener.remove(); // הסרת המאזין כשהפרגמנט נסגר
-        }
+        if (businessListener != null) businessListener.remove();
     }
 
+    // --- תיקון: דגימת מיקום מדויקת וחדשה ---
     private void checkLocationPermissionAndFetch() {
         if (getContext() == null) return;
         if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
         } else {
-            fetchUserLocation();
+            fetchUserLocationNow();
         }
     }
 
     @SuppressLint("MissingPermission")
-    private void fetchUserLocation() {
-        fusedLocationClient.getLastLocation().addOnSuccessListener(location -> {
-            if (location != null) {
-                userLocation = location;
-                applyFilters();
-            }
-        });
+    private void fetchUserLocationNow() {
+        CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cancellationTokenSource.getToken())
+                .addOnSuccessListener(location -> {
+                    if (location != null) {
+                        userLocation = location;
+                        applyFilters(); // מעדכן רשימה עכשיו כשיש מיקום
+                    }
+                });
     }
 
-    private void setupFilters() {
-        if (getContext() == null) return;
-        List<String> categories = new ArrayList<>();
-        categories.add("הכל");
-        String[] typesArray = getResources().getStringArray(R.array.business_types);
-        categories.addAll(Arrays.asList(typesArray));
-
-        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_item, categories);
-        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerCategories.setAdapter(spinnerAdapter);
-
-        spinnerCategories.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                currentCategory = categories.get(position);
-                applyFilters();
-            }
-            @Override public void onNothingSelected(AdapterView<?> parent) {}
-        });
-
+    private void setupSearch() {
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override public boolean onQueryTextSubmit(String query) { return false; }
             @Override public boolean onQueryTextChange(String newText) {
@@ -162,41 +147,104 @@ public class SearchFragment extends Fragment {
                 return true;
             }
         });
+    }
 
-        switchNearMe.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            isNearMeOnly = isChecked;
-            if (isNearMeOnly && userLocation == null) {
+    // --- חלון הסינון החדש ---
+    private void showFilterDialog() {
+        if (getContext() == null) return;
+
+        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_filter, null);
+
+        Spinner spinnerCategory = dialogView.findViewById(R.id.spinnerDialogCategory);
+        Slider sliderDistance = dialogView.findViewById(R.id.sliderDistance);
+        Slider sliderRating = dialogView.findViewById(R.id.sliderRating);
+        TextView tvDistanceLabel = dialogView.findViewById(R.id.tvDistanceLabel);
+        TextView tvRatingLabel = dialogView.findViewById(R.id.tvRatingLabel);
+        Button btnApplyFilters = dialogView.findViewById(R.id.btnApplyFilters);
+
+        // הגדרת רשימת הקטגוריות בספינר
+        List<String> categories = new ArrayList<>();
+        categories.add("הכל");
+        categories.addAll(Arrays.asList(getResources().getStringArray(R.array.business_types)));
+        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_item, categories);
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerCategory.setAdapter(spinnerAdapter);
+        spinnerCategory.setSelection(categories.indexOf(currentCategoryFilter));
+
+        // הגדרת ערכים נוכחיים בסליידרים
+        sliderDistance.setValue(maxDistanceKmFilter);
+        tvDistanceLabel.setText("עד " + (int)maxDistanceKmFilter + " ק\"מ");
+
+        sliderRating.setValue(minRatingFilter);
+        tvRatingLabel.setText("מדירוג " + minRatingFilter + " ומעלה");
+
+        // עדכון טקסט תוך כדי גרירה
+        sliderDistance.addOnChangeListener((slider, value, fromUser) -> tvDistanceLabel.setText("עד " + (int)value + " ק\"מ"));
+        sliderRating.addOnChangeListener((slider, value, fromUser) -> tvRatingLabel.setText("מדירוג " + value + " ומעלה"));
+
+        AlertDialog dialog = new AlertDialog.Builder(getContext())
+                .setView(dialogView)
+                .create();
+
+        // שמירת הסינונים
+        btnApplyFilters.setOnClickListener(v -> {
+            currentCategoryFilter = spinnerCategory.getSelectedItem().toString();
+            maxDistanceKmFilter = sliderDistance.getValue();
+            minRatingFilter = sliderRating.getValue();
+
+            // אם המשתמש רוצה לסנן לפי מרחק אבל אין לנו מיקום עדיין, נבקש שוב
+            if (maxDistanceKmFilter < 50f && userLocation == null) {
                 checkLocationPermissionAndFetch();
+                Toast.makeText(getContext(), "מאתר מיקום...", Toast.LENGTH_SHORT).show();
             }
+
             applyFilters();
+            dialog.dismiss();
         });
+
+        dialog.show();
     }
 
     private void applyFilters() {
         displayedList.clear();
         for (BusinessModel business : originalList) {
+
+            // 1. סינון טקסט
             String bName = business.getName() != null ? business.getName() : "";
             boolean matchesSearch = bName.toLowerCase().contains(currentSearchText.toLowerCase());
-            String bType = business.getBusinessType() != null ? business.getBusinessType() : "";
-            boolean matchesCategory = currentCategory.equals("הכל") || bType.equals(currentCategory);
 
+            // 2. סינון קטגוריה
+            String bType = business.getBusinessType() != null ? business.getBusinessType() : "";
+            boolean matchesCategory = currentCategoryFilter.equals("הכל") || bType.equals(currentCategoryFilter);
+
+            // 3. סינון מרחק
             boolean matchesDistance = true;
-            if (isNearMeOnly) {
+            // אם הסליידר על 50, נתייחס לזה כאל "הראה הכל בלי הגבלת מרחק"
+            if (maxDistanceKmFilter < 50f) {
                 if (userLocation == null || business.getLatitude() == null || business.getLongitude() == null) {
-                    matchesDistance = false;
+                    matchesDistance = false; // מסתירים אם אין נתוני מיקום
                 } else {
                     float[] results = new float[1];
                     Location.distanceBetween(userLocation.getLatitude(), userLocation.getLongitude(),
                             business.getLatitude(), business.getLongitude(), results);
-                    if (results[0] > MAX_DISTANCE_METERS) matchesDistance = false;
+
+                    float distanceInKm = results[0] / 1000f;
+                    if (distanceInKm > maxDistanceKmFilter) matchesDistance = false;
                 }
             }
 
-            if (matchesSearch && matchesCategory && matchesDistance) {
+            // 4. סינון דירוג
+            boolean matchesRating = true;
+            // נניח שיש לך שדה rating ב-BusinessModel. אם אין, צריך להוסיף.
+            // float bRating = business.getRating() != null ? business.getRating() : 0f;
+            // if (bRating < minRatingFilter) matchesRating = false;
+
+            if (matchesSearch && matchesCategory && matchesDistance && matchesRating) {
                 displayedList.add(business);
             }
         }
 
+        // מיון לפי מרחק (הקרוב ביותר קודם) אם יש מיקום משתמש
         if (userLocation != null) {
             Collections.sort(displayedList, (b1, b2) -> {
                 if (b1.getLatitude() == null) return 1;

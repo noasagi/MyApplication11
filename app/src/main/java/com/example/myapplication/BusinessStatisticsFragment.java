@@ -16,7 +16,11 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 public class BusinessStatisticsFragment extends Fragment {
@@ -32,7 +36,7 @@ public class BusinessStatisticsFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_business_statistics, container, false);
 
-        tvTotalIncome = view.findViewById(R.id.tvTotalIncome); // השדה החדש!
+        tvTotalIncome = view.findViewById(R.id.tvTotalIncome);
         tvTotalOrders = view.findViewById(R.id.tvTotalOrders);
         tvAvgRating = view.findViewById(R.id.tvAvgRating);
         tvReturningCustomers = view.findViewById(R.id.tvReturningCustomers);
@@ -65,7 +69,7 @@ public class BusinessStatisticsFragment extends Fragment {
                         BusinessModel business = doc.toObject(BusinessModel.class);
                         if (business != null) {
                             if (business.getTotalReviews() > 0) {
-                                tvAvgRating.setText(String.format(java.util.Locale.getDefault(), "%.1f", business.getOverallRating()));
+                                tvAvgRating.setText(String.format(Locale.getDefault(), "%.1f", business.getOverallRating()));
                                 rbStatsProfessionalism.setRating(business.getAvgProfessionalism());
                                 rbStatsReliability.setRating(business.getAvgReliability());
                                 rbStatsPrice.setRating(business.getAvgPrice());
@@ -94,7 +98,7 @@ public class BusinessStatisticsFragment extends Fragment {
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     int totalValidOrders = 0;
-                    double totalIncome = 0; // משתנה סכימת ההכנסות
+                    double totalIncome = 0;
 
                     Map<String, Integer> hoursMap = new HashMap<>();
                     Map<String, Integer> servicesMap = new HashMap<>();
@@ -103,31 +107,40 @@ public class BusinessStatisticsFragment extends Fragment {
                     for (DocumentSnapshot doc : queryDocumentSnapshots) {
                         String status = doc.getString("status");
 
+                        // מתעלמים מתורים שנדחו או נחסמו
                         if ("REJECTED".equals(status) || "BLOCKED".equals(status)) continue;
 
-                        totalValidOrders++;
+                        totalValidOrders++; // סופר את כל התורים התקינים (כולל עתידיים) בשביל הסטטיסטיקה של כמות התורים
 
+                        String date = doc.getString("date");
                         String time = doc.getString("time");
                         String desc = doc.getString("description");
                         String userId = doc.getString("userId");
 
-                        // --- חילוץ ההכנסה מתוך התיאור (למשל: "תספורת (50₪)") ---
-                        if (desc != null && desc.contains("(") && desc.contains(")")) {
-                            int start = desc.lastIndexOf("(");
-                            int end = desc.lastIndexOf(")");
-                            if (start < end) {
-                                // מוחק הכל חוץ ממספרים ונקודה עשרונית
-                                String priceStr = desc.substring(start + 1, end).replaceAll("[^\\d.]", "");
-                                if (!priceStr.isEmpty()) {
-                                    try {
-                                        totalIncome += Double.parseDouble(priceStr);
-                                    } catch (NumberFormatException e) {
-                                        // מתעלם משגיאת המרה
+                        // --- חישוב הכנסות: רק לתורים מאושרים שהזמן שלהם עבר ---
+                        if ("APPROVED".equals(status) && isAppointmentPassed(date, time)) {
+                            Double priceVal = doc.getDouble("price");
+
+                            // עדיפות ראשונה: שליפה ישירה מהשדה price כמו שעשית בעמוד הבית
+                            if (priceVal != null) {
+                                totalIncome += priceVal;
+                            }
+                            // עדיפות שנייה (גיבוי): חילוץ מתוך התיאור (למשל: "תספורת (50₪)")
+                            else if (desc != null && desc.contains("(") && desc.contains(")")) {
+                                int start = desc.lastIndexOf("(");
+                                int end = desc.lastIndexOf(")");
+                                if (start < end) {
+                                    String priceStr = desc.substring(start + 1, end).replaceAll("[^\\d.]", "");
+                                    if (!priceStr.isEmpty()) {
+                                        try {
+                                            totalIncome += Double.parseDouble(priceStr);
+                                        } catch (NumberFormatException ignored) {}
                                     }
                                 }
                             }
                         }
 
+                        // --- איסוף נתונים לשאר הסטטיסטיקות ---
                         if (time != null && time.contains(":")) {
                             String hour = time.split(":")[0] + ":00";
                             hoursMap.put(hour, hoursMap.getOrDefault(hour, 0) + 1);
@@ -148,7 +161,7 @@ public class BusinessStatisticsFragment extends Fragment {
                     }
 
                     // 1. הצגת הכנסות
-                    tvTotalIncome.setText("₪" + String.format(java.util.Locale.getDefault(), "%,.0f", totalIncome));
+                    tvTotalIncome.setText("₪" + String.format(Locale.getDefault(), "%,.0f", totalIncome));
 
                     // 2. עדכון סך הכל תורים
                     tvTotalOrders.setText(String.valueOf(totalValidOrders));
@@ -185,5 +198,22 @@ public class BusinessStatisticsFragment extends Fragment {
                     tvReturningCustomers.setText(String.valueOf(returningCustomers));
 
                 });
+    }
+
+    // פונקציית עזר: בודקת אם התור (תאריך ושעה) כבר נמצא בעבר
+    private boolean isAppointmentPassed(String dateStr, String timeStr) {
+        if (dateStr == null || timeStr == null || dateStr.isEmpty() || timeStr.isEmpty()) return false;
+
+        // התבנית חייבת להתאים לאיך שאת שומרת ב-DB (למשל: "14/05/2026 10:30")
+        SimpleDateFormat sdf = new SimpleDateFormat("d/M/yyyy HH:mm", Locale.getDefault());
+        try {
+            Date appDateTime = sdf.parse(dateStr + " " + timeStr);
+            if (appDateTime != null) {
+                return appDateTime.before(new Date()); // מחזיר true אם התור בעבר
+            }
+        } catch (ParseException e) {
+            return false;
+        }
+        return false;
     }
 }

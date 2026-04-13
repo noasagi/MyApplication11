@@ -17,6 +17,8 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import androidx.appcompat.widget.Toolbar;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +35,13 @@ public class MyAppointmentsActivity extends BaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_my_appointments); // לוודא שיצרת layout למסך הזה
+
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setupSecondaryToolbar(toolbar, true);
+
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayShowTitleEnabled(false);
+        }
 
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();

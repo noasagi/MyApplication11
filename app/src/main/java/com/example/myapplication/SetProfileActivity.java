@@ -110,6 +110,12 @@ public class SetProfileActivity extends BaseActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setupSecondaryToolbar(toolbar, true);
 
+        // --- התוספת שלנו להעלמת "My Application" ---
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayShowTitleEnabled(false);
+        }
+        // ----------------------------------------
+
         // טעינת נתונים קיימים
         loadUserData();
     }
@@ -152,6 +158,9 @@ public class SetProfileActivity extends BaseActivity {
             else if (v.getId() == R.id.imgAvatar4) drawableId = R.drawable.avatar_4;
             else if (v.getId() == R.id.imgAvatar5) drawableId = R.drawable.avatar_5;
             else if (v.getId() == R.id.imgAvatar6) drawableId = R.drawable.avatar_6;
+            else if (v.getId() == R.id.imgAvatar7) drawableId = R.drawable.avatar_7;
+            else if (v.getId() == R.id.imgAvatar8) drawableId = R.drawable.avatar_8;
+            else if (v.getId() == R.id.imgAvatar9) drawableId = R.drawable.avatar_9;
 
             if (drawableId != 0) {
                 selectedImageBitmap = BitmapFactory.decodeResource(getResources(), drawableId);
@@ -160,13 +169,16 @@ public class SetProfileActivity extends BaseActivity {
             dialog.dismiss();
         };
 
-        // חיבור הפונקציה לכל התמונות
+        // חיבור הפונקציה לכל התמונות (1 עד 9)
         dialogView.findViewById(R.id.imgAvatar1).setOnClickListener(avatarClickListener);
         dialogView.findViewById(R.id.imgAvatar2).setOnClickListener(avatarClickListener);
         dialogView.findViewById(R.id.imgAvatar3).setOnClickListener(avatarClickListener);
         dialogView.findViewById(R.id.imgAvatar4).setOnClickListener(avatarClickListener);
         dialogView.findViewById(R.id.imgAvatar5).setOnClickListener(avatarClickListener);
         dialogView.findViewById(R.id.imgAvatar6).setOnClickListener(avatarClickListener);
+        dialogView.findViewById(R.id.imgAvatar7).setOnClickListener(avatarClickListener);
+        dialogView.findViewById(R.id.imgAvatar8).setOnClickListener(avatarClickListener);
+        dialogView.findViewById(R.id.imgAvatar9).setOnClickListener(avatarClickListener);
 
         dialog.show();
     }

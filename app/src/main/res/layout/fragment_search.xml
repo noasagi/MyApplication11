@@ -20,66 +20,42 @@
         android:padding="24dp"
         android:background="@color/jobsy_background"/>
 
-    <androidx.cardview.widget.CardView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:orientation="horizontal"
         android:layout_marginHorizontal="24dp"
         android:layout_marginBottom="16dp"
-        app:cardCornerRadius="16dp"
-        app:cardElevation="2dp"
-        app:cardBackgroundColor="@color/jobsy_card_bg">
+        android:gravity="center_vertical">
 
-        <androidx.appcompat.widget.SearchView
-            android:id="@+id/searchView"
-            android:layout_width="match_parent"
+        <androidx.cardview.widget.CardView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="@color/jobsy_card_bg"
+            android:layout_marginEnd="12dp">
+
+            <androidx.appcompat.widget.SearchView
+                android:id="@+id/searchView"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                app:iconifiedByDefault="false"
+                app:queryHint="חפש לפי שם העסק..."
+                app:searchIcon="@android:drawable/ic_menu_search"
+                android:theme="@style/JobsySearchViewTheme"/>
+        </androidx.cardview.widget.CardView>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnFilter"
+            style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+            android:layout_width="wrap_content"
             android:layout_height="56dp"
-            app:iconifiedByDefault="false"
-            app:queryHint="חפש לפי שם העסק..."
-            app:searchIcon="@android:drawable/ic_menu_search"
-            android:theme="@style/JobsySearchViewTheme"/>
-    </androidx.cardview.widget.CardView>
-
-    <LinearLayout
-        android:id="@+id/filterContainer"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingHorizontal="24dp"
-        android:paddingBottom="8dp">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="סנן לפי:"
-            android:textColor="@color/jobsy_text_primary"
-            android:textStyle="bold"
-            android:layout_marginEnd="12dp"/>
-
-        <Spinner
-            android:id="@+id/spinnerCategories"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:background="@color/jobsy_card_bg"
-            android:paddingHorizontal="8dp"/>
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingHorizontal="24dp"
-        android:paddingBottom="16dp">
-
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/switchNearMe"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="קרוב אליי (עד 15 ק״מ)"
-            android:textColor="@color/jobsy_text_primary"
-            android:textSize="16sp"
-            app:useMaterialThemeColors="true"/>
+            android:text="סינון"
+            app:cornerRadius="16dp"
+            app:backgroundTint="@color/jobsy_primary_soft"
+            android:textColor="@color/jobsy_primary"/>
     </LinearLayout>
 
     <FrameLayout

@@ -10,17 +10,23 @@
     android:layoutDirection="rtl"
     tools:context=".SetProfileActivity">
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="הפרופיל שלי"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:textColor="@color/jobsy_text_primary"
-        android:paddingTop="24dp"
-        android:paddingHorizontal="24dp"
-        android:paddingBottom="8dp"/>
 
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/jobsy_background"
+        app:title="" app:contentInsetStartWithNavigation="0dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="הפרופיל שלי"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="@color/jobsy_text_primary" />
+
+    </androidx.appcompat.widget.Toolbar>
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"

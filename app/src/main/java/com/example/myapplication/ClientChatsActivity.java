@@ -10,6 +10,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import androidx.appcompat.widget.Toolbar;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +29,13 @@ public class ClientChatsActivity extends BaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_client_chats);
+
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setupSecondaryToolbar(toolbar, true);
+
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayShowTitleEnabled(false);
+        }
 
         rvClientChats = findViewById(R.id.rvClientChats);
         rvClientChats.setLayoutManager(new LinearLayoutManager(this));
