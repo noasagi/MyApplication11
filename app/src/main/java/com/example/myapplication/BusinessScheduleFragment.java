@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
@@ -36,6 +37,7 @@ public class BusinessScheduleFragment extends Fragment {
     private FirebaseFirestore db;
     private FirebaseAuth auth;
     private String businessId;
+    private ListenerRegistration appointmentsListener;
 
     public BusinessScheduleFragment() {
         // Required empty public constructor
@@ -44,7 +46,6 @@ public class BusinessScheduleFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_business_schedule, container, false);
 
         db = FirebaseFirestore.getInstance();
@@ -57,7 +58,6 @@ public class BusinessScheduleFragment extends Fragment {
         adapter = new AppointmentsAdapter(appointmentList);
         rvAppointments.setAdapter(adapter);
 
-        // טעינת העסק והתורים
         fetchBusinessIdAndLoad();
 
         return view;
@@ -76,7 +76,7 @@ public class BusinessScheduleFragment extends Fragment {
                     }
                 })
                 .addOnFailureListener(e -> {
-                    if (getContext() != null)
+                    if (isAdded() && getContext() != null)
                         Toast.makeText(getContext(), "שגיאה בטעינת נתוני עסק", Toast.LENGTH_SHORT).show();
                 });
     }
@@ -84,11 +84,16 @@ public class BusinessScheduleFragment extends Fragment {
     private void loadAppointments() {
         if (businessId == null) return;
 
-        db.collection("appointments")
+        // הסרת מאזין קודם אם קיים למניעת כפילויות
+        if (appointmentsListener != null) {
+            appointmentsListener.remove();
+        }
+
+        appointmentsListener = db.collection("appointments")
                 .whereEqualTo("businessId", businessId)
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .addSnapshotListener((value, error) -> {
-                    if (error != null) return;
+                    if (error != null || !isAdded()) return;
 
                     appointmentList.clear();
                     if (value != null) {
@@ -109,17 +114,9 @@ public class BusinessScheduleFragment extends Fragment {
         String status = app.getStatus();
         if (status == null) status = "PENDING";
 
-        // 1. תורים שנדחו או נחסמו - אף פעם לא נציג ברשימה הזו
         if (status.equals("REJECTED") || status.equals("BLOCKED")) return false;
 
-        // 2. בדיקת תאריך - אם התאריך עבר (אתמול ומטה), אל תציג
-        // זה יתפוס גם תורים מאושרים וגם כאלה ששכחת לאשר/לדחות
-        if (isDateInPast(app.getDate())) {
-            return false;
-        }
-
-        // 3. אם התאריך הוא היום או בעתיד, והסטטוס תקין - נציג
-        return true;
+        return !isDateInPast(app.getDate());
     }
 
     private boolean isDateInPast(String dateStr) {
@@ -127,21 +124,31 @@ public class BusinessScheduleFragment extends Fragment {
         SimpleDateFormat sdf = new SimpleDateFormat("d/M/yyyy", Locale.getDefault());
         try {
             Date appointmentDate = sdf.parse(dateStr);
-            Date today = new Date();
-            Calendar cal1 = Calendar.getInstance();
-            Calendar cal2 = Calendar.getInstance();
-            if (appointmentDate != null) cal1.setTime(appointmentDate);
-            cal2.setTime(today);
+            if (appointmentDate == null) return false;
 
-            if (cal1.get(Calendar.YEAR) < cal2.get(Calendar.YEAR)) return true;
-            return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
-                    cal1.get(Calendar.DAY_OF_YEAR) < cal2.get(Calendar.DAY_OF_YEAR);
+            Calendar calApp = Calendar.getInstance();
+            calApp.setTime(appointmentDate);
+            
+            Calendar calToday = Calendar.getInstance();
+            calToday.set(Calendar.HOUR_OF_DAY, 0);
+            calToday.set(Calendar.MINUTE, 0);
+            calToday.set(Calendar.SECOND, 0);
+            calToday.set(Calendar.MILLISECOND, 0);
+
+            return calApp.before(calToday);
         } catch (ParseException e) {
             return false;
         }
     }
 
-    // --- Adapter Inner Class ---
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (appointmentsListener != null) {
+            appointmentsListener.remove();
+        }
+    }
+
     class AppointmentsAdapter extends RecyclerView.Adapter<AppointmentsAdapter.ViewHolder> {
         private List<Appointment> list;
 
@@ -168,36 +175,44 @@ public class BusinessScheduleFragment extends Fragment {
 
             if (status.equals("PENDING")) {
                 holder.tvStatus.setText("ממתין לאישור");
-                holder.tvStatus.setTextColor(Color.parseColor("#FF9800")); // כתום
+                holder.tvStatus.setTextColor(Color.parseColor("#FF9800"));
                 holder.btnApprove.setVisibility(View.VISIBLE);
                 holder.btnReject.setVisibility(View.VISIBLE);
                 holder.btnReject.setText("דחה");
             } else if (status.equals("APPROVED")) {
                 holder.tvStatus.setText("מאושר");
-                holder.tvStatus.setTextColor(Color.parseColor("#4CAF50")); // ירוק
+                holder.tvStatus.setTextColor(Color.parseColor("#4CAF50"));
                 holder.btnApprove.setVisibility(View.GONE);
                 holder.btnReject.setVisibility(View.VISIBLE);
                 holder.btnReject.setText("בטל תור");
             }
 
-            // עדכנו כאן כדי שיעביר את כל האובייקט app
             holder.btnApprove.setOnClickListener(v -> updateStatus(app, "APPROVED"));
             holder.btnReject.setOnClickListener(v -> updateStatus(app, "REJECTED"));
         }
 
         private void updateStatus(Appointment app, String newStatus) {
+            if (app.getAppointmentId() == null) return;
+
             db.collection("appointments").document(app.getAppointmentId()).update("status", newStatus)
                     .addOnSuccessListener(aVoid -> {
-                        Toast.makeText(getContext(), "סטטוס עודכן", Toast.LENGTH_SHORT).show();
+                        if (isAdded() && getContext() != null) {
+                            Toast.makeText(getContext(), "סטטוס עודכן", Toast.LENGTH_SHORT).show();
 
-                        // --- תוספת ההתראות: שליחה ללקוח ---
-                        String title = "עדכון לגבי התור שלך";
-                        String msg = newStatus.equals("APPROVED") ?
-                                "איזה יופי! התור שלך אושר." :
-                                "לצערנו, התור שלך נדחה או בוטל.";
+                            String title = "עדכון לגבי התור שלך";
+                            String msg = newStatus.equals("APPROVED") ?
+                                    "איזה יופי! התור שלך אושר." :
+                                    "לצערנו, התור שלך נדחה או בוטל.";
 
-                        PushNotificationHelper.sendNotification(app.getUserId(), title, msg);
-                        // ---------------------------------
+                            if (app.getUserId() != null) {
+                                PushNotificationHelper.sendNotification(app.getUserId(), title, msg);
+                            }
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        if (isAdded() && getContext() != null) {
+                            Toast.makeText(getContext(), "שגיאה בעדכון הסטטוס", Toast.LENGTH_SHORT).show();
+                        }
                     });
         }
 

@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.ImageDecoder;
 import android.location.Address;
 import android.location.Geocoder;
 import android.net.Uri;
@@ -25,7 +26,6 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -50,7 +50,7 @@ public class MyBusinessMainActivity extends BaseActivity {
 
     private LinearLayout previewContainer;
     private TextView tvNoImages;
-    private Button btnChooseImage, btnTakePhoto, btnSaveBusiness, btnDeleteBusiness;
+    private Button btnSaveBusiness, btnDeleteBusiness;
 
     private EditText eTBusinessName, eTBusinessPhone, eTBusinessDescription, eTBusinessAddress;
     private AutoCompleteTextView autoBusinessType;
@@ -59,18 +59,15 @@ public class MyBusinessMainActivity extends BaseActivity {
     private Button btnManageHours;
     private FirebaseFirestore firebaseFirestore;
 
-    // רשימות תמונות
-    private List<Uri> selectedImageUris = new ArrayList<>();
-    private List<Bitmap> selectedCameraBitmaps = new ArrayList<>();
+    private final List<Uri> selectedImageUris = new ArrayList<>();
+    private final List<Bitmap> selectedCameraBitmaps = new ArrayList<>();
 
-    // ניהול מצב
     private boolean isEditMode = false;
     private String currentBusinessId = null;
 
     private final int REQUEST_CAMERA_PERMISSION = 100;
     private final int REQUEST_STORAGE_PERMISSION = 101;
 
-    // --- משתני מיקום ---
     private Double businessLat = null;
     private Double businessLon = null;
 
@@ -103,11 +100,10 @@ public class MyBusinessMainActivity extends BaseActivity {
             getSupportActionBar().setDisplayShowTitleEnabled(false);
         }
 
-        // חיבור ל-XML
         previewContainer = findViewById(R.id.previewContainer);
         tvNoImages = findViewById(R.id.tvNoImages);
-        btnChooseImage = findViewById(R.id.btnChooseImage);
-        btnTakePhoto = findViewById(R.id.btnTakePhoto);
+        Button btnChooseImage = findViewById(R.id.btnChooseImage);
+        Button btnTakePhoto = findViewById(R.id.btnTakePhoto);
         btnSaveBusiness = findViewById(R.id.btnSaveBusiness);
         btnDeleteBusiness = findViewById(R.id.btnDeleteBusiness);
 
@@ -132,7 +128,6 @@ public class MyBusinessMainActivity extends BaseActivity {
             }
         });
 
-        // סוגי עסקים
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, getResources().getStringArray(R.array.business_types));
         autoBusinessType.setAdapter(adapter);
         autoBusinessType.setOnClickListener(v -> autoBusinessType.showDropDown());
@@ -160,6 +155,7 @@ public class MyBusinessMainActivity extends BaseActivity {
 
         ProgressDialog pd = new ProgressDialog(this);
         pd.setMessage("בודק נתונים...");
+        pd.setCancelable(false);
         pd.show();
 
         firebaseFirestore.collection("businesses")
@@ -202,6 +198,7 @@ public class MyBusinessMainActivity extends BaseActivity {
         autoBusinessType.setText(business.getBusinessType(), false);
 
         if (business.getImageBlobs() != null) {
+            selectedCameraBitmaps.clear();
             for (Blob blob : business.getImageBlobs()) {
                 byte[] bytes = blob.toBytes();
                 Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
@@ -212,6 +209,12 @@ public class MyBusinessMainActivity extends BaseActivity {
     }
 
     private void saveOrUpdateBusiness() {
+        FirebaseUser user = auth.getCurrentUser();
+        if (user == null) {
+            Toast.makeText(this, "עליך להיות מחובר כדי לשמור עסק", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         String name = eTBusinessName.getText().toString().trim();
         String phone = eTBusinessPhone.getText().toString().trim();
         String description = eTBusinessDescription.getText().toString().trim();
@@ -224,13 +227,15 @@ public class MyBusinessMainActivity extends BaseActivity {
             return;
         }
 
+        btnSaveBusiness.setEnabled(false);
         ProgressDialog pd = new ProgressDialog(this);
         pd.setTitle(isEditMode ? "מעדכן..." : "יוצר עסק...");
         pd.setMessage("אנא המתן");
+        pd.setCancelable(false);
         pd.show();
 
         String businessIdToSave = (currentBusinessId != null) ? currentBusinessId : UUID.randomUUID().toString();
-        String ownerId = auth.getCurrentUser().getUid();
+        String ownerId = user.getUid();
 
         new Thread(() -> {
             try {
@@ -239,15 +244,14 @@ public class MyBusinessMainActivity extends BaseActivity {
                 if (imageBlobs == null) {
                     runOnUiThread(() -> {
                         pd.dismiss();
+                        btnSaveBusiness.setEnabled(true);
                         Toast.makeText(this, "התמונות כבדות מדי", Toast.LENGTH_SHORT).show();
                     });
                     return;
                 }
 
-                // --- לוגיקת המרת כתובת לקואורדינטות (Geocoder) ---
                 Geocoder geocoder = new Geocoder(MyBusinessMainActivity.this, new Locale("he", "IL"));
                 try {
-                    // מוסיפים "ישראל" כדי למקד את החיפוש בארץ
                     List<Address> addresses = geocoder.getFromLocationName(address + ", ישראל", 1);
                     if (addresses != null && !addresses.isEmpty()) {
                         businessLat = addresses.get(0).getLatitude();
@@ -255,13 +259,15 @@ public class MyBusinessMainActivity extends BaseActivity {
                     } else {
                         runOnUiThread(() -> {
                             pd.dismiss();
+                            btnSaveBusiness.setEnabled(true);
                             Toast.makeText(this, "לא מצאנו את הכתובת. אנא ודא שהיא מדויקת (עיר ורחוב).", Toast.LENGTH_LONG).show();
                         });
-                        return; // עוצר את השמירה אם הכתובת לא תקינה
+                        return;
                     }
                 } catch (IOException e) {
                     runOnUiThread(() -> {
                         pd.dismiss();
+                        btnSaveBusiness.setEnabled(true);
                         Toast.makeText(this, "שגיאה בחיפוש הכתובת, נסה שוב מאוחר יותר.", Toast.LENGTH_SHORT).show();
                     });
                     return;
@@ -283,6 +289,7 @@ public class MyBusinessMainActivity extends BaseActivity {
                         .set(businessData, SetOptions.merge())
                         .addOnSuccessListener(aVoid -> runOnUiThread(() -> {
                             pd.dismiss();
+                            btnSaveBusiness.setEnabled(true);
                             Toast.makeText(this, isEditMode ? "עודכן בהצלחה!" : "נוצר בהצלחה!", Toast.LENGTH_SHORT).show();
 
                             isEditMode = true;
@@ -294,11 +301,15 @@ public class MyBusinessMainActivity extends BaseActivity {
                         }))
                         .addOnFailureListener(e -> runOnUiThread(() -> {
                             pd.dismiss();
+                            btnSaveBusiness.setEnabled(true);
                             Toast.makeText(this, "שגיאה בשמירה: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                         }));
 
             } catch (Exception e) {
-                runOnUiThread(pd::dismiss);
+                runOnUiThread(() -> {
+                    pd.dismiss();
+                    btnSaveBusiness.setEnabled(true);
+                });
             }
         }).start();
     }
@@ -317,6 +328,7 @@ public class MyBusinessMainActivity extends BaseActivity {
 
         ProgressDialog pd = new ProgressDialog(this);
         pd.setMessage("מוחק...");
+        pd.setCancelable(false);
         pd.show();
 
         firebaseFirestore.collection("businesses").document(currentBusinessId)
@@ -355,7 +367,14 @@ public class MyBusinessMainActivity extends BaseActivity {
 
         try {
             for (Uri uri : selectedImageUris) {
-                Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
+                Bitmap bitmap;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    ImageDecoder.Source source = ImageDecoder.createSource(getContentResolver(), uri);
+                    bitmap = ImageDecoder.decodeBitmap(source);
+                } else {
+                    bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
+                }
+
                 byte[] data = compressBitmap(bitmap);
                 totalBytes += data.length;
                 imageBlobs.add(Blob.fromBytes(data));
