@@ -31,6 +31,10 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
+// --- תוספות OneSignal ---
+import com.onesignal.OneSignal;
+import com.onesignal.Continue;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,7 +47,6 @@ public class CustomerHomeFragment extends Fragment {
     private FirebaseAuth auth;
     private FirebaseFirestore db;
 
-    // משתנים עבור אזור "הזמן שוב"
     private LinearLayout layoutRecentBusinesses;
     private RecyclerView rvRecentBusinesses;
     private RecentBusinessAdapter recentAdapter;
@@ -59,19 +62,28 @@ public class CustomerHomeFragment extends Fragment {
         cardAppointments = view.findViewById(R.id.cardAppointments);
         imgHomeProfile = view.findViewById(R.id.imgHomeProfile);
 
-        // אלמנטים לדירוג
         cardRateUs = view.findViewById(R.id.cardRateUs);
         tvRateBusinessName = view.findViewById(R.id.tvRateBusinessName);
         btnRateNow = view.findViewById(R.id.btnRateNow);
 
-        // אלמנטים ל"הזמן שוב"
         layoutRecentBusinesses = view.findViewById(R.id.layoutRecentBusinesses);
         rvRecentBusinesses = view.findViewById(R.id.rvRecentBusinesses);
 
         auth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
 
-        // הגדרת ה-RecyclerView האנכי (מלבן ברוחב הדף)
+        // --- הוספת סנכרון OneSignal ---
+        if (auth.getCurrentUser() != null) {
+            String uid = auth.getCurrentUser().getUid();
+            // 1. קישור המלקוח ל-OneSignal
+            OneSignal.login(uid);
+            // 2. כפיית הפעלת התראות בשרת כדי לסדר את הסטטוס false
+            OneSignal.getUser().getPushSubscription().optIn();
+            // 3. סנכרון סטטוס הרשאות
+            OneSignal.getNotifications().requestPermission(true, Continue.with(r -> {}));
+        }
+        // -------------------------------
+
         if (getContext() != null) {
             rvRecentBusinesses.setLayoutManager(new LinearLayoutManager(getContext()));
         }
@@ -79,7 +91,6 @@ public class CustomerHomeFragment extends Fragment {
         recentAdapter = new RecentBusinessAdapter(recentList);
         rvRecentBusinesses.setAdapter(recentAdapter);
 
-        // קריאות לטעינת נתונים
         loadUserName();
         checkPendingReviews();
         loadRecentBusinesses();
@@ -95,7 +106,7 @@ public class CustomerHomeFragment extends Fragment {
     public void onResume() {
         super.onResume();
         checkPendingReviews();
-        loadRecentBusinesses(); // רענון העסקים האחרונים כשחוזרים למסך
+        loadRecentBusinesses();
     }
 
     private void checkPendingReviews() {
@@ -132,12 +143,10 @@ public class CustomerHomeFragment extends Fragment {
         tvRateBusinessName.setText("איך היה אצל " + app.getBusinessName() + "?");
 
         btnRateNow.setOnClickListener(v -> {
-            // במקום לפתוח אקטיביטי חדש, אנחנו מציגים את החלון הקופץ!
             showAddReviewDialog(app);
         });
     }
 
-    // הפונקציה החדשה של החלון הקופץ
     private void showAddReviewDialog(Appointment app) {
         if (getContext() == null) return;
 
@@ -184,14 +193,11 @@ public class CustomerHomeFragment extends Fragment {
 
             db.collection("reviews").document(reviewId).set(newReview)
                     .addOnSuccessListener(aVoid -> {
-                        // עדכון התור שהוא כבר דורג
                         db.collection("appointments").document(app.getAppointmentId())
                                 .update("isReviewed", true);
 
                         Toast.makeText(getContext(), "תודה על הדירוג!", Toast.LENGTH_SHORT).show();
                         dialog.dismiss();
-
-                        // העלמת כרטיסיית הדירוג ממסך הבית אחרי שסיימנו
                         cardRateUs.setVisibility(View.GONE);
                     })
                     .addOnFailureListener(e -> {
@@ -268,7 +274,6 @@ public class CustomerHomeFragment extends Fragment {
         }
     }
 
-    // --- האדפטר הפנימי עבור רשימת "הזמן שוב" מותאם למלבן ול-BookingActivity ---
     class RecentBusinessAdapter extends RecyclerView.Adapter<RecentBusinessAdapter.ViewHolder> {
         private List<Appointment> recentAppointments;
 

@@ -11,6 +11,10 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 
+// --- תוספות OneSignal ---
+import com.onesignal.OneSignal;
+import com.onesignal.Continue;
+
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -32,6 +36,18 @@ public class BusinessHomeFragment extends Fragment {
 
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
+
+        // --- הוספת סנכרון OneSignal ---
+        if (auth.getCurrentUser() != null) {
+            String uid = auth.getCurrentUser().getUid();
+            // 1. קישור המשתמש ל-OneSignal (למקרה שהתנתק)
+            OneSignal.login(uid);
+            // 2. כפיית הפעלת התראות בשרת (משנה את enabled ל-true)
+            OneSignal.getUser().getPushSubscription().optIn();
+            // 3. סנכרון סטטוס הרשאות מול המכשיר (גם אם כבר פועל, זה יעדכן את השרת)
+            OneSignal.getNotifications().requestPermission(true, Continue.with(r -> {}));
+        }
+        // -------------------------------
 
         tvWelcome = view.findViewById(R.id.tvWelcome);
         tvDate = view.findViewById(R.id.tvDate);
@@ -56,14 +72,11 @@ public class BusinessHomeFragment extends Fragment {
                 .get()
                 .addOnSuccessListener(qs -> {
                     if (!qs.isEmpty()) {
-                        // שליפה דינמית של ה-ID מה-Firebase
                         businessId = qs.getDocuments().get(0).getString("businessId");
 
-                        // שליפה דינמית של שם העסק
                         String bName = qs.getDocuments().get(0).getString("businessName");
                         if (bName == null) bName = qs.getDocuments().get(0).getString("name");
 
-                        // אם אין שם עסק, נציג את שם המשתמש או טקסט כללי
                         if (bName == null || bName.isEmpty()) {
                             bName = "בעל עסק";
                         }
@@ -77,11 +90,9 @@ public class BusinessHomeFragment extends Fragment {
     private void loadDashboardStats() {
         if (businessId == null) return;
 
-        // לפי התמונה שלך, התאריך שמור עם אפסים: 09/04/2026
         SimpleDateFormat sdfDate = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
         String todayStr = sdfDate.format(new Date());
 
-        // האזנה לתורים מאושרים להיום
         db.collection("appointments")
                 .whereEqualTo("businessId", businessId)
                 .whereEqualTo("date", todayStr)
@@ -93,12 +104,10 @@ public class BusinessHomeFragment extends Fragment {
 
                     double totalRevenue = 0;
                     for (QueryDocumentSnapshot doc : snapshots) {
-                        // שליפה ישירה של המחיר כדי למנוע בעיות המרה
                         Long p = doc.getLong("price");
                         if (p != null) {
                             totalRevenue += p.doubleValue();
                         } else {
-                            // ניסיון שליפה כ-Double למקרה שזה נשמר עם נקודה עשרונית
                             Double d = doc.getDouble("price");
                             if (d != null) totalRevenue += d;
                         }
@@ -107,7 +116,6 @@ public class BusinessHomeFragment extends Fragment {
                     updateNextAppointmentFromList(snapshots);
                 });
 
-        // האזנה לתורים ממתינים (סינון תורים מהעבר כדי שיתאים לעמוד היומן)
         db.collection("appointments")
                 .whereEqualTo("businessId", businessId)
                 .whereEqualTo("status", "PENDING")
@@ -117,7 +125,6 @@ public class BusinessHomeFragment extends Fragment {
                     int validPendingCount = 0;
                     for (QueryDocumentSnapshot doc : snapshots) {
                         String dateStr = doc.getString("date");
-                        // נספור רק אם התור הוא מהיום או בעתיד
                         if (!isDateInPast(dateStr)) {
                             validPendingCount++;
                         }
@@ -148,7 +155,6 @@ public class BusinessHomeFragment extends Fragment {
         }
     }
 
-    // פונקציית עזר לסינון תאריכים שעברו (זהה לזו שביומן העסק)
     private boolean isDateInPast(String dateStr) {
         if (dateStr == null || dateStr.isEmpty()) return false;
         SimpleDateFormat sdf = new SimpleDateFormat("d/M/yyyy", Locale.getDefault());

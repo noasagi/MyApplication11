@@ -21,7 +21,6 @@ android {
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
-// ... המשך הקובץ כרגיל
 
     buildTypes {
         release {
@@ -57,21 +56,26 @@ dependencies {
     // Firebase Firestore
     implementation 'com.google.firebase:firebase-firestore:25.0.0'
 
-    // ⭐ NEW – Firebase Storage (תיקון הבעיה אצלך)
+    // Firebase Storage & Database
     implementation 'com.google.firebase:firebase-storage:21.0.0'
     implementation libs.firebase.database
+
+    // RecyclerView
     implementation libs.recyclerview
+    implementation 'androidx.recyclerview:recyclerview:1.3.2'
+
+    // Google Play Services
+    implementation("com.google.android.gms:play-services-location:21.0.1")
+    implementation("com.google.android.gms:play-services-auth:21.0.0")
+
+    // ⭐ תוספת חשובה: Firebase Messaging (עוזר ל-OneSignal לקבל טוקן מגוגל)
+    implementation 'com.google.firebase:firebase-messaging:23.4.1'
+
+    // ⭐ תיקון גרסה: OneSignal מוגדר לגרסה קבועה ויציבה
+    implementation 'com.onesignal:OneSignal:5.1.23'
 
     // Test libs
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
-
-    implementation 'androidx.recyclerview:recyclerview:1.3.2'
-
-    implementation("com.google.android.gms:play-services-location:21.0.1")
-
-    implementation("com.google.android.gms:play-services-auth:21.0.0")
-
-    implementation 'com.onesignal:OneSignal:[5.0.0, 5.99.99]'
 }
