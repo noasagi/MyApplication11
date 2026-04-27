@@ -55,7 +55,6 @@ public class BookingActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_booking);
 
-
         Toolbar toolbar = findViewById(R.id.toolbar);
         setupSecondaryToolbar(toolbar, true);
 
@@ -249,12 +248,29 @@ public class BookingActivity extends BaseActivity {
         data.put("timestamp", System.currentTimeMillis());
         data.put("description", selectedTreatment.getName());
         data.put("duration", selectedTreatment.getDurationMinutes());
-
-        // השורה הקריטית לעדכון ההכנסה היומית!
         data.put("price", selectedTreatment.getPrice());
 
         db.collection("appointments").document(appointmentId).set(data)
                 .addOnSuccessListener(aVoid -> {
+
+                    // --- התיקון: שולחים פוש לבעל העסק ---
+                    db.collection("businesses").document(currentBusinessId).get()
+                            .addOnSuccessListener(businessDoc -> {
+                                if (businessDoc.exists()) {
+                                    String ownerId = businessDoc.getString("ownerId");
+                                    // במקרה שבו ה-ID של העסק זהה ל-ID של בעל העסק
+                                    if (ownerId == null) {
+                                        ownerId = currentBusinessId;
+                                    }
+
+                                    String title = "תור חדש ממתין לאישור!";
+                                    String message = "הלקוח " + userName + " ביקש תור ל" + selectedTreatment.getName() + " בתאריך " + selectedDate + " בשעה " + selectedTime;
+
+                                    PushNotificationHelper.sendNotification(ownerId, title, message);
+                                }
+                            });
+                    // -------------------------------------
+
                     Toast.makeText(this, "התור נשלח לאישור!", Toast.LENGTH_LONG).show();
                     finish();
                 });

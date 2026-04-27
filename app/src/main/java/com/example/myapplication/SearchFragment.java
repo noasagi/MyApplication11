@@ -70,7 +70,7 @@ public class SearchFragment extends Fragment {
         rvBusinesses = view.findViewById(R.id.rvBusinesses);
         tvEmptyState = view.findViewById(R.id.tvEmptyState);
         searchView = view.findViewById(R.id.searchView);
-        btnFilter = view.findViewById(R.id.btnFilter); // נוסיף את זה ב-XML תכף
+        btnFilter = view.findViewById(R.id.btnFilter);
 
         db = FirebaseFirestore.getInstance();
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
@@ -149,7 +149,7 @@ public class SearchFragment extends Fragment {
         });
     }
 
-    // --- חלון הסינון החדש ---
+    // --- חלון הסינון ---
     private void showFilterDialog() {
         if (getContext() == null) return;
 
@@ -233,11 +233,13 @@ public class SearchFragment extends Fragment {
                 }
             }
 
-            // 4. סינון דירוג
+            // 4. סינון דירוג - קריאה לפונקציה הנכונה שיש במודל
             boolean matchesRating = true;
-            // נניח שיש לך שדה rating ב-BusinessModel. אם אין, צריך להוסיף.
-            // float bRating = business.getRating() != null ? business.getRating() : 0f;
-            // if (bRating < minRatingFilter) matchesRating = false;
+            float bRating = business.getOverallRating();
+
+            if (bRating < minRatingFilter) {
+                matchesRating = false;
+            }
 
             if (matchesSearch && matchesCategory && matchesDistance && matchesRating) {
                 displayedList.add(business);
