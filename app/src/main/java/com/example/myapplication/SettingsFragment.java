@@ -21,8 +21,6 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.Blob;
 import com.google.firebase.firestore.FirebaseFirestore;
 
-// --- הייבוא של OneSignal ---
-import com.onesignal.OneSignal;
 
 public class SettingsFragment extends Fragment {
 
@@ -81,8 +79,7 @@ public class SettingsFragment extends Fragment {
         });
 
         btnLogout.setOnClickListener(v -> {
-            // --- תוספת: מנתקים את הטלפון מהתראות הפוש של הלקוח ---
-            OneSignal.logout();
+
 
             mAuth.signOut();
             Intent intent = new Intent(getActivity(), LoginActivity.class);

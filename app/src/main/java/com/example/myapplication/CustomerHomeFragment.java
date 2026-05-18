@@ -31,10 +31,6 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
-// --- תוספות OneSignal ---
-import com.onesignal.OneSignal;
-import com.onesignal.Continue;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -72,17 +68,6 @@ public class CustomerHomeFragment extends Fragment {
         auth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
 
-        // --- הוספת סנכרון OneSignal ---
-        if (auth.getCurrentUser() != null) {
-            String uid = auth.getCurrentUser().getUid();
-            // 1. קישור המלקוח ל-OneSignal
-            OneSignal.login(uid);
-            // 2. כפיית הפעלת התראות בשרת כדי לסדר את הסטטוס false
-            OneSignal.getUser().getPushSubscription().optIn();
-            // 3. סנכרון סטטוס הרשאות
-            OneSignal.getNotifications().requestPermission(true, Continue.with(r -> {}));
-        }
-        // -------------------------------
 
         if (getContext() != null) {
             rvRecentBusinesses.setLayoutManager(new LinearLayoutManager(getContext()));

@@ -36,9 +36,6 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.HashMap;
 import java.util.Map;
 
-// --- הייבוא של OneSignal ---
-import com.onesignal.OneSignal;
-
 public class RegisterActivity extends AppCompatActivity {
 
     private EditText eTEmail, eTPass;
@@ -188,9 +185,7 @@ public class RegisterActivity extends AppCompatActivity {
         db.collection("users").document(user.getUid()).set(userData).addOnSuccessListener(aVoid -> {
             new UserHelper(this).setRole(userType);
 
-            // --- הקסם של OneSignal ---
-            // רושמים את המשתמש החדש כדי שיוכל לקבל התראות
-            OneSignal.login(user.getUid());
+
 
             Intent intent = userType.equals(UserHelper.ROLE_BUSINESS) ?
                     new Intent(this, BusinessMainActivity.class) : new Intent(this, ClientMainActivity.class);

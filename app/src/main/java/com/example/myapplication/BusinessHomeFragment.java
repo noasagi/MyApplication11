@@ -11,10 +11,6 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 
-// --- תוספות OneSignal ---
-import com.onesignal.OneSignal;
-import com.onesignal.Continue;
-
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -37,17 +33,6 @@ public class BusinessHomeFragment extends Fragment {
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
-        // --- הוספת סנכרון OneSignal ---
-        if (auth.getCurrentUser() != null) {
-            String uid = auth.getCurrentUser().getUid();
-            // 1. קישור המשתמש ל-OneSignal (למקרה שהתנתק)
-            OneSignal.login(uid);
-            // 2. כפיית הפעלת התראות בשרת (משנה את enabled ל-true)
-            OneSignal.getUser().getPushSubscription().optIn();
-            // 3. סנכרון סטטוס הרשאות מול המכשיר (גם אם כבר פועל, זה יעדכן את השרת)
-            OneSignal.getNotifications().requestPermission(true, Continue.with(r -> {}));
-        }
-        // -------------------------------
 
         tvWelcome = view.findViewById(R.id.tvWelcome);
         tvDate = view.findViewById(R.id.tvDate);

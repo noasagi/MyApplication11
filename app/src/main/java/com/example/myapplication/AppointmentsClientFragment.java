@@ -1,7 +1,9 @@
 package com.example.myapplication;
 
 import android.app.AlertDialog;
+import android.content.Intent;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -108,9 +110,6 @@ public class AppointmentsClientFragment extends Fragment {
                     adapter.notifyDataSetChanged();
                 });
     }
-
-    // פונקציית עזר לחישוב זמן כדי שלא תשכפלי קוד
-    
 
     // פונקציית עזר לחישוב זמן כדי שלא תשכפלי קוד
     private long calculateMillis(Appointment app) {
@@ -247,15 +246,23 @@ public class AppointmentsClientFragment extends Fragment {
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(getContext(), "התור בוטל בהצלחה", Toast.LENGTH_SHORT).show();
 
-                    // שליחה לבעל העסק שהלקוח ביטל
+                    // תיקון: שליחה לבעל העסק באמצעות SMS במקום Push Notification
                     if (app.getBusinessId() != null) {
                         db.collection("businesses").document(app.getBusinessId()).get()
                                 .addOnSuccessListener(doc -> {
-                                    String ownerId = doc.getString("ownerId");
-                                    if (ownerId != null) {
-                                        String title = "לקוח ביטל תור";
-                                        String msg = "הלקוח " + app.getUserName() + " ביטל את התור שנקבע ל-" + app.getDate() + " בשעה " + app.getTime();
-                                        PushNotificationHelper.sendNotification(ownerId, title, msg);
+                                    String businessPhone = doc.getString("phone");
+                                    String msg = "הלקוח " + app.getUserName() + " ביטל את התור שנקבע ל-" + app.getDate() + " בשעה " + app.getTime();
+
+                                    Intent smsIntent = new Intent(Intent.ACTION_SENDTO);
+                                    smsIntent.setData(Uri.parse("smsto:" + (businessPhone != null ? businessPhone : "")));
+                                    smsIntent.putExtra("sms_body", msg);
+
+                                    try {
+                                        startActivity(smsIntent);
+                                    } catch (Exception e) {
+                                        if (isAdded() && getContext() != null) {
+                                            Toast.makeText(getContext(), "לא נמצאה אפליקציית SMS מותקנת במכשיר", Toast.LENGTH_SHORT).show();
+                                        }
                                     }
                                 });
                     }

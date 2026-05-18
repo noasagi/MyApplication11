@@ -68,11 +68,6 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.0.1")
     implementation("com.google.android.gms:play-services-auth:21.0.0")
 
-    // ⭐ תוספת חשובה: Firebase Messaging (עוזר ל-OneSignal לקבל טוקן מגוגל)
-    implementation 'com.google.firebase:firebase-messaging:23.4.1'
-
-    // ⭐ תיקון גרסה: OneSignal מוגדר לגרסה קבועה ויציבה
-    implementation 'com.onesignal:OneSignal:5.1.23'
 
     // Test libs
     testImplementation libs.junit

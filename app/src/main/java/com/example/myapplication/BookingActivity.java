@@ -6,7 +6,9 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.app.DatePickerDialog;
+import android.content.Intent;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -180,27 +182,29 @@ public class BookingActivity extends BaseActivity {
                     if (weeklySchedule != null && weeklySchedule.containsKey(dayOfWeekKey)) {
                         Map<String, Object> dayData = (Map<String, Object>) weeklySchedule.get(dayOfWeekKey);
                         if (dayData != null && Boolean.TRUE.equals(dayData.get("isOpen"))) {
+                            // קריאה נכונה עם 3 ארגומנטים
                             fetchBookedSlotsAndGenerate((String)dayData.get("start"), (String)dayData.get("end"), appointmentDuration);
                         } else { showNoSlots("העסק סגור ביום זה"); }
                     } else { showNoSlots("לא הוגדרו שעות פעילות"); }
                 });
     }
 
+    // הפונקציה תוקנה לקבלת 3 ארגומנטים בלבד
     private void fetchBookedSlotsAndGenerate(String start, String end, int duration) {
         db.collection("appointments")
                 .whereEqualTo("businessId", currentBusinessId)
                 .whereEqualTo("date", selectedDate)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
-                    List<int[]> bookedRanges = new ArrayList<>();
+                    List<int[]> bookedRangesList = new ArrayList<>();
                     for (QueryDocumentSnapshot doc : querySnapshot) {
                         if (!"REJECTED".equals(doc.getString("status"))) {
                             int bStart = convertTimeToMinutes(doc.getString("time"));
                             Long bDur = doc.getLong("duration");
-                            bookedRanges.add(new int[]{bStart, bStart + (bDur != null ? bDur.intValue() : 30)});
+                            bookedRangesList.add(new int[]{bStart, bStart + (bDur != null ? bDur.intValue() : 30)});
                         }
                     }
-                    generateSlots(start, end, duration, bookedRanges);
+                    generateSlots(start, end, duration, bookedRangesList);
                 });
     }
 
@@ -253,25 +257,29 @@ public class BookingActivity extends BaseActivity {
         db.collection("appointments").document(appointmentId).set(data)
                 .addOnSuccessListener(aVoid -> {
 
-                    // --- התיקון: שולחים פוש לבעל העסק ---
+                    // --- פתיחת אפליקציית ה-SMS לשליחה לבעל העסק ---
                     db.collection("businesses").document(currentBusinessId).get()
                             .addOnSuccessListener(businessDoc -> {
+                                String businessPhone = "";
                                 if (businessDoc.exists()) {
-                                    String ownerId = businessDoc.getString("ownerId");
-                                    // במקרה שבו ה-ID של העסק זהה ל-ID של בעל העסק
-                                    if (ownerId == null) {
-                                        ownerId = currentBusinessId;
-                                    }
+                                    businessPhone = businessDoc.getString("phone");
+                                }
 
-                                    String title = "תור חדש ממתין לאישור!";
-                                    String message = "הלקוח " + userName + " ביקש תור ל" + selectedTreatment.getName() + " בתאריך " + selectedDate + " בשעה " + selectedTime;
+                                String message = "היי! ביקשתי לקבוע תור ל" + selectedTreatment.getName() + " בתאריך " + selectedDate + " בשעה " + selectedTime + ". אשמח לאישור המערכת. תודה, " + userName;
 
-                                    PushNotificationHelper.sendNotification(ownerId, title, message);
+                                Intent smsIntent = new Intent(Intent.ACTION_SENDTO);
+                                smsIntent.setData(Uri.parse("smsto:" + (businessPhone != null ? businessPhone : "")));
+                                smsIntent.putExtra("sms_body", message);
+
+                                try {
+                                    startActivity(smsIntent);
+                                } catch (Exception e) {
+                                    Toast.makeText(BookingActivity.this, "לא נמצאה אפליקציית SMS מותקנת במכשיר", Toast.LENGTH_SHORT).show();
                                 }
                             });
-                    // -------------------------------------
+                    // -----------------------------------------------------
 
-                    Toast.makeText(this, "התור נשלח לאישור!", Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "התור נשמר! אנא שלח את ה-SMS לאישור סופי.", Toast.LENGTH_LONG).show();
                     finish();
                 });
     }

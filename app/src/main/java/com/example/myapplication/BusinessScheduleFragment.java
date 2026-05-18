@@ -1,6 +1,8 @@
 package com.example.myapplication;
 
+import android.content.Intent;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -10,7 +12,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -84,7 +85,6 @@ public class BusinessScheduleFragment extends Fragment {
     private void loadAppointments() {
         if (businessId == null) return;
 
-        // הסרת מאזין קודם אם קיים למניעת כפילויות
         if (appointmentsListener != null) {
             appointmentsListener.remove();
         }
@@ -128,7 +128,7 @@ public class BusinessScheduleFragment extends Fragment {
 
             Calendar calApp = Calendar.getInstance();
             calApp.setTime(appointmentDate);
-            
+
             Calendar calToday = Calendar.getInstance();
             calToday.set(Calendar.HOUR_OF_DAY, 0);
             calToday.set(Calendar.MINUTE, 0);
@@ -197,15 +197,31 @@ public class BusinessScheduleFragment extends Fragment {
             db.collection("appointments").document(app.getAppointmentId()).update("status", newStatus)
                     .addOnSuccessListener(aVoid -> {
                         if (isAdded() && getContext() != null) {
-                            Toast.makeText(getContext(), "סטטוס עודכן", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getContext(), "סטטוס עודכן בבסיס הנתונים", Toast.LENGTH_SHORT).show();
 
-                            String title = "עדכון לגבי התור שלך";
-                            String msg = newStatus.equals("APPROVED") ?
-                                    "איזה יופי! התור שלך אושר." :
-                                    "לצערנו, התור שלך נדחה או בוטל.";
-
+                            // מושכים את מספר הטלפון של הלקוח מפיירבייס בשביל לשלוח לו Intent SMS
                             if (app.getUserId() != null) {
-                                PushNotificationHelper.sendNotification(app.getUserId(), title, msg);
+                                db.collection("users").document(app.getUserId()).get()
+                                        .addOnSuccessListener(userDoc -> {
+                                            String clientPhone = "";
+                                            if (userDoc.exists()) {
+                                                clientPhone = userDoc.getString("phone");
+                                            }
+
+                                            String msg = newStatus.equals("APPROVED") ?
+                                                    "איזה יופי! התור שלך עבור " + app.getDescription() + " בתאריך " + app.getDate() + " בשעה " + app.getTime() + " אושר בהצלחה!" :
+                                                    "שלום, לצערנו התור שלך עבור " + app.getDescription() + " בתאריך " + app.getDate() + " בשעה " + app.getTime() + " לא אושר או בוטל.";
+
+                                            Intent smsIntent = new Intent(Intent.ACTION_SENDTO);
+                                            smsIntent.setData(Uri.parse("smsto:" + (clientPhone != null ? clientPhone : "")));
+                                            smsIntent.putExtra("sms_body", msg);
+
+                                            try {
+                                                startActivity(smsIntent);
+                                            } catch (Exception e) {
+                                                Toast.makeText(getContext(), "לא נמצאה אפליקציית SMS מותקנת במכשיר", Toast.LENGTH_SHORT).show();
+                                            }
+                                        });
                             }
                         }
                     })

@@ -12,8 +12,6 @@ import androidx.fragment.app.Fragment;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 
-// --- הייבוא שהוספנו ---
-import com.onesignal.OneSignal;
 
 public class BusinessSettingsFragment extends Fragment {
 
@@ -91,8 +89,6 @@ public class BusinessSettingsFragment extends Fragment {
 
         // 6. התנתקות
         btnLogout.setOnClickListener(v -> {
-            // --- תוספת: מנתקים את הטלפון מהתראות הפוש של העסק ---
-            OneSignal.logout();
 
             FirebaseAuth.getInstance().signOut();
             Intent intent = new Intent(getActivity(), LoginActivity.class);

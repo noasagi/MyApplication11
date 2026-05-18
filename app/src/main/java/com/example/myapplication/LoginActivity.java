@@ -39,9 +39,6 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.firestore.FirebaseFirestore;
 
-// --- הייבוא שהוספנו ---
-import com.onesignal.OneSignal;
-
 public class LoginActivity extends AppCompatActivity {
 
     private EditText eTEmail, eTPass;
@@ -264,10 +261,6 @@ public class LoginActivity extends AppCompatActivity {
                         } else {
                             userHelper.setRole(UserHelper.ROLE_CLIENT);
                         }
-
-                        // --- הקסם של OneSignal ---
-                        // רושמים את המשתמש במערכת ההתראות לפי ה-UID שלו מפיירבייס
-                        OneSignal.login(uid);
 
                         Intent intent;
                         if (UserHelper.ROLE_BUSINESS.equals(userType)) {
