@@ -8,7 +8,7 @@
     android:padding="24dp"
     android:background="@color/jobsy_background"
     android:layoutDirection="rtl"
-    tools:context=".BusinessServicesFragment">
+    tools:context=".BusinessServicesActivity">
 
     <TextView
         android:layout_width="match_parent"

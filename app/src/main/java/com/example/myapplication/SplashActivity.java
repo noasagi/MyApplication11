@@ -12,6 +12,7 @@ import com.google.firebase.auth.FirebaseUser;
 
 public class SplashActivity extends AppCompatActivity {
 
+    // עצם עזר לבדיקת סוג המשתמש המחובר (בעל עסק או לקוח)
     private UserHelper userHelper;
 
     @Override
@@ -19,31 +20,39 @@ public class SplashActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
 
+        // אתחול מחלקת העזר
         userHelper = new UserHelper(this);
 
-        // מפעיל טיימר ל-2 שניות (2000 מילישניות)
+        // השהיית המסך למשך 3 שניות (3000 מילישניות) לצורך הצגת הלוגו, ואז מעבר לפעולה הבאה
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             checkUserAndNavigate();
-        }, 4000);
+        }, 3000);
     }
 
+    // פעולה הבודקת את מצב החיבור של המשתמש ומנווטת למסך המתאים
     private void checkUserAndNavigate() {
+        // קבלת המשתמש הנוכחי ממערכת האימות של פיירבייס
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
 
+        // בדיקה האם קיים משתמש מחובר במערכת
         if (currentUser == null) {
-            // המשתמש לא מחובר -> מעבירים למסך כניסה
-            startActivity(new Intent(SplashActivity.this, LoginActivity.class));
+            // אם אין משתמש מחובר, ניווט למסך ההתחברות
+            Intent intent = new Intent(SplashActivity.this, LoginActivity.class);
+            startActivity(intent);
         } else {
-            // המשתמש מחובר -> בודקים איזה סוג הוא
+            // אם יש משתמש מחובר, נבדוק את סוג המשתמש בעזרת מחלקת העזר
             if (userHelper.isBusinessOwner()) {
-                startActivity(new Intent(SplashActivity.this, BusinessMainActivity.class));
+                // ניווט למסך הראשי של בעל העסק
+                Intent intent = new Intent(SplashActivity.this, BusinessMainActivity.class);
+                startActivity(intent);
             } else {
-                // אם הוא לקוח (או אורח שנרשם כלקוח)
-                startActivity(new Intent(SplashActivity.this, ClientMainActivity.class));
+                // ניווט למסך הראשי של הלקוח
+                Intent intent = new Intent(SplashActivity.this, ClientMainActivity.class);
+                startActivity(intent);
             }
         }
 
-        // חשוב! סוגרים את ה-Splash כדי שלא יחזרו אליו בלחיצה על "אחורה"
+        // סגירת מסך הפתיחה כדי למנוע חזרה אליו בלחיצה על כפתור החזור במכשיר
         finish();
     }
 }

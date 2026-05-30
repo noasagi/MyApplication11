@@ -24,12 +24,13 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.MyApplication"
-        android:name=".MyApplication"
-        >
+        android:theme="@style/Theme.MyApplication">
 
-        <activity
-            android:name=".FragmentCustomerHistoryActivity"
+        <activity android:name=".BusinessServicesActivity"
+            android:exported="false" />
+
+
+        <activity android:name=".CustomerHistoryActivity"
             android:exported="false" />
         <activity
             android:name=".BusinessBlockSlotsActivity"
@@ -92,6 +93,10 @@
 
         <activity
             android:name=".ClientChatsActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".BusinessStatisticsActivity"
             android:exported="false" />
 
         <receiver
