@@ -62,7 +62,7 @@ public class ClientChatsAdapter extends RecyclerView.Adapter<ClientChatsAdapter.
                             if (business != null) {
                                 holder.tvClientName.setText(business.getName());
 
-                                // תהליך המרת תמונה: שליפת ה-Blob הראשי -> המרה למערך בייטים (byte[]) -> פענוח ל-Bitmap
+                                // תהליך המרת תמונה: שליפת ה-Blob הראשי - המרה למערך בייטים (byte[]) - פענוח ל-Bitmap
                                 List<Blob> images = business.getImageBlobs();
                                 if (images != null && !images.isEmpty()) {
                                     Blob firstImage = images.get(0);

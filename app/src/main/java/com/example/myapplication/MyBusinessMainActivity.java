@@ -2,6 +2,7 @@ package com.example.myapplication;
 
 import android.Manifest;
 import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -22,19 +23,24 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.annotation.NonNull;
 import androidx.appcompat.widget.Toolbar;
 import androidx.activity.EdgeToEdge;
+import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.Blob;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
 
 import java.io.ByteArrayOutputStream;
@@ -71,28 +77,32 @@ public class MyBusinessMainActivity extends BaseActivity {
     private Double businessLat = null;
     private Double businessLon = null;
 
-    // שימוש ב-ActivityResultLauncher מודרני לבחירת מספר תמונות מהגלריה במקביל
+    // שימוש במבנה אנונימי מסורתי לבחירת מספר תמונות מהגלריה במקביל
     private final ActivityResultLauncher<String> mGetMultipleContent =
-            registerForActivityResult(new ActivityResultContracts.GetMultipleContents(), result -> {
-                if (result != null && !result.isEmpty()) {
-                    selectedImageUris.addAll(result);
-                    refreshImagePreviews();
+            registerForActivityResult(new ActivityResultContracts.GetMultipleContents(), new ActivityResultCallback<List<Uri>>() {
+                @Override
+                public void onActivityResult(List<Uri> result) {
+                    if (result != null && !result.isEmpty()) {
+                        selectedImageUris.addAll(result);
+                        refreshImagePreviews();
+                    }
                 }
             });
 
-    // שימוש ב-ActivityResultLauncher מודרני לצילום תמונה ישירות מהמצלמה
+    // שימוש במבנה אנונימי מסורתי לצילום תמונה ישירות מהמצלמה
     private final ActivityResultLauncher<Void> mTakePhoto =
-            registerForActivityResult(new ActivityResultContracts.TakePicturePreview(), result -> {
-                if (result != null) {
-                    selectedCameraBitmaps.add(result);
-                    refreshImagePreviews();
+            registerForActivityResult(new ActivityResultContracts.TakePicturePreview(), new ActivityResultCallback<Bitmap>() {
+                @Override
+                public void onActivityResult(Bitmap result) {
+                    if (result != null) {
+                        selectedCameraBitmaps.add(result);
+                        refreshImagePreviews();
+                    }
                 }
             });
 
     /**
-     * מה הפעולה עושה: מאתחלת את רכיבי המסך, מקשרת את סרגל הכלים, מגדירה את תפריט הבחירה הנגלל (Spinner-like AutoCompleteTextView) ומחברת מאזינים לכפתורים.
-     * קלט: Bundle savedInstanceState.
-     * פלט: אין.
+     * מה הפעולה עושה: מאתחלת את רכיבי המסך, מקשרת את סרגל הכלים, מגדירה את תפריט הבחירה הנגלל ומחברת מאזינים לכפתורים.
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -125,46 +135,69 @@ public class MyBusinessMainActivity extends BaseActivity {
         auth = FirebaseAuth.getInstance();
         firebaseFirestore = FirebaseFirestore.getInstance();
 
-        btnManageHours.setOnClickListener(v -> {
-            if (currentBusinessId != null) {
-                Intent intent = new Intent(MyBusinessMainActivity.this, BusinessHoursActivity.class);
-                intent.putExtra("BUSINESS_ID", currentBusinessId);
-                startActivity(intent);
-            } else {
-                Toast.makeText(this, "יש לשמור את העסק קודם", Toast.LENGTH_SHORT).show();
+        btnManageHours.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (currentBusinessId != null) {
+                    Intent intent = new Intent(MyBusinessMainActivity.this, BusinessHoursActivity.class);
+                    intent.putExtra("BUSINESS_ID", currentBusinessId);
+                    MyBusinessMainActivity.this.startActivity(intent);
+                } else {
+                    Toast.makeText(MyBusinessMainActivity.this, "יש לשמור את העסק קודם", Toast.LENGTH_SHORT).show();
+                }
             }
         });
 
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, getResources().getStringArray(R.array.business_types));
         autoBusinessType.setAdapter(adapter);
-        autoBusinessType.setOnClickListener(v -> autoBusinessType.showDropDown());
+        autoBusinessType.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                autoBusinessType.showDropDown();
+            }
+        });
 
         checkIfUserHasBusiness(); // שלב א': בדיקה אסינכרונית אם למשתמש המחובר כבר יש עסק קיים במסד
 
-        btnChooseImage.setOnClickListener(v -> {
-            if (checkStoragePermission()) mGetMultipleContent.launch("image/*");
-            else requestStoragePermission();
+        btnChooseImage.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (checkStoragePermission()) mGetMultipleContent.launch("image/*");
+                else requestStoragePermission();
+            }
         });
 
-        btnTakePhoto.setOnClickListener(v -> {
-            if (checkCameraPermission()) mTakePhoto.launch(null);
-            else requestCameraPermission();
+        btnTakePhoto.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (checkCameraPermission()) mTakePhoto.launch(null);
+                else requestCameraPermission();
+            }
         });
 
-        btnSaveBusiness.setOnClickListener(v -> saveOrUpdateBusiness());
-        btnDeleteBusiness.setOnClickListener(v -> showDeleteConfirmation());
+        btnSaveBusiness.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                saveOrUpdateBusiness();
+            }
+        });
+
+        btnDeleteBusiness.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showDeleteConfirmation();
+            }
+        });
     }
 
     /**
      * מה הפעולה עושה: פונה ל-Firestore ובודקת האם קיים מסמך באוסף businesses שבו שדה ה-ownerId שווה ל-UID של המשתמש המחובר.
-     * קלט: אין.
-     * פלט: אין (void).
      */
     private void checkIfUserHasBusiness() {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) return;
 
-        ProgressDialog pd = new ProgressDialog(this);
+        final ProgressDialog pd = new ProgressDialog(this);
         pd.setMessage("בודק נתונים...");
         pd.setCancelable(false);
         pd.show();
@@ -172,29 +205,33 @@ public class MyBusinessMainActivity extends BaseActivity {
         firebaseFirestore.collection("businesses")
                 .whereEqualTo("ownerId", user.getUid())
                 .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    pd.dismiss();
-                    if (!queryDocumentSnapshots.isEmpty()) {
-                        DocumentSnapshot document = queryDocumentSnapshots.getDocuments().get(0);
-                        BusinessModel business = document.toObject(BusinessModel.class);
-                        if (business != null) {
-                            switchToEditMode(business); // העברת המסך למצב עריכת נתונים קיימים
+                .addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
+                    @Override
+                    public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
+                        pd.dismiss();
+                        if (!queryDocumentSnapshots.isEmpty()) {
+                            DocumentSnapshot document = queryDocumentSnapshots.getDocuments().get(0);
+                            BusinessModel business = document.toObject(BusinessModel.class);
+                            if (business != null) {
+                                MyBusinessMainActivity.this.switchToEditMode(business); // העברת המסך למצב עריכת נתונים קיימים
+                            }
+                        } else {
+                            btnDeleteBusiness.setVisibility(View.GONE);
+                            btnManageHours.setVisibility(View.GONE);
                         }
-                    } else {
-                        btnDeleteBusiness.setVisibility(View.GONE);
-                        btnManageHours.setVisibility(View.GONE);
                     }
                 })
-                .addOnFailureListener(e -> {
-                    pd.dismiss();
-                    Toast.makeText(this, "שגיאה בבדיקת נתונים", Toast.LENGTH_SHORT).show();
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        pd.dismiss();
+                        Toast.makeText(MyBusinessMainActivity.this, "שגיאה בבדיקת נתונים", Toast.LENGTH_SHORT).show();
+                    }
                 });
     }
 
     /**
-     * מה הפעולה עושה: משנה את מצב המסך למצב עריכה (Edit Mode), מאכלסת את שדות הקלט בנתוני העסק הקיים, ומפענחת את מערך הבלובים (Blob) חזרה לתמונות Bitmap לתצוגה.
-     * קלט: BusinessModel business.
-     * פלט: אין (void).
+     * מה הפעולה עושה: משנה את מצב המסך למצב עריכה (Edit Mode), מאכלסת את שדות הקלט בנתוני העסק הקיים, ומפענחת את מערך הבלובים חזרה לתמונות Bitmap לתצוגה.
      */
     private void switchToEditMode(BusinessModel business) {
         isEditMode = true;
@@ -225,9 +262,7 @@ public class MyBusinessMainActivity extends BaseActivity {
     }
 
     /**
-     * מה הפעולה עושה: אוספת את נתוני הממשק, מעבדת ומקטינה את התמונות, מפעילה מנגנון Geocoder ברקע להמרת הכתובת לקואורדינטות, ושומרת/מעדכנת את המסמך ב-Firestore באמצעות SetOptions.merge().
-     * קלט: אין.
-     * פלט: אין (void).
+     * מה הפעולה עושה: אוספת את נתוני הממשק, מעבדת ומקטינה את התמונות, מפעילה מנגנון Geocoder ברקע להמרת הכתובת לקואורדינטות, ושומרת/מעדכנת את המסמך ב-Firestore.
      */
     private void saveOrUpdateBusiness() {
         FirebaseUser user = auth.getCurrentUser();
@@ -236,11 +271,11 @@ public class MyBusinessMainActivity extends BaseActivity {
             return;
         }
 
-        String name = eTBusinessName.getText().toString().trim();
-        String phone = eTBusinessPhone.getText().toString().trim();
-        String description = eTBusinessDescription.getText().toString().trim();
-        String address = eTBusinessAddress.getText().toString().trim();
-        String businessType = autoBusinessType.getText().toString().trim();
+        final String name = eTBusinessName.getText().toString().trim();
+        final String phone = eTBusinessPhone.getText().toString().trim();
+        final String description = eTBusinessDescription.getText().toString().trim();
+        final String address = eTBusinessAddress.getText().toString().trim();
+        final String businessType = autoBusinessType.getText().toString().trim();
 
         if (name.isEmpty() || phone.isEmpty() || description.isEmpty() || address.isEmpty() ||
                 (selectedImageUris.isEmpty() && selectedCameraBitmaps.isEmpty()) || businessType.isEmpty()) {
@@ -249,90 +284,120 @@ public class MyBusinessMainActivity extends BaseActivity {
         }
 
         btnSaveBusiness.setEnabled(false);
-        ProgressDialog pd = new ProgressDialog(this);
+        final ProgressDialog pd = new ProgressDialog(this);
         pd.setTitle(isEditMode ? "מעדכן..." : "יוצר עסק...");
         pd.setMessage("אנא המתן");
         pd.setCancelable(false);
         pd.show();
 
-        String businessIdToSave = (currentBusinessId != null) ? currentBusinessId : UUID.randomUUID().toString();
-        String ownerId = user.getUid();
+        final String businessIdToSave = (currentBusinessId != null) ? currentBusinessId : UUID.randomUUID().toString();
+        final String ownerId = user.getUid();
 
-        // הרצת עיבוד תמונות וגיאוקודינג בשרשור נפרד (Thread) למניעת תקיעת ה-UI (ANR - Application Not Responding)
-        new Thread(() -> {
-            try {
-                List<Blob> imageBlobs = processImages();
-
-                if (imageBlobs == null) {
-                    runOnUiThread(() -> {
-                        pd.dismiss();
-                        btnSaveBusiness.setEnabled(true);
-                        Toast.makeText(this, "התמונות כבדות מדי", Toast.LENGTH_SHORT).show();
-                    });
-                    return;
-                }
-
-                // שימוש ברכיב Geocoder להמרת מחרוזת הכתובת למיקומים גיאוגרפיים (מבוסס רשת)
-                Geocoder geocoder = new Geocoder(MyBusinessMainActivity.this, new Locale("he", "IL"));
+        // הרצת עיבוד תמונות וגיאוקודינג בשרשור נפרד מסורתי (Thread)
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
                 try {
-                    List<Address> addresses = geocoder.getFromLocationName(address + ", ישראל", 1);
-                    if (addresses != null && !addresses.isEmpty()) {
-                        businessLat = addresses.get(0).getLatitude();
-                        businessLon = addresses.get(0).getLongitude();
-                    } else {
-                        runOnUiThread(() -> {
-                            pd.dismiss();
-                            btnSaveBusiness.setEnabled(true);
-                            Toast.makeText(this, "לא מצאנו את הכתובת. אנא ודא שהיא מדויקת (עיר ורחוב).", Toast.LENGTH_LONG).show();
+                    final List<Blob> imageBlobs = processImages();
+
+                    if (imageBlobs == null) {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                pd.dismiss();
+                                btnSaveBusiness.setEnabled(true);
+                                Toast.makeText(MyBusinessMainActivity.this, "התמונות כבדות מדי", Toast.LENGTH_SHORT).show();
+                            }
                         });
                         return;
                     }
-                } catch (IOException e) {
-                    runOnUiThread(() -> {
-                        pd.dismiss();
-                        btnSaveBusiness.setEnabled(true);
-                        Toast.makeText(this, "שגיאה בחיפוש הכתובת, נסה שוב מאוחר יותר.", Toast.LENGTH_SHORT).show();
+
+                    Geocoder geocoder = new Geocoder(MyBusinessMainActivity.this, new Locale("he", "IL"));
+                    try {
+                        List<Address> addresses = geocoder.getFromLocationName(address + ", ישראל", 1);
+                        if (addresses != null && !addresses.isEmpty()) {
+                            businessLat = addresses.get(0).getLatitude();
+                            businessLon = addresses.get(0).getLongitude();
+                        } else {
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    pd.dismiss();
+                                    btnSaveBusiness.setEnabled(true);
+                                    Toast.makeText(MyBusinessMainActivity.this, "לא מצאנו את הכתובת. אנא ודא שהיא מדויקת (עיר ורחוב).", Toast.LENGTH_LONG).show();
+                                }
+                            });
+                            return;
+                        }
+                    } catch (IOException e) {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                pd.dismiss();
+                                btnSaveBusiness.setEnabled(true);
+                                Toast.makeText(MyBusinessMainActivity.this, "שגיאה בחיפוש הכתובת, נסה שוב מאוחר יותר.", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                        return;
+                    }
+
+                    final Map<String, Object> businessData = new HashMap<>();
+                    businessData.put("businessId", businessIdToSave);
+                    businessData.put("ownerId", ownerId);
+                    businessData.put("name", name);
+                    businessData.put("description", description);
+                    businessData.put("phone", phone);
+                    businessData.put("address", address);
+                    businessData.put("businessType", businessType);
+                    businessData.put("imageBlobs", imageBlobs);
+                    businessData.put("latitude", businessLat);
+                    businessData.put("longitude", businessLon);
+
+                    firebaseFirestore.collection("businesses").document(businessIdToSave)
+                            .set(businessData, SetOptions.merge())
+                            .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                @Override
+                                public void onSuccess(Void aVoid) {
+                                    runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            pd.dismiss();
+                                            btnSaveBusiness.setEnabled(true);
+                                            Toast.makeText(MyBusinessMainActivity.this, isEditMode ? "עודכן בהצלחה!" : "נוצר בהצלחה!", Toast.LENGTH_SHORT).show();
+
+                                            isEditMode = true;
+                                            currentBusinessId = businessIdToSave;
+
+                                            btnManageHours.setVisibility(View.VISIBLE);
+                                            btnDeleteBusiness.setVisibility(View.VISIBLE);
+                                            btnSaveBusiness.setText("עדכן פרטים");
+                                        }
+                                    });
+                                }
+                            })
+                            .addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull final Exception e) {
+                                    runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            pd.dismiss();
+                                            btnSaveBusiness.setEnabled(true);
+                                            Toast.makeText(MyBusinessMainActivity.this, "שגיאה בשמירה: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                        }
+                                    });
+                                }
+                            });
+
+                } catch (Exception e) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            pd.dismiss();
+                            btnSaveBusiness.setEnabled(true);
+                        }
                     });
-                    return;
                 }
-
-                Map<String, Object> businessData = new HashMap<>();
-                businessData.put("businessId", businessIdToSave);
-                businessData.put("ownerId", ownerId);
-                businessData.put("name", name);
-                businessData.put("description", description);
-                businessData.put("phone", phone);
-                businessData.put("address", address);
-                businessData.put("businessType", businessType);
-                businessData.put("imageBlobs", imageBlobs);
-                businessData.put("latitude", businessLat);
-                businessData.put("longitude", businessLon);
-
-                firebaseFirestore.collection("businesses").document(businessIdToSave)
-                        .set(businessData, SetOptions.merge()) // מיזוג חכם המונע דריסת שדות אחרים שלא צוינו (כמו דירוגי ממוצעים)
-                        .addOnSuccessListener(aVoid -> runOnUiThread(() -> {
-                            pd.dismiss();
-                            btnSaveBusiness.setEnabled(true);
-                            Toast.makeText(this, isEditMode ? "עודכן בהצלחה!" : "נוצר בהצלחה!", Toast.LENGTH_SHORT).show();
-
-                            isEditMode = true;
-                            currentBusinessId = businessIdToSave;
-
-                            btnManageHours.setVisibility(View.VISIBLE);
-                            btnDeleteBusiness.setVisibility(View.VISIBLE);
-                            btnSaveBusiness.setText("עדכן פרטים");
-                        }))
-                        .addOnFailureListener(e -> runOnUiThread(() -> {
-                            pd.dismiss();
-                            btnSaveBusiness.setEnabled(true);
-                            Toast.makeText(this, "שגיאה בשמירה: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                        }));
-
-            } catch (Exception e) {
-                runOnUiThread(() -> {
-                    pd.dismiss();
-                    btnSaveBusiness.setEnabled(true);
-                });
             }
         }).start();
     }
@@ -341,59 +406,63 @@ public class MyBusinessMainActivity extends BaseActivity {
         new AlertDialog.Builder(this)
                 .setTitle("מחיקת עסק")
                 .setMessage("האם את בטוחה? הפעולה לא ניתנת לביטול.")
-                .setPositiveButton("מחק", (dialog, which) -> deleteBusiness())
+                .setPositiveButton("מחק", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        deleteBusiness();
+                    }
+                })
                 .setNegativeButton("ביטול", null)
                 .show();
     }
 
     /**
-     * מה הפעולה עושה: מוחקת לחלוטין את מסמך בית העסק מ-Firestore ומאפסת את כל רכיבי הממשק למצב התחלתי נקי.
-     * קלט: אין.
-     * פלט: אין (void).
+     * מה הפעולה עושה: מוחקת לחלוטין את מסמך בית העסק מ-Firestore ומאפסת את רכיבי הממשק.
      */
     private void deleteBusiness() {
         if (currentBusinessId == null) return;
 
-        ProgressDialog pd = new ProgressDialog(this);
+        final ProgressDialog pd = new ProgressDialog(this);
         pd.setMessage("מוחק...");
         pd.setCancelable(false);
         pd.show();
 
         firebaseFirestore.collection("businesses").document(currentBusinessId)
                 .delete()
-                .addOnSuccessListener(aVoid -> {
-                    pd.dismiss();
-                    Toast.makeText(this, "העסק נמחק", Toast.LENGTH_SHORT).show();
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        pd.dismiss();
+                        Toast.makeText(MyBusinessMainActivity.this, "העסק נמחק", Toast.LENGTH_SHORT).show();
 
-                    isEditMode = false;
-                    currentBusinessId = null;
-                    businessLat = null;
-                    businessLon = null;
-                    btnSaveBusiness.setText("שמור עסק");
+                        isEditMode = false;
+                        currentBusinessId = null;
+                        businessLat = null;
+                        businessLon = null;
+                        btnSaveBusiness.setText("שמור עסק");
 
-                    btnDeleteBusiness.setVisibility(View.GONE);
-                    btnManageHours.setVisibility(View.GONE);
+                        btnDeleteBusiness.setVisibility(View.GONE);
+                        btnManageHours.setVisibility(View.GONE);
 
-                    eTBusinessName.setText("");
-                    eTBusinessPhone.setText("");
-                    eTBusinessDescription.setText("");
-                    eTBusinessAddress.setText("");
-                    autoBusinessType.setText("");
-                    selectedImageUris.clear();
-                    selectedCameraBitmaps.clear();
-                    refreshImagePreviews();
+                        eTBusinessName.setText("");
+                        eTBusinessPhone.setText("");
+                        eTBusinessDescription.setText("");
+                        eTBusinessAddress.setText("");
+                        autoBusinessType.setText("");
+                        selectedImageUris.clear();
+                        selectedCameraBitmaps.clear();
+                        refreshImagePreviews();
+                    }
                 })
-                .addOnFailureListener(e -> {
-                    pd.dismiss();
-                    Toast.makeText(this, "שגיאה במחיקה", Toast.LENGTH_SHORT).show();
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        pd.dismiss();
+                        Toast.makeText(MyBusinessMainActivity.this, "שגיאה במחיקה", Toast.LENGTH_SHORT).show();
+                    }
                 });
     }
 
-    /**
-     * מה הפעולה עושה: עוברת על כל התמונות שנבחרו (מצלמה וגלריה), קוראת אותן מהמכשיר, דוחסת אותן והופכת אותן לרשימה של אובייקטי Blob הניתנים לשמירה בתוך מסמך פיירסטור.
-     * קלט: אין.
-     * פלט: List<Blob> (רשימת התמונות המכווצות כמערכי בתים) או null במידה והנפח חורג מהמגבלה הכללית.
-     */
     private List<Blob> processImages() {
         List<Blob> imageBlobs = new ArrayList<>();
         long totalBytes = 0;
@@ -421,24 +490,16 @@ public class MyBusinessMainActivity extends BaseActivity {
             return new ArrayList<>();
         }
 
-        // הגנת חומת אש של פיירסטור: מסמך שלם אינו יכול לעלות על 1MB (1024KB), לכן נגביל את התמונות ל-950KB מקסימום
         if (totalBytes > 950 * 1024) return null;
         return imageBlobs;
     }
 
-    /**
-     * מה הפעולה עושה: משנה את גודל התמונה למימדים של 800x800 פיקסלים ודוחסת אותה בפורמט JPEG לאיכות של 70% כדי להקטין דרסטית את משקלה ברשת.
-     * קלט: Bitmap bitmap.
-     * פלט: byte[] (מערך בתים דחוס).
-     */
     private byte[] compressBitmap(Bitmap bitmap) {
         Bitmap scaled = Bitmap.createScaledBitmap(bitmap, 800, 800, true);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         scaled.compress(Bitmap.CompressFormat.JPEG, 70, baos);
         return baos.toByteArray();
     }
-
-    // --- פעולות עזר פרטיות לריענון ויצירת תצוגה מקדימה דינמית לתמונות (UI Previews) ---
 
     private void refreshImagePreviews() {
         previewContainer.removeAllViews();
@@ -463,8 +524,6 @@ public class MyBusinessMainActivity extends BaseActivity {
         else iv.setImageBitmap(bitmap);
         previewContainer.addView(iv);
     }
-
-    // --- ניהול בדיקה ובקשת הרשאות זמן ריצה (Runtime Permissions) מול מערכת ההפעלה אנדרואיד ---
 
     private boolean checkCameraPermission() {
         return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;

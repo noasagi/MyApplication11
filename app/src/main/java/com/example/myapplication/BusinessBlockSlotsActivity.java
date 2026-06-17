@@ -260,7 +260,7 @@ public class BusinessBlockSlotsActivity extends BaseActivity {
         // הגנה עסקית: אם לקוח כבר הזמין תור בשעה הזו, לבעל העסק אסור לחסום את המקום באופן שרירותי מכאן
         if (slot.status.equals("BOOKED")) return;
 
-        // מצב פנוי -> חסימה: יצירת אובייקט "תור" חדש בסטטוס BLOCKED והעלאתו לענן
+        // מצב פנוי - חסימה: יצירת אובייקט "תור" חדש בסטטוס BLOCKED והעלאתו לענן
         if (slot.status.equals("FREE")) {
             Appointment blockApp = new Appointment();
             blockApp.setBusinessId(businessId);
@@ -280,7 +280,7 @@ public class BusinessBlockSlotsActivity extends BaseActivity {
                         }
                     });
         }
-        // מצב חסום -> שחרור: מחיקת מסמך החסימה הספציפי מ-Firestore על פי המזהה שלו
+        // מצב חסום  שחרור: מחיקת מסמך החסימה הספציפי מ-Firestore על פי המזהה שלו
         else if (slot.status.equals("BLOCKED")) {
             db.collection("appointments").document(slot.appointmentId).delete()
                     .addOnSuccessListener(new OnSuccessListener<Void>() {

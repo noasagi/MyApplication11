@@ -8,7 +8,7 @@ public class BusinessScheduleSettings {
     private boolean isBookingEnabled;
     private int slotDurationMinutes;
 
-    // מפת נתונים (Map) השומרת זוגות של מפתח-ערך (שם היום -> טווח השעות, למשל: "Sunday" -> "09:00-17:00")
+    // מפת נתונים (Map) השומרת זוגות של מפתח-ערך (שם היום  טווח השעות, למשל: "Sunday" "09:00-17:00")
     private Map<String, String> workDays;
 
     /**

@@ -1,9 +1,13 @@
 package com.example.myapplication;
 
 import android.os.Bundle;
+import android.view.MenuItem;
+
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.navigation.NavigationBarView;
 
 public class BusinessMainActivity extends BaseActivity {
 
@@ -20,28 +24,31 @@ public class BusinessMainActivity extends BaseActivity {
         BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
 
         // הגדרת מאזין ללחיצות על כפתורי התפריט התחתון להחלפת הפרגמנטים המוצגים
-        bottomNav.setOnItemSelectedListener(item -> {
-            Fragment selectedFragment = null;
-            int id = item.getItemId();
+        bottomNav.setOnItemSelectedListener(new NavigationBarView.OnItemSelectedListener() {
+            @Override
+            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                Fragment selectedFragment = null;
+                int id = item.getItemId();
 
-            // לוגיקת ניווט: התאמה בין ה-ID של הכפתור שנלחץ לפרגמנט המתאים לו
-            if (id == R.id.nav_business_home) {
-                selectedFragment = new BusinessHomeFragment();
-            } else if (id == R.id.nav_business_schedule) {
-                selectedFragment = new BusinessScheduleFragment();
-            } else if (id == R.id.nav_business_chats) {
-                selectedFragment = new BusinessChatsFragment();
-            } else if (id == R.id.nav_business_settings) {
-                selectedFragment = new BusinessSettingsFragment();
-            }
+                // לוגיקת ניווט: התאמה בין ה-ID של הכפתור שנלחץ לפרגמנט המתאים לו
+                if (id == R.id.nav_business_home) {
+                    selectedFragment = new BusinessHomeFragment();
+                } else if (id == R.id.nav_business_schedule) {
+                    selectedFragment = new BusinessScheduleFragment();
+                } else if (id == R.id.nav_business_chats) {
+                    selectedFragment = new BusinessChatsFragment();
+                } else if (id == R.id.nav_business_settings) {
+                    selectedFragment = new BusinessSettingsFragment();
+                }
 
-            // ביצוע החלפת המסכים בפועל בתוך ה-Container (מכולת התצוגה ב-XML) באמצעות FragmentManager
-            if (selectedFragment != null) {
-                getSupportFragmentManager().beginTransaction()
-                        .replace(R.id.fragment_container, selectedFragment)
-                        .commit();
+                // ביצוע החלפת המסכים בפועל בתוך ה-Container (מכולת התצוגה ב-XML) באמצעות FragmentManager
+                if (selectedFragment != null) {
+                    BusinessMainActivity.this.getSupportFragmentManager().beginTransaction()
+                            .replace(R.id.fragment_container, selectedFragment)
+                            .commit();
+                }
+                return true;
             }
-            return true;
         });
 
         // מנגנון הגנה: טעינת מסך הבית רק בריצה הראשונית של האקטיביטי (מניעת טעינה כפולה בסיבוב מסך)

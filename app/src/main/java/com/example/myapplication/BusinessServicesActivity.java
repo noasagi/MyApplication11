@@ -1,6 +1,7 @@
 package com.example.myapplication;
 
 import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,9 +16,13 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -66,7 +71,12 @@ public class BusinessServicesActivity extends AppCompatActivity {
         // שלב א': מציאת ה-ID של העסק השייך למשתמש המחובר, ורק אז טעינת הטיפולים שלו
         findBusinessIdAndLoadTreatments();
 
-        btnAddTreatment.setOnClickListener(v -> addTreatment());
+        btnAddTreatment.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                BusinessServicesActivity.this.addTreatment();
+            }
+        });
     }
 
     /**
@@ -79,16 +89,24 @@ public class BusinessServicesActivity extends AppCompatActivity {
         String uid = auth.getCurrentUser().getUid();
 
         db.collection("businesses").whereEqualTo("ownerId", uid).get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    if (!queryDocumentSnapshots.isEmpty()) {
-                        businessId = queryDocumentSnapshots.getDocuments().get(0).getId();
-                        // שלב ב': טעינת הטיפולים מתוך תת-האוסף הפנימי של העסק שנמצא
-                        loadTreatments();
-                    } else {
-                        Toast.makeText(BusinessServicesActivity.this, "לא נמצא עסק", Toast.LENGTH_SHORT).show();
+                .addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
+                    @Override
+                    public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
+                        if (!queryDocumentSnapshots.isEmpty()) {
+                            businessId = queryDocumentSnapshots.getDocuments().get(0).getId();
+                            // שלב ב': טעינת הטיפולים מתוך תת-האוסף הפנימי של העסק שנמצא
+                            BusinessServicesActivity.this.loadTreatments();
+                        } else {
+                            Toast.makeText(BusinessServicesActivity.this, "לא נמצא עסק", Toast.LENGTH_SHORT).show();
+                        }
                     }
                 })
-                .addOnFailureListener(e -> Toast.makeText(BusinessServicesActivity.this, "שגיאה בטעינת העסק", Toast.LENGTH_SHORT).show());
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Toast.makeText(BusinessServicesActivity.this, "שגיאה בטעינת העסק", Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
     /**
@@ -99,18 +117,21 @@ public class BusinessServicesActivity extends AppCompatActivity {
     private void loadTreatments() {
         if (businessId == null) return;
 
-        // גישה למבנה מקונן ב-Firestore: businesses -> {businessId} -> treatments
+        // גישה למבנה מקונן ב-Firestore: businesses - {businessId} - treatments
         db.collection("businesses").document(businessId).collection("treatments")
                 .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    treatmentList.clear();
-                    treatmentIds.clear();
-                    for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                        Treatment treatment = doc.toObject(Treatment.class);
-                        treatmentList.add(treatment);
-                        treatmentIds.add(doc.getId()); // שמירת ה-ID הייחודי של מסמך הטיפול לצורכי מחיקה
+                .addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
+                    @Override
+                    public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
+                        treatmentList.clear();
+                        treatmentIds.clear();
+                        for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
+                            Treatment treatment = doc.toObject(Treatment.class);
+                            treatmentList.add(treatment);
+                            treatmentIds.add(doc.getId()); // שמירת ה-ID הייחודי של מסמך הטיפול לצורכי מחיקה
+                        }
+                        adapter.notifyDataSetChanged();
                     }
-                    adapter.notifyDataSetChanged();
                 });
     }
 
@@ -146,14 +167,22 @@ public class BusinessServicesActivity extends AppCompatActivity {
         // שימוש בפעולת add() המייצרת אוטומטית מסמך חדש עם מזהה אקראי (ID) בתוך תת-האוסף
         db.collection("businesses").document(businessId).collection("treatments")
                 .add(treatmentData)
-                .addOnSuccessListener(documentReference -> {
-                    Toast.makeText(BusinessServicesActivity.this, "הטיפול נוסף בהצלחה!", Toast.LENGTH_SHORT).show();
-                    etTreatmentName.setText("");
-                    etTreatmentDuration.setText("");
-                    etTreatmentPrice.setText("");
-                    loadTreatments(); // ריענון יזום של הרשימה כדי להציג את הטיפול החדש
+                .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+                    @Override
+                    public void onSuccess(DocumentReference documentReference) {
+                        Toast.makeText(BusinessServicesActivity.this, "הטיפול נוסף בהצלחה!", Toast.LENGTH_SHORT).show();
+                        etTreatmentName.setText("");
+                        etTreatmentDuration.setText("");
+                        etTreatmentPrice.setText("");
+                        BusinessServicesActivity.this.loadTreatments(); // ריענון יזום של הרשימה כדי להציג את הטיפול החדש
+                    }
                 })
-                .addOnFailureListener(e -> Toast.makeText(BusinessServicesActivity.this, "שגיאה בהוספת הטיפול", Toast.LENGTH_SHORT).show());
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Toast.makeText(BusinessServicesActivity.this, "שגיאה בהוספת הטיפול", Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
     // --- מחלקת אדפטר פנימית: לניהול שורות הטיפולים ברשימה ---
@@ -169,30 +198,44 @@ public class BusinessServicesActivity extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            Treatment treatment = treatmentList.get(position);
+            final Treatment treatment = treatmentList.get(position);
 
             holder.text1.setText(treatment.getName());
             holder.text2.setText("⏱ " + treatment.getDurationMinutes() + " דקות | ₪" + treatment.getPrice() + " (לחיצה ארוכה למחיקה)");
 
             // הגדרת מאזין ללחיצה ארוכה (OnLongClickListener) המציג דיאלוג אזהרה לפני מחיקה מהענן
-            holder.itemView.setOnLongClickListener(v -> {
-                new AlertDialog.Builder(BusinessServicesActivity.this)
-                        .setTitle("מחיקת טיפול")
-                        .setMessage("האם את/ה בטוח/ה שברצונך למחוק את הטיפול '" + treatment.getName() + "'?")
-                        .setPositiveButton("כן, מחק", (dialog, which) -> {
-                            // שליפת ה-ID המדויק של המסמך לפי מיקום הלחיצה ברשימה וביצוע פעולת מחיקה (delete)
-                            String docId = treatmentIds.get(position);
-                            db.collection("businesses").document(businessId).collection("treatments").document(docId)
-                                    .delete()
-                                    .addOnSuccessListener(aVoid -> {
-                                        Toast.makeText(BusinessServicesActivity.this, "הטיפול נמחק", Toast.LENGTH_SHORT).show();
-                                        loadTreatments(); // טעינה מחדש של הרשימה העדכנית
-                                    })
-                                    .addOnFailureListener(e -> Toast.makeText(BusinessServicesActivity.this, "שגיאה במחיקה", Toast.LENGTH_SHORT).show());
-                        })
-                        .setNegativeButton("ביטול", null)
-                        .show();
-                return true; // החזרת true מציינת שהאירוע טופל במלואו ולא יפעיל לחיצות רגילות בטעות
+            holder.itemView.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    new AlertDialog.Builder(BusinessServicesActivity.this)
+                            .setTitle("מחיקת טיפול")
+                            .setMessage("האם את/ה בטוח/ה שברצונך למחוק את הטיפול '" + treatment.getName() + "'?")
+                            .setPositiveButton("כן, מחק", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    // שליפת ה-ID המדויק של המסמך לפי מיקום הלחיצה ברשימה וביצוע פעולת מחיקה (delete)
+                                    String docId = treatmentIds.get(holder.getAdapterPosition());
+                                    db.collection("businesses").document(businessId).collection("treatments").document(docId)
+                                            .delete()
+                                            .addOnSuccessListener(new OnSuccessListener<Void>() {
+                                                @Override
+                                                public void onSuccess(Void aVoid) {
+                                                    Toast.makeText(BusinessServicesActivity.this, "הטיפול נמחק", Toast.LENGTH_SHORT).show();
+                                                    BusinessServicesActivity.this.loadTreatments(); // טעינה מחדש של הרשימה העדכנית
+                                                }
+                                            })
+                                            .addOnFailureListener(new OnFailureListener() {
+                                                @Override
+                                                public void onFailure(@NonNull Exception e) {
+                                                    Toast.makeText(BusinessServicesActivity.this, "שגיאה במחיקה", Toast.LENGTH_SHORT).show();
+                                                }
+                                            });
+                                }
+                            })
+                            .setNegativeButton("ביטול", null)
+                            .show();
+                    return true; // החזרת true מציינת שהאירוע טופל במלואו ולא יפעיל לחיצות רגילות בטעות
+                }
             });
         }
 

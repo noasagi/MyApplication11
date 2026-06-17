@@ -32,8 +32,11 @@ public class SplashActivity extends AppCompatActivity {
          * מבלי לחסום או לתקוע את המסך (Non-blocking delay).
          * המערכת תציג את הלוגו, תמתין 3000 מילישניות (3 שניות) ברקע, ואז תפעיל את לוגיקת הניתוב.
          */
-        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            checkUserAndNavigate();
+        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                SplashActivity.this.checkUserAndNavigate();
+            }
         }, 3000);
     }
 
@@ -49,11 +52,11 @@ public class SplashActivity extends AppCompatActivity {
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
 
         if (currentUser == null) {
-            // מקרה 1: המשתמש אורח / לא מחובר -> מעבר למסך כניסה ורישום
+            // מקרה 1: המשתמש אורח / לא מחובר - מעבר למסך כניסה ורישום
             Intent intent = new Intent(SplashActivity.this, LoginActivity.class);
             startActivity(intent);
         } else {
-            // מקרה 2: המשתמש כבר מחובר בעבר -> פיצול ארכיטקטוני לפי סוג המשתמש (Role-Based Routing)
+            // מקרה 2: המשתמש כבר מחובר בעבר - פיצול ארכיטקטוני לפי סוג המשתמש (Role-Based Routing)
             if (userHelper.isBusinessOwner()) {
                 // ניווט למסך הניהול של בעל העסק
                 Intent intent = new Intent(SplashActivity.this, BusinessMainActivity.class);

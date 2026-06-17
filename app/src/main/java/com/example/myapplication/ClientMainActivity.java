@@ -1,9 +1,13 @@
 package com.example.myapplication;
 
 import android.os.Bundle;
+import android.view.MenuItem;
+
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.navigation.NavigationBarView;
 
 public class ClientMainActivity extends BaseActivity {
 
@@ -20,28 +24,31 @@ public class ClientMainActivity extends BaseActivity {
         BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
 
         // הגדרת מאזין להחלפת מסכים (Fragments) בלחיצה על תפריט הניווט התחתון
-        bottomNav.setOnItemSelectedListener(item -> {
-            Fragment selectedFragment = null;
-            int id = item.getItemId();
+        bottomNav.setOnItemSelectedListener(new NavigationBarView.OnItemSelectedListener() {
+            @Override
+            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                Fragment selectedFragment = null;
+                int id = item.getItemId();
 
-            // התאמה בין מזהה הכפתור שנלחץ ב-XML לבין הפרגמנט המתאים לו בזיכרון
-            if (id == R.id.nav_customer_home) {
-                selectedFragment = new CustomerHomeFragment();
-            } else if (id == R.id.nav_customer_search) {
-                selectedFragment = new SearchFragment();
-            } else if (id == R.id.nav_customer_appointments) {
-                selectedFragment = new AppointmentsClientFragment();
-            } else if (id == R.id.nav_customer_profile) {
-                selectedFragment = new SettingsFragment();
-            }
+                // התאמה בין מזהה הכפתור שנלחץ ב-XML לבין הפרגמנט המתאים לו בזיכרון
+                if (id == R.id.nav_customer_home) {
+                    selectedFragment = new CustomerHomeFragment();
+                } else if (id == R.id.nav_customer_search) {
+                    selectedFragment = new SearchFragment();
+                } else if (id == R.id.nav_customer_appointments) {
+                    selectedFragment = new AppointmentsClientFragment();
+                } else if (id == R.id.nav_customer_profile) {
+                    selectedFragment = new SettingsFragment();
+                }
 
-            // ביצוע מנגנון החלפת התצוגות (Fragment Transaction) בתוך מכולת התוכן (Fragment Container)
-            if (selectedFragment != null) {
-                getSupportFragmentManager().beginTransaction()
-                        .replace(R.id.fragment_container, selectedFragment)
-                        .commit();
+                // ביצוע מנגנון החלפת התצוגות (Fragment Transaction) בתוך מכולת התוכן (Fragment Container)
+                if (selectedFragment != null) {
+                    ClientMainActivity.this.getSupportFragmentManager().beginTransaction()
+                            .replace(R.id.fragment_container, selectedFragment)
+                            .commit();
+                }
+                return true; // החזרת true מאשרת למערכת לסמן חזותית את הכפתור שנבחר
             }
-            return true; // החזרת true מאשרת למערכת לסמן חזותית את הכפתור שנבחר
         });
 
         // מנגנון הגנה וחוויית משתמש (UX): טעינה ראשונית של מסך הבית רק בריצה הראשונה של האקטיביטי

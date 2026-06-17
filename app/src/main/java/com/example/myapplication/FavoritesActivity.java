@@ -78,7 +78,7 @@ public class FavoritesActivity extends BaseActivity {
 
         String userId = auth.getCurrentUser().getUid();
 
-        // גישה מובנית למבנה נתונים מקונן: Users -> [userId] -> favorites
+        // גישה מובנית למבנה נתונים מקונן: Users - [userId] -favorites
         db.collection("users").document(userId).collection("favorites")
                 .get()
                 .addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {

@@ -121,7 +121,7 @@ public class BusinessStatisticsActivity extends AppCompatActivity {
                         int totalValidOrders = 0;
                         double totalIncome = 0;
 
-                        // שימוש במפות (Maps) לצורך ספירת שכיחויות וחילול אלגוריתם "השכיח ביותר" (מפתח -> כמות מופעים)
+                        // שימוש במפות (Maps) לצורך ספירת שכיחויות וחילול אלגוריתם "השכיח ביותר" (מפתח - כמות מופעים)
                         Map<String, Integer> hoursMap = new HashMap<>();
                         Map<String, Integer> servicesMap = new HashMap<>();
                         Map<String, Integer> usersMap = new HashMap<>();
