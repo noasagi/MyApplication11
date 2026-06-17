@@ -22,104 +22,93 @@ import com.google.firebase.firestore.Transaction;
 
 import java.util.Date;
 
-// מחלקת אקטיביטי המנהלת את ממשק הזנת הביקורת והדירוג על ידי הלקוח, ומעדכנת את מסד הנתונים בענן
 public class DialogAddReviewActivity extends BaseActivity {
 
-    // הצהרה על רכיבי ממשק המשתמש (רכיבי כוכבי דירוג, תיבת טקסט וכפתור שליחה)
     private RatingBar rbProfessionalism, rbReliability, rbPrice;
     private EditText etComment;
     private Button btnSubmitReview;
 
-    // מופעי הגישה לרכיבי האימות (Auth) ובסיס הנתונים (Firestore) של פיירבייס
     private FirebaseFirestore db;
     private FirebaseAuth auth;
 
-    // משתני מחרוזת לאחסון מזהי התור, בית העסק ושם העסק המועברים למסך זה
     private String appointmentId, businessId, businessName;
 
+    /**
+     * מה הפעולה עושה: מאתחלת את רכיבי המסך, שולפת את נתוני ה-Intent (מזהה תור, מזהה עסק) ומחברת את מאזין הלחיצה לכפתור השליחה.
+     * קלט: Bundle savedInstanceState.
+     * פלט: אין.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // טעינת עיצוב ה-XML הייעודי של מסך הדיאלוג להוספת ביקורת
         setContentView(R.layout.activity_dialog_add_review);
 
-        // אתחול מופעי העבודה מול פיירבייס
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
-        // שליפת הנתונים והמזהים שהועברו במסגרת ה-Intent שהפתח את המסך הנוכחי
         if (getIntent() != null) {
             appointmentId = getIntent().getStringExtra("appointmentId");
             businessId = getIntent().getStringExtra("businessId");
             businessName = getIntent().getStringExtra("businessName");
         }
 
-        // קישור משתני רכיבי הממשק הגרפיים לקובץ ה-XML על פי המזהים שלהם
         rbProfessionalism = findViewById(R.id.rbProfessionalism);
         rbReliability = findViewById(R.id.rbReliability);
         rbPrice = findViewById(R.id.rbPrice);
         etComment = findViewById(R.id.etComment);
         btnSubmitReview = findViewById(R.id.btnSubmitReview);
 
-        // הגדרת מאזין לחיצה אנונימי מסורתי לכפתור שליחת הביקורת (במקום למדא)
         btnSubmitReview.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // הפעלת הפונקציה המרכזית המבצעת את תהליך השמירה והחישובים
                 submitReview();
             }
         });
     }
 
-    // פונקציית הליבה המנהלת את איסוף הנתונים, בדיקות התקינות והרצת הטרנזקציה מול הענן
+    /**
+     * מה הפעולה עושה: אוספת את הנתונים, ומריצה טרנזקציה אטומית (Transaction) מול Firestore המבצעת 3 פעולות בו-זמנית: חישוב הממוצע הנע של העסק, שמירת הביקורת, ונעילת התור מפני דירוג כפול.
+     * קלט: אין.
+     * פלט: אין (void).
+     */
     private void submitReview() {
-        // שליפת ערכי הכוכבים שנבחרו על ידי הלקוח בכל אחת משלוש הקטגוריות
         final float ratingProf = rbProfessionalism.getRating();
         final float ratingRel = rbReliability.getRating();
         final float ratingPrice = rbPrice.getRating();
-        // שליפת הטקסט המילולי שנכתב בתיבת הביקורת וניקוי רווחים מיותרים מהקצוות
         final String comment = etComment.getText().toString().trim();
 
-        // תנאי הגנה: וידוא שהלקוח העניק דירוג (לפחות כוכב אחד) בכל אחת משלוש הקטגוריות
+        // הגנת קלט: וידוא שהמשתמש הציב דירוג חיובי בכל אחת משלוש הקטגוריות
         if (ratingProf == 0 || ratingRel == 0 || ratingPrice == 0) {
             Toast.makeText(this, "אנא דרג את כל הקטגוריות", Toast.LENGTH_SHORT).show();
-            return; // עצירת הפונקציה במידה ואחת הקטגוריות לא דורגה
+            return;
         }
 
-        // תנאי בטיחות: וידוא שיש משתמש מחובר למערכת ושמזהה בית העסק קיים ותקין
         if (auth.getCurrentUser() == null || businessId == null) return;
 
-        // נטרול כפתור השליחה כדי למנוע מצב בו הלקוח לוחץ פעמיים ומייצר כפילויות במסד
+        // הגנת UX: נטרול הכפתור מייד למניעת לחיצות כפולות ויצירת כפילויות במסד בזמן הריצה
         btnSubmitReview.setEnabled(false);
-        // שליפת מזהה המשתמש (UID) הייחודי של הלקוח המחובר
         String userId = auth.getCurrentUser().getUid();
 
-        // שלב מקדים: פנייה לאוסף המשתמשים כדי לחלץ את שם הלקוח העדכני שישמר בתוך מסמך הביקורת
+        // שלב א': שליפת שם המשתמש העדכני לצורך הטמעתו הישירה (Denormalization) במסמך הביקורת
         db.collection("users").document(userId).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
             public void onSuccess(DocumentSnapshot userDoc) {
-                // ניסיון שליפת השם משדה "name"
                 String userName = userDoc.getString("name");
-                // במידה והשדה ריק, ניסיון שליפת השם משדה הגיבוי "fullName"
                 if (userName == null) userName = userDoc.getString("fullName");
-                // במידה ושני השדות ריקים, הגדרת שם ברירת מחדל
                 if (userName == null) userName = "משתמש אנונימי";
 
                 final String finalUserName = userName;
 
-                // יצירת הפניות (References) למסמכים הרלוונטיים שיעודכנו כחלק בלתי נפרד מהטרנזקציה
                 DocumentReference businessRef = db.collection("businesses").document(businessId);
                 DocumentReference appointmentRef = db.collection("appointments").document(appointmentId);
-                DocumentReference reviewRef = db.collection("reviews").document(); // הפנייה ליצירת מזהה ייחודי חדש לביקורת
+                DocumentReference reviewRef = db.collection("reviews").document();
 
-                // הרצה של טרנזקציה (Transaction) אטומית המבטיחה עדכון בו זמני ומניעת התנגשויות נתונים בענן
+                // שלב ב': הרצת טרנזקציה (קריטי למניעת מצבי מירוץ - Race Conditions בעת עדכון הממוצעים על ידי מספר משתמשים במקביל)
                 db.runTransaction(new Transaction.Function<Void>() {
                     @Override
                     public Void apply(@NonNull Transaction transaction) throws FirebaseFirestoreException {
-                        // קריאה ולקיחת תמונת מצב (Snapshot) נוכחית של מסמך בית העסק מתוך הענן
                         DocumentSnapshot businessSnap = transaction.get(businessRef);
 
-                        // 1. קריאת המדדים הקיימים וחישוב הממוצעים המשוקללים החדשים של העסק
                         long totalReviews = 0;
                         if (businessSnap.contains("totalReviews")) {
                             totalReviews = businessSnap.getLong("totalReviews");
@@ -130,22 +119,21 @@ public class DialogAddReviewActivity extends BaseActivity {
                         if (businessSnap.contains("avgReliability")) oldRel = businessSnap.getDouble("avgReliability").floatValue();
                         if (businessSnap.contains("avgPrice")) oldPrice = businessSnap.getDouble("avgPrice").floatValue();
 
-                        // חישוב כמות הביקורות הכוללת החדשה (הוספת הביקורת הנוכחית)
                         long newTotal = totalReviews + 1;
 
-                        // אלגוריתם עדכון ממוצע נע ללא אובדן מידע: מכפילים ממוצע ישן בכמות ישנה, מוסיפים את הציון החדש ומחלקים בכמות החדשה
+                        // אלגוריתם עדכון ממוצע נע בזמן אמת ללא אובדן נתונים
                         float newProf = ((oldProf * totalReviews) + ratingProf) / newTotal;
                         float newRel = ((oldRel * totalReviews) + ratingRel) / newTotal;
                         float newPrice = ((oldPrice * totalReviews) + ratingPrice) / newTotal;
 
-                        // 2. פקודת העדכון של מסמך בית העסק בתוך הטרנזקציה
+                        // 1. עדכון מסמך בית העסק עם הסטטיסטיקות והממוצעים החדשים
                         transaction.update(businessRef,
                                 "totalReviews", newTotal,
                                 "avgProfessionalism", newProf,
                                 "avgReliability", newRel,
                                 "avgPrice", newPrice);
 
-                        // 3. יצירת אובייקט מודל הביקורת המלא והזרקתו למסד הנתונים
+                        // 2. יצירת מסמך הביקורת המפורט החדש
                         ReviewModel review = new ReviewModel(
                                 reviewRef.getId(), businessId, userId, finalUserName,
                                 comment, appointmentId, ratingProf, ratingRel, ratingPrice,
@@ -153,23 +141,21 @@ public class DialogAddReviewActivity extends BaseActivity {
                         );
                         transaction.set(reviewRef, review);
 
-                        // 4. עדכון שדה החיווי בתור המקורי כדי לסמן שהוא כבר דורג ולא ניתן לדרגו שוב
+                        // 3. עדכון סטטוס התור ל-isReviewed = true כדי לחסום אפשרות לדרגו פעם נוספת
                         transaction.update(appointmentRef, "isReviewed", true);
 
-                        return null; // סיום מוצלח של פעולות הטרנזקציה
+                        return null;
                     }
                 }).addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void result) {
-                        // חיווי למשתמש על הצלחת התהליך כולו וסגירת חלון האקטיביטי וחזרה למסך הקודם
                         Toast.makeText(DialogAddReviewActivity.this, "הביקורת פורסמה בהצלחה!", Toast.LENGTH_SHORT).show();
-                        finish();
+                        finish(); // סגירת המסך וחזרה אוטומטית אחורה
                     }
                 }).addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
-                        // במקרה של כישלון - החזרת הכפתור למצב פעיל והצגת הודעת השגיאה שנתקבלה מהשרת
-                        btnSubmitReview.setEnabled(true);
+                        btnSubmitReview.setEnabled(true); // שחרור הכפתור במקרה של שגיאת רשת
                         Toast.makeText(DialogAddReviewActivity.this, "שגיאה בעדכון: " + e.getMessage(), Toast.LENGTH_LONG).show();
                     }
                 });

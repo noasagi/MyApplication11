@@ -33,88 +33,78 @@ import java.util.List;
 import java.util.Map;
 import java.util.Locale;
 
-// הגדרת מחלקת אקטיביטי לחסימת שעות וחלונות זמן על ידי בעל העסק, היורשת מ-BaseActivity
 public class BusinessBlockSlotsActivity extends BaseActivity {
 
-    // הצהרה על רכיבי טקסט להצגת התאריך הנבחר והודעות הסטטוס של המערכת
     private TextView tvSelectedDate, tvStatusMessage;
-    // הצהרה על רכיב רשימה ממוחזרת להצגת חלונות הזמן במסך
     private RecyclerView rvSlots;
-    // הצהרה על כפתור לפתיחת חלונית בחירת התאריך
     private Button btnPickDate;
 
-    // הצהרה על עצם הגישה לבסיס הנתונים פיירסטור של פיירבייס
     private FirebaseFirestore db;
-    // הצהרה על עצם הגישה למערכת אימות המשתמשים של פיירבייס
     private FirebaseAuth auth;
-    // משתני מחרוזת לשמירת מזהה העסק והתאריך שנבחר על ידי המשתמשת
     private String businessId;
     private String selectedDate;
-    // משתנה מספרי לשמירת משך זמן טיפול ברירת מחדל בדקות
     private int businessDuration = 30;
 
-    // הצהרה על המתאם המותאם אישית של רשימת חלונות הזמן
     private SlotsAdapter adapter;
-    // הצהרה על רשימה דינמית המכילה את מודלי חלונות הזמן
     private List<SlotModel> slotsList;
 
+    /**
+     * מה הפעולה עושה: מאתחלת את המסך, מחברת את רכיבי הממשק (UI), מגדירה את מבנה הרשת של השעות ויוזמת שליפה של מזהה העסק.
+     * קלט: Bundle savedInstanceState (נתוני מערכת לשחזור מצב האקטיביטי).
+     * פלט: אין.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // טעינת וחיבור קובץ ה-XML של עיצוב מסך חסימת השעות
         setContentView(R.layout.activity_business_block_slots);
 
-        // חיבור וקישור סרגל הכלים העליון של המסך
         Toolbar toolbar = findViewById(R.id.toolbar);
         setupSecondaryToolbar(toolbar, true);
 
-        // ביטול כותרת ברירת המחדל של סרגל הכלים במידה והוא קיים
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayShowTitleEnabled(false);
         }
 
-        // אתחול וקבלת המופע הנוכחי של פיירסטור ואימות פיירבייס לקוד
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
-        // קריאה לפעולה הפנימית לשליפת מזהה העסק של המשתמשת המחוברת
+        // שליפת מזהה העסק קורה מיד עם עליית המסך כדי שנדע למי לשייך את החסימות בהמשך
         fetchMyBusinessId();
 
-        // קישור משתני הרכיבים לרכיבים הגרפיים האמיתיים מתוך קובץ ה-XML
         tvSelectedDate = findViewById(R.id.tvSelectedDate);
         tvStatusMessage = findViewById(R.id.tvStatusMessage);
         btnPickDate = findViewById(R.id.btnPickDate);
         rvSlots = findViewById(R.id.rvSlots);
 
-        // הגדרת מנהל פריסת רשת (גריד) עם 3 עמודות עבור רשימת השעות
+        // הגדרת ה-RecyclerView כמטריצה של 3 עמודות להצגת השעות בצורה נוחה וקומפקטית
         rvSlots.setLayoutManager(new GridLayoutManager(this, 3));
-        // אתחול הרשימה הדינמית בזיכרון
         slotsList = new ArrayList<>();
-        // יצירת מופע של המתאם וחיבורו לרכיב הרשימה הויזואלי
         adapter = new SlotsAdapter(slotsList);
         rvSlots.setAdapter(adapter);
 
-        // הגדרת מאזין לחיצה אנונימי קלאסי לכפתור בחירת התאריך
         btnPickDate.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // קריאה לפעולה שמציגה את חלונית בחירת התאריך הקופצת
                 showDatePicker();
             }
         });
     }
 
-    // פעולה פרטית לשליפת מזהה המסמך של העסק לפי ה-UID של המשתמשת המחוברת
+    /**
+     * מה הפעולה עושה: מוצאת ב-Firestore את מסמך העסק ששייך למשתמשת המחוברת כרגע (ownerId) ושומרת את ה-ID שלו.
+     * קלט: אין.
+     * פלט: אין (void).
+     */
     private void fetchMyBusinessId() {
         if (auth.getCurrentUser() == null) return;
 
+        // שאילתה שמחפשת בתוך אוסף העסקים את העסק שבו שדה בעל העסק שווה ל-UID של מי שמחובר כרגע
         db.collection("businesses")
                 .whereEqualTo("ownerId", auth.getCurrentUser().getUid())
                 .get()
                 .addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
                     @Override
                     public void onSuccess(QuerySnapshot querySnapshot) {
-                        // אם נמצא מסמך עסק, נשלוף ונשמור את מזהה המסמך הייחודי שלו
                         if (!querySnapshot.isEmpty()) {
                             businessId = querySnapshot.getDocuments().get(0).getId();
                         } else {
@@ -124,7 +114,11 @@ public class BusinessBlockSlotsActivity extends BaseActivity {
                 });
     }
 
-    // פעולה פרטית המציגה דיאלוג קופץ לבחירת תאריך מתוך לוח שנה
+    /**
+     * מה הפעולה עושה: מציגה לוח שנה קופץ לבחירת תאריך, ולאחר הבחירה שומרת אותו בפורמט טקסט ומפעילה את טעינת השעות.
+     * קלט: אין.
+     * פלט: אין (void).
+     */
     private void showDatePicker() {
         Calendar calendar = Calendar.getInstance();
         DatePickerDialog datePickerDialog = new DatePickerDialog(this,
@@ -134,12 +128,10 @@ public class BusinessBlockSlotsActivity extends BaseActivity {
                         Calendar selectedCal = Calendar.getInstance();
                         selectedCal.set(year, month, dayOfMonth);
 
-                        // המרת התאריך הנבחר לפורמט מחרוזת קבוע המסונכרן מול בסיס הנתונים
+                        // המרה למחרוזת בפורמט אחיד "dd/MM/yyyy" כדי להתאים למבנה החיפוש ב-Firestore
                         selectedDate = String.format(Locale.getDefault(), "%02d/%02d/%04d", dayOfMonth, month + 1, year);
-
-                        // הצגת התאריך הנבחר על גבי המסך למשתמשת
                         tvSelectedDate.setText("תאריך: " + selectedDate);
-                        // קריאה לפעולה שטוענת את חלונות הזמן הפנויים והתפוסים עבור יום זה
+
                         loadSlotsForDate(selectedCal);
                     }
                 },
@@ -149,7 +141,11 @@ public class BusinessBlockSlotsActivity extends BaseActivity {
         datePickerDialog.show();
     }
 
-    // פעולה פרטית הטוענת את הגדרות שעות הפעילות של העסק עבור היום הנבחר בשבוע
+    /**
+     * מה הפעולה עושה: שולפת מתוך מסמך העסק את לוח הזמנים השבועי ומודדת אם העסק בכלל פתוח ביום שנבחר ובאילו שעות.
+     * קלט: Calendar cal (אובייקט התאריך שנבחר).
+     * פלט: אין (void).
+     */
     private void loadSlotsForDate(Calendar cal) {
         if (businessId == null) return;
 
@@ -157,33 +153,30 @@ public class BusinessBlockSlotsActivity extends BaseActivity {
         slotsList.clear();
         adapter.notifyDataSetChanged();
 
-        // חישוב מפתח היום בשבוע (מ-0 עד 6) כדי להתאים למבנה הנתונים השמור בעסק
+        // המרת יום השבוע לאינדקס (0-6) התואם לשמירה שלנו בבסיס הנתונים (יום ראשון = 0)
         String dayKey = String.valueOf(cal.get(Calendar.DAY_OF_WEEK) - 1);
 
-        // שליפת מסמך העסק הספציפי מתוך Firestore
         db.collection("businesses").document(businessId).get()
                 .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                     @Override
                     public void onSuccess(DocumentSnapshot doc) {
                         if (!doc.exists()) return;
 
-                        // שליפת מפת לוח הזמנים השבועי מתוך מסמך העסק
+                        // שליפת מפת שעות הפעילות ואימות שהעסק אכן מוגדר כ"פתוח" ביום הזה
                         Map<String, Object> schedule = (Map<String, Object>) doc.get("weeklySchedule");
                         if (schedule != null && schedule.containsKey(dayKey)) {
                             Map<String, Object> dayData = (Map<String, Object>) schedule.get(dayKey);
 
-                            // בדיקה האם העסק בכלל פתוח לקבלת קהל ביום זה בשבוע
                             Boolean isOpen = (Boolean) dayData.get("isOpen");
                             if (isOpen != null && isOpen) {
-                                // שליפת שעות הפתיחה והסגירה של אותו היום
                                 String start = (String) dayData.get("start");
                                 String end = (String) dayData.get("end");
 
-                                // שליפת משך זמן הטיפול המוגדר לעסק זה במסד
+                                // שליפת אורך הטיפול המוגדר לעסק כדי לדעת לפיו איך לחלק את חלונות הזמן
                                 Long durationLong = doc.getLong("appointmentDuration");
                                 businessDuration = (durationLong != null) ? durationLong.intValue() : 30;
 
-                                // מעבר לשלב הבא: שליפת התורים הקיימים שכבר נקבעו לתאריך זה
+                                // שלב הבא: שליפת התורים הקיימים (והחסימות) לאותו יום כדי להצליב נתונים
                                 fetchExistingAppointments(start, end, businessDuration);
                             } else {
                                 tvStatusMessage.setText("העסק סגור ביום זה");
@@ -193,7 +186,11 @@ public class BusinessBlockSlotsActivity extends BaseActivity {
                 });
     }
 
-    // פעולה פרטית השולפת את כל התורים הקיימים בענן עבור התאריך הספציפי שנבחר
+    /**
+     * מה הפעולה עושה: שולפת מ-Firestore את כל מסמכי התורים והחסימות השייכים לעסק זה בתאריך שנבחר.
+     * קלט: String start (שעת תחילת פעילות), String end (שעת סיום פעילות), int duration (אורך חלון זמן).
+     * פלט: אין (void).
+     */
     private void fetchExistingAppointments(String start, String end, int duration) {
         db.collection("appointments")
                 .whereEqualTo("businessId", businessId)
@@ -202,67 +199,68 @@ public class BusinessBlockSlotsActivity extends BaseActivity {
                 .addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
                     @Override
                     public void onSuccess(QuerySnapshot querySnapshot) {
-                        // יצירת מפת נתונים מקומית למיפוי תורים קיימים לפי שעת ההתחלה שלהם
+                        // מיפוי של התורים לתוך HashMap כאשר מפתח החיפוש המהיר הוא שעת התור (למשל "10:00")
                         Map<String, Appointment> bookedMap = new HashMap<>();
                         for (QueryDocumentSnapshot doc : querySnapshot) {
                             Appointment app = doc.toObject(Appointment.class);
                             app.setAppointmentId(doc.getId());
-                            // הוספת התור למפה רק אם הסטטוס שלו לא נדחה/בוטל
+
+                            // סינון של תורים שבוטלו או נדחו - הם לא אמורים לתפוס מקום ביומן
                             if (!"REJECTED".equals(app.getStatus())) {
                                 bookedMap.put(app.getTime(), app);
                             }
                         }
-                        // קריאה לפעולה האלגוריתמית שמייצרת ומציגה את רשימת חלונות הזמן הויזואלית
                         generateSlotsList(start, end, duration, bookedMap);
                     }
                 });
     }
 
-    // פעולה פרטית המייצרת את רשימת חלונות הזמן הדינמית בין שעת הפתיחה לשעת הסגירה
+    /**
+     * מה הפעולה עושה: אלגוריתם המייצר חלונות זמן משעת הפתיחה עד שעת הסגירה, ומסווג כל חלון כ"פנוי", "תפוס על ידי לקוח", או "חסום על ידי העסק".
+     * קלט: שעת התחלה, שעת סיום, אורך חלון, ומפת התורים הקיימים.
+     * פלט: אין (void).
+     */
     private void generateSlotsList(String start, String end, int duration, Map<String, Appointment> bookedMap) {
-        // המרת שעות הטקסט (HH:mm) למספר דקות כולל מתחילת היום לצורך חישוב מתמטי
+        // המרה של שעות טקסטואליות למספר דקות כולל כדי לאפשר חישוב מתמטי פשוט בלולאה
         int startMins = convertTimeToMinutes(start);
         int endMins = convertTimeToMinutes(end);
 
-        // לולאה הרצה ומתקדמת בכל פעם לפי אורך משך הטיפול כל עוד לא הגענו לשעת הסגירה
         while (startMins <= endMins) {
-            // המרה חזרה ממספר דקות כולל למחרוזת שעה מובנית (HH:mm)
             String time = convertMinutesToTime(startMins);
             SlotModel slot = new SlotModel();
             slot.time = time;
 
-            // בדיקה האם חלון הזמן הנוכחי כבר תפוס על ידי תור או חסימה קיימת במפה
+            // בדיקה האם השעה הזו קיימת במפת התורים התפוסים ששלפנו קודם מהשרת
             if (bookedMap.containsKey(time)) {
                 Appointment app = bookedMap.get(time);
-                // אם קיים מסמך חסימה בסטטוס BLOCKED, נסמן את חלון הזמן כחסום
+                // במערכת שלנו, חסימה של בעל העסק נשמרת גם היא כתור, אך עם סטטוס מיוחד שנקרא "BLOCKED"
                 if ("BLOCKED".equals(app.getStatus())) {
                     slot.status = "BLOCKED";
-                    slot.appointmentId = app.getAppointmentId();
+                    slot.appointmentId = app.getAppointmentId(); // שמירת ה-ID כדי לאפשר מחיקה קלה בלחיצה חוזרת
                 } else {
-                    // אחרת, חלון הזמן תפוס על ידי לקוח אמיתי שקבע תור
-                    slot.status = "BOOKED";
+                    slot.status = "BOOKED"; // תור אמיתי של לקוח
                 }
             } else {
-                // אם השעה לא קיימת במפה, חלון הזמן הזה פנוי לחלוטין
-                slot.status = "FREE";
+                slot.status = "FREE"; // אין שום דבר בשעה זו - החלון פנוי
             }
 
-            // הוספת חלון הזמן המאופיין אל תוך הרשימה הדינמית
             slotsList.add(slot);
-            // קידום דקות ההתחלה לפי משך זמן הטיפול שנקבע לעסק
-            startMins += duration;
+            startMins += duration; // קידום הלולאה קדימה לפי אורך הטיפול בעסק
         }
         tvStatusMessage.setText("");
-        // עדכון המתאם לצורך ריענון וציור מחדש של רשת חלונות הזמן על המסך
         adapter.notifyDataSetChanged();
     }
 
-    // פעולה פרטית המשנה את סטטוס חלון הזמן (חסימה או שחרור מחסימה) בעת לחיצה
+    /**
+     * מה הפעולה עושה: מנהלת את מנגנון הלחיצה (Toggle) של בעל העסק: חוסמת שעה פנויה (יוצרת מסמך), או משחררת שעה חסומה (מוחקת מסמך).
+     * קלט: SlotModel slot (החלון עליו המשתמשת לחצה).
+     * פלט: אין (void).
+     */
     private void toggleSlotBlock(SlotModel slot) {
-        // הגנה: אם חלון הזמן תפוס על ידי תור של לקוח, לא ניתן לחסום או לשנות אותו מכאן
+        // הגנה עסקית: אם לקוח כבר הזמין תור בשעה הזו, לבעל העסק אסור לחסום את המקום באופן שרירותי מכאן
         if (slot.status.equals("BOOKED")) return;
 
-        // אם חלון הזמן פנוי, ניצור מסמך חדש באוסף התורים המייצג חסימה של שעה
+        // מצב פנוי -> חסימה: יצירת אובייקט "תור" חדש בסטטוס BLOCKED והעלאתו לענן
         if (slot.status.equals("FREE")) {
             Appointment blockApp = new Appointment();
             blockApp.setBusinessId(businessId);
@@ -276,20 +274,18 @@ public class BusinessBlockSlotsActivity extends BaseActivity {
                     .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
                         @Override
                         public void onSuccess(DocumentReference docRef) {
-                            // עדכון הסטטוס המקומי לחסום ושמירת מזהה המסמך שנוצר בענן לקטגוריית המודל
                             slot.status = "BLOCKED";
-                            slot.appointmentId = docRef.getId();
+                            slot.appointmentId = docRef.getId(); // הצמדת ה-ID שקיבלנו מהשרת למודל המקומי
                             adapter.notifyDataSetChanged();
                         }
                     });
         }
-        // אם חלון הזמן כבר חסום, לחיצה נוספת תמחק את מסמך החסימה מ-Firestore ותשחרר אותו
+        // מצב חסום -> שחרור: מחיקת מסמך החסימה הספציפי מ-Firestore על פי המזהה שלו
         else if (slot.status.equals("BLOCKED")) {
             db.collection("appointments").document(slot.appointmentId).delete()
                     .addOnSuccessListener(new OnSuccessListener<Void>() {
                         @Override
                         public void onSuccess(Void aVoid) {
-                            // החזרת הסטטוס המקומי למצב פנוי ועדכון התצוגה הויזואלית
                             slot.status = "FREE";
                             adapter.notifyDataSetChanged();
                         }
@@ -297,7 +293,6 @@ public class BusinessBlockSlotsActivity extends BaseActivity {
         }
     }
 
-    // פעולת עזר מתמטית המקבלת מחרוזת שעה (למשל "10:30") ומחזירה את סך הדקות הכולל מתחילת היום (630)
     private int convertTimeToMinutes(String time) {
         try {
             String[] parts = time.split(":");
@@ -305,17 +300,16 @@ public class BusinessBlockSlotsActivity extends BaseActivity {
         } catch (Exception e) { return 0; }
     }
 
-    // פעולת עזר מתמטית המקבלת מספר דקות כולל ומחזירה מחרוזת זמן מעוצבת בפורמט שעה קבוע
     private String convertMinutesToTime(int totalMinutes) {
         return String.format(Locale.getDefault(), "%02d:%02d", totalMinutes / 60, totalMinutes % 60);
     }
 
-    // מחלקת מודל פנימית לייצוג המאפיינים של חלון זמן בודד ברשת הויזואלית
+    // --- מודל נתונים פנימי לייצוג מצב של חלון זמן בודד ---
     class SlotModel {
         String time, status, appointmentId;
     }
 
-    // מחלקת מתאם פנימית (Adapter) לניהול, הזרקת וחיבור נתוני חלונות הזמן לרכיבי ה-RecyclerView
+    // --- אדפטר פנימי לניהול פריטי השעות ברשת ה-RecyclerView ---
     class SlotsAdapter extends RecyclerView.Adapter<SlotsAdapter.ViewHolder> {
         List<SlotModel> list;
         public SlotsAdapter(List<SlotModel> list) { this.list = list; }
@@ -330,12 +324,11 @@ public class BusinessBlockSlotsActivity extends BaseActivity {
             SlotModel item = list.get(p);
             h.tvTime.setText(item.time);
 
-            // צביעת רקע הכרטיסייה בהתאם לסטטוס חלון הזמן: לבן לפנוי, אפור כהה לחסום, אדום לתפוס על ידי לקוח
+            // לוגיקת צביעה בהתאם למצב: לבן = חופשי, אפור כהה = חסום על ידי העסק, אדום = תפוס על ידי לקוח
             if ("FREE".equals(item.status)) h.cardView.setCardBackgroundColor(Color.WHITE);
             else if ("BLOCKED".equals(item.status)) h.cardView.setCardBackgroundColor(Color.DKGRAY);
             else h.cardView.setCardBackgroundColor(Color.RED);
 
-            // הגדרת מאזין לחיצה אנונימי רגיל על פריט השעה לצורך ביצוע חסימה או שחרור
             h.itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -346,7 +339,6 @@ public class BusinessBlockSlotsActivity extends BaseActivity {
 
         @Override public int getItemCount() { return list.size(); }
 
-        // מחלקת ViewHolder פנימית להחזקה וקישור הרכיבים הויזואליים של שורת פריט זמן בודד
         class ViewHolder extends RecyclerView.ViewHolder {
             TextView tvTime; CardView cardView;
             public ViewHolder(View v) {

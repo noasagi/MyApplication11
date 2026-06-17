@@ -35,79 +35,70 @@ import java.util.List;
 import java.util.Map;
 import java.util.Locale;
 
-// הגדרת מחלקת אקטיביטי להזמנת תור על ידי הלקוח, היורשת מ-BaseActivity
+// מסך הזמנת תור הכולל אלגוריתם לחישוב חלונות זמן פנויים וסינון חפיפות תורים
 public class BookingActivity extends BaseActivity {
 
-    // הצהרה על רכיבי הטקסט להצגת התאריך הנבחר והודעות מחסור בתורים פנויים
+    // רכיבי ממשק המשתמש (UI)
     private TextView tvSelectedDate, tvNoSlots;
-    // הצהרה על רכיב הרשימה הממוחזרת להצגת חלונות הזמן הפנויים
     private RecyclerView rvTimeSlots;
-    // הצהרה על לחצני בחירת התאריך ואישור ההזמנה הסופי
     private Button btnPickDate, btnConfirmBooking;
-    // הצהרה על רכיב תיבת בחירה נפתחת (Spinner) לבחירת סוג הטיפול
-    private Spinner spinnerTreatments;
+    private Spinner spinnerTreatments; // תיבה נפתחת לבחירת סוג הטיפול
 
-    // משתני מחרוזת לשמירת התאריך והשעה הספציפיים שהלקוח בחר לתור
+    // משתני מצב לניהול התאריך, השעה והאדפטר
     private String selectedDate = "";
     private String selectedTime = "";
-    // הצהרה על המתאם המותאם אישית של רשימת חלונות השעות
     private TimeSlotAdapter adapter;
-    // הצהרה על רשימה דינמית המכילה את מחרוזות השעות הפנויות (HH:mm)
-    private List<String> timeSlotsList;
-    // הצהרה על עצם לוח שנה לשמירת הנתונים הקלנדריים של היום הנבחר
-    private Calendar selectedCalendar = null;
+    private List<String> timeSlotsList; // רשימה שתחזיק את השעות הפנויות שנמצאו (למשל: "10:30")
+    private Calendar selectedCalendar = null; // אובייקט לניהול תאריך נבחר במערכת
 
-    // משתני מחרוזת לשמירת מזהה העסק הנוכחי ושם העסק שאליו נקבע התור
+    // משתני זיהוי העסק וחיבור ל-Firebase
     private String currentBusinessId;
     private String currentBusinessName = "";
-    // הצהרה על עצמי הגישה לבסיס הנתונים פיירסטור ומערכת האימות של פיירבייס
     private FirebaseFirestore db;
     private FirebaseAuth auth;
 
-    // הצהרה על רשימה דינמית המכילה את אובייקטי הטיפולים הזמינים בעסק
+    // רשימות ומודלים לניהול סוגי הטיפולים
     private List<Treatment> treatmentList = new ArrayList<>();
-    // משתנה מסוג מודל הטיפול לשמירת הטיפול הספציפי שנבחר על ידי המשתמש
-    private Treatment selectedTreatment = null;
+    private Treatment selectedTreatment = null; // ישמור את אובייקט הטיפול שנבחר כרגע
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // טעינת וחיבור קובץ ה-XML של עיצוב מסך הזמנת תור
         setContentView(R.layout.activity_booking);
 
-        // חיבור וקישור סרגל הכלים העליון של המסך
+        // הגדרת סרגל הכלים העליון עם חץ חזרה מובנה (הודות לירושה מ-BaseActivity)
         Toolbar toolbar = findViewById(R.id.toolbar);
         setupSecondaryToolbar(toolbar, true);
 
-        // ביטול כותרת ברירת המחדל של סרגל הכלים במידה והוא קיים לקוד
+        // הסרת כותרת ברירת המחדל הסטטית של הסרגל כדי לעצב אותו בצורה נקייה יותר
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayShowTitleEnabled(false);
         }
 
-        // אתחול וקבלת המופע הנוכחי של פיירסטור ואימות פיירבייס
+        // אתחול רכיבי הגישה ל-Firebase
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
 
-        // חילוץ מזהה ושם העסק שהועברו בתוך ה-Intent מהמסך הקודם
+        // שליפת מזהה ושם העסק שהועברו אלינו מהמסך הקודם דרך ה-Intent
         currentBusinessId = getIntent().getStringExtra("businessId");
         currentBusinessName = getIntent().getStringExtra("businessName");
         if (currentBusinessId == null) {
             currentBusinessId = getIntent().getStringExtra("BUSINESS_ID");
         }
 
-        // ניקוי רווחים מיותרים ממחרוזת מזהה העסק במידה והוא התקבל
+        // ניקוי רווחי קצוות ממחרוזת ה-ID כדי למנוע שגיאות בשליפה מ-Firestore
         if (currentBusinessId != null) {
             currentBusinessId = currentBusinessId.trim();
         }
 
-        // הגנה: אם מזהה העסק חסר או ריק, נציג הודעה ונסגור את המסך מיידית
+        // הגנת בטיחות: אם משום מה לא הגיע מזהה עסק, נסגור את המסך מיד כדי למנוע קריסה
         if (currentBusinessId == null || currentBusinessId.isEmpty()) {
             Toast.makeText(this, "שגיאה: לא זוהה עסק", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
 
-        // קישור משתני הרכיבים לרכיבים הגרפיים האמיתיים מתוך קובץ ה-XML
+        // קישור כל רכיבי ה-XML אל משתני ה-Java
         tvSelectedDate = findViewById(R.id.tvSelectedDate);
         tvNoSlots = findViewById(R.id.tvNoSlots);
         rvTimeSlots = findViewById(R.id.rvTimeSlots);
@@ -115,40 +106,42 @@ public class BookingActivity extends BaseActivity {
         btnConfirmBooking = findViewById(R.id.btnConfirmBooking);
         spinnerTreatments = findViewById(R.id.spinnerTreatments);
 
-        // הגדרת מנהל פריסת רשת (גריד) בעל 3 עמודות להצגת השעות הפנויות
+        // אתחול ה-RecyclerView עם פריסת רשת (Grid) של 3 עמודות להצגת ריבועי השעות
         rvTimeSlots.setLayoutManager(new GridLayoutManager(this, 3));
         timeSlotsList = new ArrayList<>();
-        // יצירת מופע של המתאם המותאם אישית וחיבורו לרכיב הרשימה הויזואלי
         adapter = new TimeSlotAdapter(timeSlotsList, 0);
         rvTimeSlots.setAdapter(adapter);
 
-        // הגדרת מאזין לחיצה אנונימי קלאסי לכפתור פתיחת לוח השנה
+        // מאזין ללחיצה על כפתור בחירת תאריך
         btnPickDate.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // הגנה: חיוב המשתמש לבחור קודם כל סוג טיפול לפני בחירת תאריך
+                // וולידציה: המשתמש חייב קודם כל לבחור סוג טיפול, כי אורך הטיפול משפיע על חישוב השעות
                 if (selectedTreatment == null) {
                     Toast.makeText(BookingActivity.this, "נא לבחור טיפול קודם", Toast.LENGTH_SHORT).show();
                     return;
                 }
-                showDatePicker();
+                showDatePicker(); // פתיחת חלונית לוח השנה
             }
         });
 
-        // הגדרת מאזין לחיצה אנונימי קלאסי לכפתור אישור ההזמנה ושמירת התור
+        // מאזין ללחיצה על כפתור אישור התור הסופי
         btnConfirmBooking.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // קריאה לפעולה שמתחילה את תהליך רישום ושמירת התור
-                saveAppointmentRequest();
+                saveAppointmentRequest(); // התחלת תהליך השמירה ב-Firestore
             }
         });
 
-        // קריאה לפעולה הפנימית הטוענת את רשימת הטיפולים הזמינים של העסק הנוכחי
+        // טעינה ראשונית של סוגי הטיפולים שהעסק מציע
         loadTreatments();
     }
 
-    // פעולה פרטית השולפת את תת-אוסף הטיפולים של העסק ומציגה אותם בתוך ה-Spinner
+    /**
+     * קלט: אין. | פלט: אין (void).
+     * מה עושה: שולפת מתוך תת-אוסף (Collection) בשם "treatments" שנמצא בתוך מסמך העסק הספציפי,
+     * את כל סוגי הטיפולים הזמינים ומכניסה אותם לתוך רכיב ה-Spinner הנפתח.
+     */
     private void loadTreatments() {
         db.collection("businesses").document(currentBusinessId).collection("treatments")
                 .get()
@@ -158,35 +151,37 @@ public class BookingActivity extends BaseActivity {
                         treatmentList.clear();
                         List<String> treatmentNames = new ArrayList<>();
 
-                        // מעבר בלולאה על כל מסמכי הטיפולים שנשלפו מהענן
+                        // מעבר בלולאה על כל מסמכי הטיפולים שהתקבלו מהענן
                         for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
-                            Treatment treatment = doc.toObject(Treatment.class);
+                            Treatment treatment = doc.toObject(Treatment.class); // המרה לאובייקט Java
                             treatmentList.add(treatment);
-                            // בניית מחרוזת טקסט להצגה המשלבת את שם הטיפול ומשך הזמן שלו
+
+                            // בניית מחרוזת להצגה ויזואלית בספינר (שם הטיפול + משך הזמן שלו)
                             treatmentNames.add(treatment.getName() + " (" + treatment.getDurationMinutes() + " דקות)");
                         }
 
-                        // אם לא נמצאו טיפולים מוגדרים לעסק זה בענן
+                        // טיפול במצב שבו לבעל העסק אין עדיין טיפולים רשומים במערכת
                         if (treatmentList.isEmpty()) {
                             treatmentNames.add("לא הוגדרו טיפולים לעסק זה");
-                            btnPickDate.setEnabled(false);
+                            btnPickDate.setEnabled(false); // חסימת האפשרות להתקדם לבחירת תאריך
                         }
 
-                        // יצירת מתאם פשוט עבור רכיב הספינר וחיבור רשימת השמות אליו
+                        // יצירת מתאם (ArrayAdapter) פשוט של אנדרואיד שמחבר את רשימת הטקסטים לספינר
                         ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(BookingActivity.this, android.R.layout.simple_spinner_item, treatmentNames);
                         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
                         spinnerTreatments.setAdapter(spinnerAdapter);
 
-                        // הגדרת מאזין בחירת פריט אנונימי קלאסי עבור רכיב הספינר
+                        // הגדרת מאזין שישים לב איזה פריט (טיפול) המשתמש בחר מתוך הרשימה הנפתחת
                         spinnerTreatments.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                             @Override
                             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                                 if (!treatmentList.isEmpty()) {
-                                    // שמירת הטיפול שנבחר במשתנה הגלובלי ואיפוס בחירת השעה הקודמת
+                                    // שמירת אובייקט הטיפול שנבחר במשתנה הגלובלי לפי המיקום (position) שלו
                                     selectedTreatment = treatmentList.get(position);
-                                    selectedTime = "";
-                                    btnConfirmBooking.setEnabled(false);
-                                    // אם כבר נבחר תאריך, נחשב ונרענן מחדש את חלונות הזמן לפי אורך הטיפול החדש
+                                    selectedTime = ""; // איפוס השעה שנבחרה קודם לכן
+                                    btnConfirmBooking.setEnabled(false); // חסימת כפתור האישור עד שתיבחר שעה חדשה
+
+                                    // אופטימיזציה: אם המשתמש כבר בחר תאריך ואז שינה סוג טיפול, נחשב מחדש את השעות הפנויות
                                     if (selectedCalendar != null) loadRealTimeSlots(selectedCalendar);
                                 }
                             }
@@ -197,7 +192,11 @@ public class BookingActivity extends BaseActivity {
                 });
     }
 
-    // פעולה פרטית המציגה דיאלוג קופץ לבחירת תאריך מתוך רכיב לוח שנה מובנה
+    /**
+     * קלט: אין. | פלט: אין (void).
+     * מה עושה: מייצרת ומציגה את חלונית לוח השנה המובנית של אנדרואיד (DatePickerDialog).
+     * היא מגבילה את הבחירה החל מהיום הנוכחי, ובעת בחירה היא שומרת את התאריך ומפעילה את חישוב השעות.
+     */
     private void showDatePicker() {
         final Calendar calendar = Calendar.getInstance();
         DatePickerDialog datePickerDialog = new DatePickerDialog(this,
@@ -205,51 +204,60 @@ public class BookingActivity extends BaseActivity {
                     @Override
                     public void onDateSet(DatePicker view, int year, int month, int dayOfMonth) {
                         selectedCalendar = Calendar.getInstance();
-                        selectedCalendar.set(year, month, dayOfMonth);
-                        // המרת התאריך הנבחר לפורמט מחרוזת קבוע (dd/MM/yyyy) לסינכרון מול השרת
+                        selectedCalendar.set(year, month, dayOfMonth); // עדכון אובייקט לוח הזמנים הגלובלי
+
+                        // המרת התאריך לפורמט מחרוזת קבוע איתו נעבוד מול מסד הנתונים: dd/MM/yyyy
                         selectedDate = String.format(Locale.getDefault(), "%02d/%02d/%04d", dayOfMonth, month + 1, year);
                         tvSelectedDate.setText("תאריך נבחר: " + selectedDate);
-                        selectedTime = "";
+                        selectedTime = ""; // איפוס שעה קודמת
                         btnConfirmBooking.setEnabled(false);
-                        // מעבר לשלב הבא: בדיקת שעות הפעילות וזמינות התורים לתאריך זה
+
+                        // מעבר לשלב הבא: בדיקת שעות הפעילות של העסק עבור התאריך הזה
                         loadRealTimeSlots(selectedCalendar);
                     }
                 }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH));
 
-        // הגבלת לוח השנה כך שלא יהיה ניתן לבחור תאריכים שעברו (מינימום מהזמן הנוכחי)
+        // הגבלת לוח השנה: מונע מהמשתמש לבצע בחירה של תאריכים מהעבר (מינימום מהרגע הנוכחי מינוס שנייה)
         datePickerDialog.getDatePicker().setMinDate(System.currentTimeMillis() - 1000);
         datePickerDialog.show();
     }
 
-    // פעולה פרטית השולפת את הגדרות שעות הפעילות של העסק עבור היום בשבוע שנבחר
+    /**
+     * קלט: אובייקט Calendar של התאריך הנבחר. | פלט: אין (void).
+     * מה עושה: מחשבת את היום בשבוע (אינדקס 0 עד 6, כאשר 0 זה יום ראשון). היא שולפת מתוך מסמך העסק
+     * ב-Firestore את מפת שעות הפעילות ("weeklySchedule"). אם העסק פתוח באותו יום, היא שולחת את שעות הפתיחה והסגירה לשלב הבא.
+     */
     private void loadRealTimeSlots(Calendar selectedDateCal) {
         if (selectedTreatment == null) return;
-        timeSlotsList.clear();
+        timeSlotsList.clear(); // ניקוי הרשימה הגלובלית לקראת החישוב החדש
         adapter.notifyDataSetChanged();
+
+        // עדכון זמני של המסך למצב טעינה
         tvNoSlots.setText("בודק זמינות...");
         tvNoSlots.setVisibility(View.VISIBLE);
         rvTimeSlots.setVisibility(View.GONE);
 
-        // חישוב אינדקס היום בשבוע (0-6) התואם למפתח השמור במבנה הנתונים בענן
+        // המרה: ג'אווה נותנת ליום ראשון את הערך 1, אנו מורידים 1 כדי להתאים למפתח שלנו בענן (0 = יום ראשון)
         String dayOfWeekKey = String.valueOf(selectedDateCal.get(Calendar.DAY_OF_WEEK) - 1);
 
-        // שליפת מסמך הגדרות העסק מתוך Firestore
+        // קבלת מסמך העסק מתוך אוסף המערכת
         db.collection("businesses").document(currentBusinessId).get()
                 .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                     @Override
                     public void onSuccess(DocumentSnapshot businessDoc) {
                         if (!businessDoc.exists()) { showNoSlots("העסק לא נמצא"); return; }
 
-                        // קבלת אורך משך זמן הטיפול הספציפי בדקות שנבחר מהספינר
-                        int appointmentDuration = selectedTreatment.getDurationMinutes();
-                        // שליפת מפת לוח הזמנים השבועי מתוך מסמך העסק
+                        int appointmentDuration = selectedTreatment.getDurationMinutes(); // אורך הטיפול הנוכחי בדקות
+
+                        // שליפת מפת לוח הזמנים השבועי מתוך מסמך העסק ב-Firestore
                         Map<String, Object> weeklySchedule = (Map<String, Object>) businessDoc.get("weeklySchedule");
 
                         if (weeklySchedule != null && weeklySchedule.containsKey(dayOfWeekKey)) {
                             Map<String, Object> dayData = (Map<String, Object>) weeklySchedule.get(dayOfWeekKey);
-                            // בדיקה האם העסק אכן פתוח לקבלת קהל ביום זה בשבוע
+
+                            // בדיקה האם העסק הגדיר שהוא פתוח (isOpen = true) ביום הספציפי הזה בשבוע
                             if (dayData != null && Boolean.TRUE.equals(dayData.get("isOpen"))) {
-                                // מעבר לשלב הבא: שליפת התורים הקיימים שתפסו שעות באותו יום בענן
+                                // העסק פתוח! שולפים את שעות הפתיחה והסגירה (למשל "09:00", "17:00") ועוברים לשלב הבא
                                 fetchBookedSlotsAndGenerate((String)dayData.get("start"), (String)dayData.get("end"), appointmentDuration);
                             } else { showNoSlots("העסק סגור ביום זה"); }
                         } else { showNoSlots("לא הוגדרו שעות פעילות"); }
@@ -257,86 +265,120 @@ public class BookingActivity extends BaseActivity {
                 });
     }
 
-    // פעולה פרטית השולפת את כל התורים התפוסים של העסק בתאריך שנבחר לצורך סינון חפיפות
+    /**
+     * קלט: שעת פתיחה (String), שעת סגירה (String), אורך הטיפול בדקות (int). | פלט: אין.
+     * מה עושה: פונה לאוסף "appointments" הכללי בענן ושולפת את כל התורים שכבר נקבעו ותפוסים עבור העסק הזה *בתאריך הספציפי הזה*.
+     * היא מתרגמת את זמני התורים התפוסים לטווחי דקות מספריים [התחלה, סיום] כדי שיהיה קל לחשב חפיפות מתמטיות.
+     */
     private void fetchBookedSlotsAndGenerate(String start, String end, int duration) {
         db.collection("appointments")
-                .whereEqualTo("businessId", currentBusinessId)
-                .whereEqualTo("date", selectedDate)
+                .whereEqualTo("businessId", currentBusinessId) // סינון: רק של העסק הנוכחי
+                .whereEqualTo("date", selectedDate)            // סינון: רק לתאריך הנבחר
                 .get()
                 .addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
                     @Override
                     public void onSuccess(QuerySnapshot querySnapshot) {
-                        // יצירת רשימה של מערכים מספריים לייצוג טווחי הזמן התפוסים בדקות [התחלה, סיום]
+                        // רשימה של מערכי אינטג'ר באורך 2: אינדקס 0 מייצג דקת התחלה, אינדקס 1 מייצג דקת סיום תור תפוס
                         List<int[]> bookedRangesList = new ArrayList<>();
+
                         for (QueryDocumentSnapshot doc : querySnapshot) {
-                            // סינון והתעלמות מתורים שסטטוס העבודה שלהם נדחה או בוטל
+                            // אנו לוקחים בחשבון תורים תפוסים רק אם הסטטוס שלהם לא נדחה (REJECTED) על ידי העסק
                             if (!"REJECTED".equals(doc.getString("status"))) {
-                                int bStart = convertTimeToMinutes(doc.getString("time"));
-                                Long bDur = doc.getLong("duration");
-                                // הוספת טווח הזמן: שעת ההתחלה ועד שעת הסיום (התחלה + משך הטיפול)
-                                bookedRangesList.add(new int[]{bStart, bStart + (bDur != null ? bDur.intValue() : 30)});
+                                int bStart = convertTimeToMinutes(doc.getString("time")); // המרת שעת התור (למשל "10:00") לדקות מספריות מתחילת היום
+                                Long bDur = doc.getLong("duration"); // משך זמן התור התפוס כפי שנשמר בענן
+
+                                int appointmentDurationMinutes = (bDur != null) ? bDur.intValue() : 30; // ברירת מחדל של 30 דקות לגיבוי
+
+                                // הוספת טווח התור התפוס: [זמן תחילת התור, זמן סיום התור]
+                                bookedRangesList.add(new int[]{bStart, bStart + appointmentDurationMinutes});
                             }
                         }
-                        // קריאה לפעולה האלגוריתמית שמייצרת ומסננת את חלונות השעות הפנויות
+                        // מעבר לחלק האלגוריתמי המרכזי: יצירת חלונות הזמן הריקים וסינונם
                         generateSlots(start, end, duration, bookedRangesList);
                     }
                 });
     }
 
-    // פעולה פרטית המייצרת חלונות זמן קפיצה ובודקת חפיפות מול רשימת הטווחים התפוסים
+    /**
+     * [האלגוריתם המרכזי של האפליקציה - חישוב חלונות זמן פנויים]
+     * קלט: שעת פתיחה, שעת סגירה, אורך הטיפול המבוקש, ורשימת טווחי הדקות של התורים התפוסים. | פלט: אין.
+     * איך הוא עובד: הוא מתחיל משעת הפתיחה ומריץ לולאה שקופצת כל 30 דקות קדימה. בכל קפיצה, הוא בודק מתמטית
+     * האם חלון הזמן הנוכחי (משעה X ועד שעה X פלוס אורך הטיפול) מתנגש או חופף לאחד מהתורים התפוסים ביום זה.
+     * אם אין שום חפיפה, השעה מומרת חזרה לטקסט (String) ונוספת לרשימה שמוצגת ללקוח.
+     */
     private void generateSlots(String start, String end, int duration, List<int[]> bookedRanges) {
         timeSlotsList.clear();
-        int current = convertTimeToMinutes(start);
-        int stop = convertTimeToMinutes(end);
+        int current = convertTimeToMinutes(start); // המרת שעת הפתיחה (למשל "09:00" הופך ל-540 דקות)
+        int stop = convertTimeToMinutes(end);      // המרת שעת הסגירה (למשל "18:00" הופך ל-1080 דקות)
 
-        // לולאה הרצה משעת הפתיחה ומתקדמת במרווחים קבועים של 30 דקות כל עוד יש מקום לטיפול
+        // תנאי הלולאה: המשך לרוץ כל עוד חלון הזמן הנוכחי בתוספת אורך הטיפול אינו חורג משעת סגירת העסק
         while (current + duration <= stop) {
-            boolean overlap = false;
-            // לולאה פנימית הבודקת חפיפת זמנים מתמטית מול כל אחד מהתורים הקיימים באותו יום
+            boolean overlap = false; // דגל (Flag) שמסמן האם מצאנו התנגשות עם תור קיים
+
+            // לולאה פנימית שעוברת על כל אחד מהתורים שכבר תפוסים באותו יום
             for (int[] r : bookedRanges) {
+                // נוסחת בדיקת חפיפה מתמטית בין שני טווחים [A1, A2] ו-[B1, B2]:
+                // אם זמן ההתחלה של התור הנוכחי קטן מזמן הסיום של התור התפוס,
+                // ובמקביל זמן הסיום של התור הנוכחי גדול מזמן ההתחלה של התור התפוס -> יש חפיפה והתנגשות!
                 if (current < r[1] && (current + duration) > r[0]) {
-                    overlap = true;
-                    break;
+                    overlap = true; // סימון שיש חפיפה
+                    break;          // שבירת הלולאה הפנימית, אין טעם להמשיך לבדוק את שאר התורים עבור שעה זו
                 }
             }
-            // אם חלון הזמן הנוכחי נמצא פנוי ואינו חופף לאף תור קיים, נוסיף אותו לרשימה הויזואלית
+
+            // אם הלולאה הפנימית הסתיימה והדגל נשאר false (כלומר, השעה הזו פנויה לחלוטין ואין התנגשות)
             if (!overlap) {
+                // המרת הדקות המספריות בחזרה לפורמט טקסט של שעה (למשל 540 הופך ל-"09:00") והוספתה לרשימה
                 timeSlotsList.add(convertMinutesToTime(current));
             }
-            // התקדמות בקפיצות של 30 דקות כדי לאפשר גמישות בתחילת תורים
+
+            // התקדמות בקפיצות של 30 דקות קדימה (מרווח קפיצה קבוע המאפשר גמישות בבחירת תחילת תורים)
             current += 30;
         }
 
-        // בדיקה האם נוצרו חלונות זמן פנויים כלשהם והצגת הודעה מתאימה
-        if (timeSlotsList.isEmpty()) showNoSlots("אין תורים פנויים");
-        else {
+        // בדיקה סופית האם נוצרו שעות פנויות להצגה
+        if (timeSlotsList.isEmpty()) {
+            showNoSlots("אין תורים פנויים ביום זה");
+        } else {
             tvNoSlots.setVisibility(View.GONE);
             rvTimeSlots.setVisibility(View.VISIBLE);
-            // עדכון המתאם והזרקת רשימת השעות ואורך הטיפול לרכיב הויזואלי
+
+            // עדכון האדפטר עם השעות החדשות שנמצאו ואורך הטיפול, וריענון התצוגה הגרפית ברשת
             adapter.updateData(timeSlotsList, duration);
         }
     }
 
-    // פעולה פרטית לשליפת שם הלקוח המחובר כעת מהמסד לפני השלמת הרישום
+    /**
+     * קלט: אין. | פלט: אין (void).
+     * מה עושה: לפני רישום התור, הפונקציה שולפת מ-Firestore את השם האמיתי של הלקוח המחובר כרגע (מתוך אוסף "users" לפי ה-UID שלו)
+     * כדי שנוכל לרשום את שמו בתוך מסמך התור, בשביל שבעל העסק ידע מי הלקוח שמגיע אליו.
+     */
     private void saveAppointmentRequest() {
         if (auth.getCurrentUser() == null || selectedTreatment == null) return;
-        btnConfirmBooking.setEnabled(false);
-        String userId = auth.getCurrentUser().getUid();
+        btnConfirmBooking.setEnabled(false); // חסימת כפתור הלחיצה למניעת שליחה כפולה של הטופס
+
+        String userId = auth.getCurrentUser().getUid(); // קבלת ה-UID הייחודי של המשתמש המחובר
+
+        // פנייה למסמך המשתמש באוסף "users"
         db.collection("users").document(userId).get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
             @Override
             public void onSuccess(DocumentSnapshot doc) {
-                // מעבר לפעולת הרישום הסופית עם מזהה ושם הלקוח האמיתי
+                // קבלת שם המשתמש מהמסמך (או שימוש בברירת מחדל "לקוח") ומעבר לשלב הרישום הסופי
                 finalizeBooking(userId, doc.getString("name") != null ? doc.getString("name") : "לקוח");
             }
         });
     }
 
-    // פעולה פרטית היוצרת את מסמך התור החדש בענן, ושולחת הודעת SMS מתאימה לבעל העסק
+    /**
+     * קלט: מזהה משתמש (String), שם משתמש (String). | פלט: אין (void).
+     * מה עושה: מייצרת מזהה אקראי ייחודי (ID) עבור התור החדש, אורזת את כל נתוני התור (תאריך, שעה, טיפול, מחיר, משך זמן, סטטוס ראשוני PENDING)
+     * לתוך HashMap, ושומרת אותו ב-Firestore באוסף "appointments". בהצלחה, היא שולפת את מספר הטלפון של העסק ופותחת כוונת (Intent) ל-SMS.
+     */
     private void finalizeBooking(String userId, String userName) {
-        // יצירת מזהה מסמך ייחודי ואקראי עבור התור החדש ב-Firestore
+        // יצירת מזהה ייחודי חדש ואקראי עבור מסמך התור ב-Firestore
         String appointmentId = db.collection("appointments").document().getId();
 
-        // אריזת כל שדות הנתונים של התור החדש לתוך מפת נתונים מובנית
+        // יצירת מפת נתונים (Key-Value) שבה נשמור את כל המידע על התור החדש
         Map<String, Object> data = new java.util.HashMap<>();
         data.put("appointmentId", appointmentId);
         data.put("businessId", currentBusinessId);
@@ -345,18 +387,18 @@ public class BookingActivity extends BaseActivity {
         data.put("userName", userName);
         data.put("date", selectedDate);
         data.put("time", selectedTime);
-        data.put("status", "PENDING"); // קביעת סטטוס ראשוני כממתין לאישור של בעל העסק
-        data.put("timestamp", System.currentTimeMillis());
-        data.put("description", selectedTreatment.getName());
+        data.put("status", "PENDING"); // התחלה במצב "ממתין" - דורש אישור ידני של בעל העסק במסך שלו
+        data.put("timestamp", System.currentTimeMillis()); // חותם זמן של רגע יצירת הבקשה
+        data.put("description", selectedTreatment.getName()); // שם הטיפול הנבחר
         data.put("duration", selectedTreatment.getDurationMinutes());
         data.put("price", selectedTreatment.getPrice());
 
-        // שמירה וכתיבה של מפת הנתונים לתוך מסמך התור החדש בענן
+        // כתיבת מפת הנתונים בפועל לתוך מסמך חדש ב-Firestore תחת ה-ID שייצרנו
         db.collection("appointments").document(appointmentId).set(data)
                 .addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void aVoid) {
-                        // שליפת מספר הטלפון של העסק כדי להכין הודעת טקסט לבעליו
+                        // הצעד הבא: שליפת מספר הטלפון של העסק כדי להכין למשתמש הודעת SMS מוכנה מראש
                         db.collection("businesses").document(currentBusinessId).get()
                                 .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                                     @Override
@@ -366,17 +408,16 @@ public class BookingActivity extends BaseActivity {
                                             businessPhone = businessDoc.getString("phone");
                                         }
 
-                                        // ניסוח מחרוזת הודעת ה-SMS המובנית עם פרטי ההזמנה המלאים
+                                        // ניסוח מחרוזת טקסט מובנית הכוללת את כל פרטי התור
                                         String message = "היי! ביקשתי לקבוע תור ל" + selectedTreatment.getName() + " בתאריך " + selectedDate + " בשעה " + selectedTime + ". אשמח לאישור המערכת. תודה, " + userName;
 
-                                        // יצירת כוונת (Intent) מפורשת לפתיחת אפליקציית ה-SMS החיצונית של המכשיר
+                                        // יצירת כוונת (Intent) לפתיחת אפליקציית ה-SMS החיצונית של הטלפון
                                         Intent smsIntent = new Intent(Intent.ACTION_SENDTO);
-                                        smsIntent.setData(Uri.parse("smsto:" + (businessPhone != null ? businessPhone : "")));
-                                        smsIntent.putExtra("sms_body", message);
+                                        smsIntent.setData(Uri.parse("smsto:" + (businessPhone != null ? businessPhone : ""))); // הגדרת היעד לשליחה
+                                        smsIntent.putExtra("sms_body", message); // השתלת הטקסט המנוסח בתוך ההודעה
 
                                         try {
-                                            // הפעלת האקטיביטי החיצונית של שליחת הודעת ה-SMS
-                                            startActivity(smsIntent);
+                                            startActivity(smsIntent); // מעבר פיזי של המשתמש אל אפליקציית ה-SMS של המכשיר שלו
                                         } catch (Exception e) {
                                             Toast.makeText(BookingActivity.this, "לא נמצאה אפליקציית SMS מותקנת במכשיר", Toast.LENGTH_SHORT).show();
                                         }
@@ -384,72 +425,101 @@ public class BookingActivity extends BaseActivity {
                                 });
 
                         Toast.makeText(BookingActivity.this, "התור נשמר! אנא שלח את ה-SMS לאישור סופי.", Toast.LENGTH_LONG).show();
-                        // סגירת מסך ההזמנה וחזרה למסך הראשי
-                        finish();
+                        finish(); // סגירת אקטיביטי ההזמנה וחזרה אוטומטית למסך הקודם
                     }
                 });
     }
 
-    // פעולת עזר מתמטית המקבלת מחרוזת שעה (HH:mm) ומחזירה את סך הדקות הכולל מתחילת היום
+    /**
+     * פונקציית עזר מתמטית.
+     * קלט: מחרוזת זמן בפורמט "HH:mm" (למשל "02:30").
+     * פלט: מספר הדקות הכולל מתחילת היום (int). למשל עבור "02:30" יוחזר (2 * 60) + 30 = 150 דקות.
+     */
     private int convertTimeToMinutes(String t) {
-        try { String[] p = t.split(":"); return Integer.parseInt(p[0]) * 60 + Integer.parseInt(p[1]); }
-        catch (Exception e) { return 0; }
+        try {
+            String[] p = t.split(":"); // פיצול המחרוזת לפי סימן הנקודתיים (אינדקס 0 זה השעה, אינדקס 1 זה הדקות)
+            return Integer.parseInt(p[0]) * 60 + Integer.parseInt(p[1]); // חישוב והחזרת התוצאה
+        } catch (Exception e) { return 0; }
     }
 
-    // פעולת עזר מתמטית המקבלת מספר דקות כולל ומחזירה מחרוזת טקסט בפורמט שעה קבוע
+    /**
+     * פונקציית עזר מתמטית הפוכה.
+     * קלט: מספר דקות כולל מתחילת היום (int). למשל: 150 דקות.
+     * פלט: מחרוזת טקסט מעוצבת בפורמט זמן קבוע "HH:mm". עבור 150 יוחזר "02:30".
+     */
     private String convertMinutesToTime(int m) {
+        // m / 60 נותן את השעות (חלוקה שלמים), m % 60 נותן את דקות השארית (מודולו)
         return String.format(Locale.getDefault(), "%02d:%02d", m / 60, m % 60);
     }
 
-    // פעולה פרטית המעדכנת את רכיבי הממשק במקרה שבו אין תורים זמינים להצגה
+    // פונקציית עזר המעדכנת את תצוגת המסך במצב שבו אין שעות פנויות להצגה
     private void showNoSlots(String msg) {
         tvNoSlots.setText(msg);
         tvNoSlots.setVisibility(View.VISIBLE);
         rvTimeSlots.setVisibility(View.GONE);
     }
 
-    // מחלקת מתאם פנימית (Adapter) לניהול, הזרקת וצביעת רשימת חלונות השעות ברכיב ה-RecyclerView
+    // --- אדפטר פנימי מותאם אישית להצגה וניהול של פריטי השעות ברשת (RecyclerView Grid) ---
     class TimeSlotAdapter extends RecyclerView.Adapter<TimeSlotAdapter.ViewHolder> {
         private List<String> slots;
         private int duration;
-        private int selectedPos = -1; // משתנה לשמירת המיקום שנבחר ברשת, ברירת מחדל 1- (לא נבחר)
+        private int selectedPos = -1; // משתנה לשמירת אינדקס השעה שהמשתמש לחץ עליה (ברירת מחדל 1- פירושו שום דבר לא נבחר)
 
         public TimeSlotAdapter(List<String> s, int d) { this.slots = s; this.duration = d; }
 
-        public void updateData(List<String> s, int d) { this.slots = s; this.duration = d; this.selectedPos = -1; notifyDataSetChanged(); }
+        // פונקציה לעדכון הנתונים מתוך האקטיביטי ואיפוס הבחירה הקודמת בעת החלפת ימים או טיפולים
+        public void updateData(List<String> s, int d) {
+            this.slots = s;
+            this.duration = d;
+            this.selectedPos = -1; // איפוס הבחירה הגרפית
+            notifyDataSetChanged(); // הוראה ל-RecyclerView לצייר את עצמו מחדש עם הנתונים המעודכנים
+        }
 
         @NonNull @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup p, int vt) {
+            // ניפוח קובץ ה-XML שמייצג כרטיסיית שעה בודדת ברשת
             return new ViewHolder(LayoutInflater.from(p.getContext()).inflate(R.layout.item_time_slot, p, false));
         }
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder h, int p) {
-            h.tvTime.setText(slots.get(p));
+            h.tvTime.setText(slots.get(p)); // הזרקת מחרוזת השעה (למשל "11:30") לתוך הטקסט בכרטיסייה
 
-            // שינוי צבעי הכרטיסייה והטקסט במידה וזו השעה הספציפית שהלקוח לחץ עליה
+            // לוגיקה גרפית דינמית: אם מיקום השורה הנוכחית (p) שווה למיקום שהמשתמש לחץ עליו (selectedPos)
+            // נצבע את הרקע של הכרטיסייה בצבע סגול כהה והטקסט בלבן. אם לא, הרקע יהיה לבן והטקסט שחור (מצב רגיל).
             h.cardView.setCardBackgroundColor(selectedPos == p ? Color.parseColor("#6200EE") : Color.WHITE);
             h.tvTime.setTextColor(selectedPos == p ? Color.WHITE : Color.BLACK);
 
-            // הגדרת מאזין לחיצה אנונימי רגיל על פריט השעה ברשת
+            // הגדרת מאזין לחיצה על כרטיסיית שעה ספציפית ברשת
             h.itemView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    // שמירת המיקום והשעה הנבחרת, הפעלת כפתור האישור ורענון צבעי הרשימה
+                    // שמירת המיקום שנבחר לתוך המשתנה
                     selectedPos = h.getAdapterPosition();
+
+                    // שמירת מחרוזת השעה הנבחרת מתוך רשימת השעות לתוך המשתנה הגלובלי של האקטיביטי
                     selectedTime = slots.get(selectedPos);
+
+                    // הפעלת כפתור האישור הסופי במסך (כי כעת יש לנו גם טיפול, גם תאריך וגם שעה)
                     btnConfirmBooking.setEnabled(true);
+
+                    // קריאה לרענון הציור של הרשימה, כדי שהכרטיסייה שנלחצה תיצבע מיד בסגול ושאר הכרטיסיות יחזרו ללבן
                     notifyDataSetChanged();
                 }
             });
         }
 
-        @Override public int getItemCount() { return slots.size(); }
+        @Override public int getItemCount() { return slots.size(); } // מחזיר כמה ריבועי שעות סך הכל יש לצייר ברשת
 
-        // מחלקת ViewHolder פנימית לקישור והחזקת הרכיבים הויזואליים של פריט שעה בודד
+        // מחלקת ViewHolder פנימית המחזיקה את רכיבי ה-XML המקומיים של שעה בודדת ברשת
         class ViewHolder extends RecyclerView.ViewHolder {
-            TextView tvTime; CardView cardView;
-            public ViewHolder(View v) { super(v); tvTime = v.findViewById(R.id.tvTimeSlot); cardView = v.findViewById(R.id.cardSlot); }
+            TextView tvTime;
+            CardView cardView;
+            public ViewHolder(View v) {
+                super(v);
+                tvTime = v.findViewById(R.id.tvTimeSlot);
+                cardView = v.findViewById(R.id.cardSlot);
+            }
         }
     }
 }

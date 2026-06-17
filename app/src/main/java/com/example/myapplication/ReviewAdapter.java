@@ -24,70 +24,78 @@ public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ReviewView
         this.reviewsList = reviewsList;
     }
 
+    /**
+     * מה הפעולה עושה: מייצרת ומנפחת (Inflate) את תצוגת ה-XML עבור שורת ביקורת בודדת, ועוטפת אותה ב-ViewHolder חדש. הפעולה רצה רק עבור השורות הראשונות שנכנסות למסך.
+     * קלט: ViewGroup parent, int viewType.
+     * פלט: ReviewViewHolder (מחזיק הרכיבים של השורה).
+     */
     @NonNull
     @Override
-    // פונקציה המופעלת על ידי המערכת כדי לייצר מחזיק רכיבים (ViewHolder) חדש עבור שורת ביקורת בודדת
     public ReviewViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         // טעינה ואינפלציה של קובץ ה-XML המעצב פריט ביקורת בודד (`item_review`)
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_review, parent, false);
-        // החזרת מופע ViewHolder חדש המקושר לקובץ העיצוב שנטען
         return new ReviewViewHolder(view);
     }
 
+    /**
+     * מה הפעולה עושה: פונקציית הליבה המזריקה ומחברת את הנתונים הגולמיים מתוך אובייקט ה-Model אל רכיבי הממשק הגרפיים בכל פעם ששורה ממוחזרת או נחשפת על המסך.
+     * קלט: ReviewViewHolder holder, int position (מיקום השורה הנוכחית ברשימה).
+     * פלט: אין (void).
+     */
     @Override
-    // פונקציית הליבה המזריקה את הנתונים הגולמיים מתוך אובייקט הביקורת אל רכיבי הממשק הגרפיים בכל שורה
     public void onBindViewHolder(@NonNull ReviewViewHolder holder, int position) {
-        // שליפת אובייקט הביקורת הספציפי מתוך הרשימה על פי מיקומו (Position) ברצף ה-RecyclerView
+        // שליפת אובייקט הביקורת הספציפי מתוך הרשימה על פי מיקומו ברצף ה-RecyclerView
         ReviewModel review = reviewsList.get(position);
 
-        // הצבת שם הלקוח שכתב את הביקורת ברכיב ה-TextView המתאים
         holder.tvName.setText(review.getUserName());
-        // הצבת תוכן חוות הדעת המילולית שכתב הלקוח בתיבת הטקסט
         holder.tvComment.setText(review.getComment());
 
         // --- לוגיקת עיבוד והצגת הציון הממוצע של הביקורת הנוכחית ---
         float finalRating;
 
-        // בדיקה מבנית: האם קיימים נתוני דירוג מפורטים עבור שלוש הקטגוריות בביקורת זו?
+        // בדיקה מבנית (פולימורפיזם של נתונים): האם קיימים נתוני דירוג מפורטים עבור שלוש הקטגוריות בביקורת זו?
         if (review.getRatingProfessionalism() > 0 || review.getRatingReliability() > 0 || review.getRatingPrice() > 0) {
-            // במידה וכן (ביקורת חדשה ומפורטת) - המערכת מפעילה פונקציה פנימית במודל המחשבת את ממוצע שלושת המדדים
+            // במידה וכן (ביקורת חדשה ומפורטת) - הפעלת פונקציה פנימית במודל המחשבת את ממוצע שלושת המדדים
             finalRating = review.calculateAverage();
         } else {
-            // במידה ולא (תמיכה בביקורות היסטוריות/ישנות במערכת) - שימוש במדד הקיים כשדה ברירת מחדל
+            // במידה ולא (תמיכה בביקורות ישנות/היסטוריות) - שימוש במדד הקיים כשדה ברירת מחדל
             finalRating = review.getRatingProfessionalism();
         }
 
-        // הזנת הציון הסופי שחושב לתוך רכיב כוכבי הדירוג הגרפי (`RatingBar`) של השורה
+        // הזנת הציון הסופי שחושב לתוך רכיב כוכבי הדירוג הגרפי (RatingBar) של השורה
         holder.rbRating.setRating(finalRating);
 
         // --- טיפול והמרה של חותמת הזמן (הגנה מפני קריסות במידה והתאריך ריק בענן) ---
         if (review.getTimestamp() != null) {
-            // הגדרת תבנית תצוגה אירופאית לתאריך (יום/חודש/שנה) בהתאם לשעון המקומי של המכשיר
+            // הגדרת תבנית תצוגה אירופאית לתאריך (יום/חודש/שנה) בהתאם לשעון המקומי של המכשיר (Locale.getDefault)
             SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
-            // המרת ה-Timestamp של פיירבייס לאובייקט Date של ג'אווה, פירמוטו למחרוזת והצגתו ב-TextView
+            // המרת ה-Timestamp של פיירבייס לאובייקט Date של ג'אווה והצגתו ב-TextView
             holder.tvDate.setText(sdf.format(review.getTimestamp().toDate()));
         } else {
-            // במידה ואין חותמת זמן תקינה - ניקוי שדה הטקסט של התאריך למניעת הצגת נתוני סרק
+            // במידה ואין חותמת זמן תקינה - ניקוי שדה הטקסט של התאריך למניעת הצגת נתוני סרק (Null Guard)
             holder.tvDate.setText("");
         }
     }
 
+    /**
+     * מה הפעולה עושה: מחזירה למערכת את כמות הפריטים הכוללת הקיימת ברשימה, ובכך קובעת מתי ה-RecyclerView יפסיק לגלול.
+     * קלט: אין.
+     * פלט: int (גודל הרשימה).
+     */
     @Override
-    // פונקציה המחזירה למערכת את כמות הפריטים הכוללת הקיימת ברשימת הביקורות (קובע את גודל הרשימה על המסך)
     public int getItemCount() {
         return reviewsList.size();
     }
 
-    // תת-מחלקה פנימית וסטטית המייצגת את מחזיק הרכיבים הגרפיים (ViewHolder) של שורת ביקורת בודדת
+    // תת-מחלקה פנימית וסטטית המייצגת את מחזיק הרכיבים הגרפיים (ViewHolder).
+    // נועדה למנוע קריאות חוזרות ונשנות לפקודת findViewById היקרה ביצועים, ובכך מאפשרת מיחזור יעיל וחלק של השורות בגלילה.
     public static class ReviewViewHolder extends RecyclerView.ViewHolder {
-        // הצהרה על רכיבי הטקסט (שם, תאריך ותוכן) ורכיב הדירוג הגרפי הנמצאים בתוך השורה
         TextView tvName, tvDate, tvComment;
         RatingBar rbRating;
 
-        // פעולה בונה המקבלת את תצוגת השורה ומקשרת בין משתני הג'אווה לרכיבי ה-XML בפועל
         public ReviewViewHolder(@NonNull View itemView) {
             super(itemView);
-            // ביצוע שידוך וקישור לרכיבים על פי המזהים הייחודיים שלהם (IDs) המוגדרים בקובץ ה-XML של הפריט
+            // ביצוע שידוך וקישור חד-פעמי בין משתני הג'אווה לרכיבי ה-XML בפועל על פי המזהים שלהם
             tvName = itemView.findViewById(R.id.tvReviewerName);
             tvDate = itemView.findViewById(R.id.tvReviewDate);
             tvComment = itemView.findViewById(R.id.tvReviewComment);

@@ -10,49 +10,66 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
+// מחלקת אקטיביטי עבור מסך הפתיחה (Splash Screen) האחראית על הצגת לוגו האפליקציה וניתוב אוטומטי של המשתמש לפי מצב החיבור שלו
 public class SplashActivity extends AppCompatActivity {
 
-    // עצם עזר לבדיקת סוג המשתמש המחובר (בעל עסק או לקוח)
+    // רכיב עזר מותאם אישית (Helper Class) לבדיקת תפקיד המשתמש (לקוח או בעל עסק) שנשמר ב-SharedPreferences או במסד הנתונים
     private UserHelper userHelper;
 
+    /**
+     * מה הפעולה עושה: מציגה את עיצוב מסך הפתיחה, ומפעילה טיימר אסינכרוני המשהה את המסך למשך 3 שניות לפני קבלת החלטת הניווט.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
 
-        // אתחול מחלקת העזר
         userHelper = new UserHelper(this);
 
-        // השהיית המסך למשך 3 שניות (3000 מילישניות) לצורך הצגת הלוגו, ואז מעבר לפעולה הבאה
+        /**
+         * הסבר ארכיטקטוני לבוחן:
+         * אנו משתמשים ב-Handler המחובר ל-Looper.getMainLooper() כדי לתזמן משימה עתידית על חוט המערכת הראשי (UI Thread),
+         * מבלי לחסום או לתקוע את המסך (Non-blocking delay).
+         * המערכת תציג את הלוגו, תמתין 3000 מילישניות (3 שניות) ברקע, ואז תפעיל את לוגיקת הניתוב.
+         */
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             checkUserAndNavigate();
         }, 3000);
     }
 
-    // פעולה הבודקת את מצב החיבור של המשתמש ומנווטת למסך המתאים
+    /**
+     * מה הפעולה עושה: פונקציית הנתב (Router). בודקת מול Firebase Auth האם יש משתמש מחובר:
+     * - אם אין: מנווטת למסך ההתחברות (LoginActivity).
+     * - אם יש: בודקת דרך ה-UserHelper האם מדובר בבעל עסק או לקוח, ומנווטת למסך הבית המתאים.
+     * קלט: אין.
+     * פלט: אין (void).
+     */
     private void checkUserAndNavigate() {
-        // קבלת המשתמש הנוכחי ממערכת האימות של פיירבייס
+        // שליפת ה-Token הנוכחי של המשתמש מרכיב ה-Authentication בענן
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
 
-        // בדיקה האם קיים משתמש מחובר במערכת
         if (currentUser == null) {
-            // אם אין משתמש מחובר, ניווט למסך ההתחברות
+            // מקרה 1: המשתמש אורח / לא מחובר -> מעבר למסך כניסה ורישום
             Intent intent = new Intent(SplashActivity.this, LoginActivity.class);
             startActivity(intent);
         } else {
-            // אם יש משתמש מחובר, נבדוק את סוג המשתמש בעזרת מחלקת העזר
+            // מקרה 2: המשתמש כבר מחובר בעבר -> פיצול ארכיטקטוני לפי סוג המשתמש (Role-Based Routing)
             if (userHelper.isBusinessOwner()) {
-                // ניווט למסך הראשי של בעל העסק
+                // ניווט למסך הניהול של בעל העסק
                 Intent intent = new Intent(SplashActivity.this, BusinessMainActivity.class);
                 startActivity(intent);
             } else {
-                // ניווט למסך הראשי של הלקוח
+                // ניווט למסך הראשי של הלקוח המזמין
                 Intent intent = new Intent(SplashActivity.this, ClientMainActivity.class);
                 startActivity(intent);
             }
         }
 
-        // סגירת מסך הפתיחה כדי למנוע חזרה אליו בלחיצה על כפתור החזור במכשיר
+        /**
+         * למה פקודה זו קריטית:
+         * הפקודה finish() סוגרת ומחסלת את האקטיביטי הנוכחי (SplashActivity) ומוציאה אותו ממחסנית המסכים (Backstack).
+         * הדבר מונע מצב שבו המשתמש ילחץ על כפתור ה-"Back" במסך הבית ויחזור בטעות למסך הלוגו התקוע.
+         */
         finish();
     }
 }

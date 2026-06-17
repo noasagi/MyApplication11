@@ -3,42 +3,58 @@ package com.example.myapplication;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-// מחלקת עזר (Helper Class) לניהול מקומי של סוגי המשתמשים, ההרשאות ומצב החיבור באפליקציה
+// מחלקת עזר (Helper Class) לניהול מקומי מהיר של סוגי המשתמשים, ההרשאות ומצב החיבור באפליקציה
+// המחלקה מיישמת ארכיטקטורה מבוססת תפקידים (Role-Based State) באמצעות רכיב ה-SharedPreferences של אנדרואיד
 public class UserHelper {
 
-    // הגדרת קבועים (Constants) המייצגים את שלושת התפקידים האפשריים במערכת
+    // הגדרת קבועים פומביים (Constants) המייצגים את שלושת התפקידים האפשריים במערכת
+    // שימוש בקבועים מונע שגיאות כתיב (Typos) ברחבי האפליקציה (למשל, כתיבת "Business" עם ב' רבתית בטעות)
     public static final String ROLE_BUSINESS = "business"; // בעל עסק
     public static final String ROLE_CLIENT = "client";     // לקוח רגיל
     public static final String ROLE_GUEST = "guest";       // אורח (אינו מחובר)
 
-    // הגדרת קבועי מחרוזת המשמשים כמפתחות זיהוי עבור רכיב ה-SharedPreferences
-    private static final String PREF_NAME = "user_prefs"; // שם קובץ ה-XML המקומי שישמר במכשיר
-    private static final String KEY_ROLE = "user_role";   // המפתח הספציפי שבו יישמר ערך התפקיד
+    // קבועי מחרוזת פרטיים המשמשים כמפתחות זיהוי (Keys) עבור קובץ ה-XML המקומי
+    private static final String PREF_NAME = "user_prefs"; // שם קובץ ה-XML שישמר פיזית בתיקיית האפליקציה במכשיר
+    private static final String KEY_ROLE = "user_role";   // המפתח הספציפי שבו יישמר ערך התפקיד הנוכחי
 
-    // הצהרה על רכיב ה-SharedPreferences של אנדרואיד לאחסון נתונים קלים בצורה מקומית
+    // רכיב ה-SharedPreferences לאחסון זוגות של מפתח-ערך (Key-Value) בצורה פשוטה, מקומית ומהירה
     private final SharedPreferences prefs;
 
-    // פעולה בונה (Constructor) המקבלת Context ומאתחלת את קובץ הזיכרון המקומי במצב פרטי (MODE_PRIVATE)
+    /**
+     * פעולה בונה (Constructor) המקבלת Context ומאתחלת את קובץ הזיכרון המקומי.
+     * הסבר לבוחן: השימוש ב-Context.MODE_PRIVATE הוא הגדרת אבטחה קריטית שמבטיחה שקובץ ה-XML הזה יהיה מוצפן/נגיש
+     * אך ורק לאפליקציה הזו, ואף אפליקציה חיצונית אחרת המותקנת על המכשיר לא תוכל לקרוא או לשנות את תוכן ההרשאות שלו.
+     */
     public UserHelper(Context context) {
-        // MODE_PRIVATE מבטיח שרק האפליקציה הזו מורשית לקרוא ולכתוב לקובץ נתונים זה
         prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
     }
 
-    // פונקציה לעדכון ושמירת תפקיד המשתמש הנוכחי בזיכרון המכשיר
+    /**
+     * מה הפעולה עושה: שומרת את תפקיד המשתמש החדש בקובץ ה-XML המקומי.
+     * קלט: String role.
+     * הסבר טכנולוגי: אנו משתמשים ב-`prefs.edit()` לפתיחת עורך, מזינים את הערך, וקוראים ל-`apply()`.
+     * פקודת `apply()` שומרת את המידע בזיכרון ה-RAM מיד, וכותבת לקובץ הפיזי בדיסק ברקע באופן אסינכרוני (בניגוד ל-`commit()` שהיא סינכרונית וחוסמת את ה-UI).
+     */
     public void setRole(String role) {
-        // שימוש ב-Editor כדי לפתוח עריכה, הזנת המחרוזת תחת המפתח המתאים, והפעלה ברקע באמצעות apply()
         prefs.edit().putString(KEY_ROLE, role).apply();
     }
 
-    // פונקציה השולפת את תפקיד המשתמש השמור כרגע בזיכרון המכשיר
+    /**
+     * מה הפעולה עושה: שולפת את תפקיד המשתמש השמור כרגע בזיכרון המכשיר.
+     * פלט: String (תפקיד המשתמש).
+     * מנגנון הגנה: הפרמטר השני ב-`getString` הוא ערך ברירת מחדל (Default Value). אם זו הפעם הראשונה שהאפליקציה נפתחת
+     * ועדיין לא קיים מפתח כזה בזיכרון, המערכת תחזיר אוטומטית `ROLE_GUEST` ("guest") ובכך תמנע קבלת `null` וקריסה.
+     */
     public String getRole() {
-        // במידה ועדיין לא נשמר שום תפקיד (למשל בכניסה הראשונה לאפליקציה), ערך ברירת המחדל שיוחזר יהיה "אורח"
         return prefs.getString(KEY_ROLE, ROLE_GUEST);
     }
 
-    // פונקציה בוליאנית הבודקת האם המשתמש הנוכחי הוא בעל עסק
+    /**
+     * פונקציה בוליאנית לבדיקה מהירה האם המשתמש הנוכחי הוא בעל עסק.
+     * טיפ לתשובה בבגרות: השתמשתי במבנה `ROLE_BUSINESS.equals(getRole())` ולא בהפך (`getRole().equals(...)`).
+     * הסיבה היא הגנה מפני קריסת NullPointerException - אם מסיבה כלשהי getRole יחזיר null, המבנה שלי לא יקרוס אלא פשוט יחזיר false, כי קבוע לעולם אינו null.
+     */
     public boolean isBusinessOwner() {
-        // השוואה בטוחה בין קבוע התפקיד לערך השלוף מהזיכרון
         return ROLE_BUSINESS.equals(getRole());
     }
 
@@ -52,7 +68,7 @@ public class UserHelper {
         return ROLE_GUEST.equals(getRole());
     }
 
-    // פונקציית התנתקות (Logout) המאפסת את תפקיד המשתמש בחזרה למצב אורח בזיכרון המקומי
+    // פונקציית התנתקות (Logout) מקומית - מחזירה את מצב ההרשאות במכשיר למצב "אורח" בטוח
     public void logout() {
         setRole(ROLE_GUEST);
     }

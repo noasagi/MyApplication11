@@ -38,32 +38,31 @@ import com.google.firebase.firestore.QuerySnapshot;
 import java.util.ArrayList;
 import java.util.List;
 
-// הגדרת מחלקת פרגמנט עבור מסך הבית של הלקוח באפליקציה
 public class CustomerHomeFragment extends Fragment {
 
-    // הצהרה על רכיבי הטקסט, כרטיסי המידע ולחצני הפעולה המרכזיים
     private TextView tvWelcome, tvRateBusinessName;
     private CardView cardSearch, cardAppointments, cardRateUs;
     private Button btnRateNow;
     private ImageView imgHomeProfile;
 
-    // רכיבי הגישה הרשמיים לעבודה מול שירותי האימות ומסד הנתונים של פיירבייס
     private FirebaseAuth auth;
     private FirebaseFirestore db;
 
-    // רכיבי התצוגה והרשימה עבור בתי העסק האחרונים בהם ביקר הלקוח
     private LinearLayout layoutRecentBusinesses;
     private RecyclerView rvRecentBusinesses;
     private RecentBusinessAdapter recentAdapter;
     private List<Appointment> recentList;
 
+    /**
+     * מה הפעולה עושה: מנפחת את עיצוב ה-XML, מחברת את הרכיבים הגרפיים, ומאתחלת את ה-RecyclerView והאדפטר המקומי.
+     * קלט: LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState.
+     * פלט: View (תצוגת הפרגמנט המוכנה).
+     */
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        // ניפוח וטעינת קובץ עיצוב ה-XML הייעודי של מסך הבית של הלקוח
         View view = inflater.inflate(R.layout.fragment_customer_home, container, false);
 
-        // קישור משתני הרכיבים לרכיבים הויזואליים מתוך קובץ ה-XML המנופח
         tvWelcome = view.findViewById(R.id.tvWelcome);
         cardSearch = view.findViewById(R.id.cardSearch);
         cardAppointments = view.findViewById(R.id.cardAppointments);
@@ -76,26 +75,21 @@ public class CustomerHomeFragment extends Fragment {
         layoutRecentBusinesses = view.findViewById(R.id.layoutRecentBusinesses);
         rvRecentBusinesses = view.findViewById(R.id.rvRecentBusinesses);
 
-        // אתחול מופעי הגישה של פיירבייס
         auth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
 
-        // הגדרת מנהל פריסה אנכי לרכיב הרשימה תוך וידאו קיום ה-Context של הפרגמנט
         if (getContext() != null) {
             rvRecentBusinesses.setLayoutManager(new LinearLayoutManager(getContext()));
         }
 
-        // אתחול הרשימה המקומית והצמדת המתאם (Adapter) אל רכיב ה-RecyclerView
         recentList = new ArrayList<>();
         recentAdapter = new RecentBusinessAdapter(recentList);
         rvRecentBusinesses.setAdapter(recentAdapter);
 
-        // קריאה לפעולות הטעינה הראשוניות של נתוני המשתמש והתורים
         loadUserName();
         checkPendingReviews();
         loadRecentBusinesses();
 
-        // הגדרת מאזין לחיצה אנונימי קלאסי לכרטיס החיפוש למעבר למסך החיפוש
         cardSearch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -103,7 +97,6 @@ public class CustomerHomeFragment extends Fragment {
             }
         });
 
-        // הגדרת מאזין לחיצה אנונימי קלאסי לכרטיס התורים למעבר למסך ניהול התורים
         cardAppointments.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -111,7 +104,6 @@ public class CustomerHomeFragment extends Fragment {
             }
         });
 
-        // הגדרת מאזין לחיצה אנונימי קלאסי לתמונת הפרופיל למעבר למסך עריכת הפרופיל
         imgHomeProfile.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -125,18 +117,20 @@ public class CustomerHomeFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        // ריענון ובדיקת נתונים מחודשת בכל פעם שהמשתמש חוזר חזותית למסך הבית
         checkPendingReviews();
         loadRecentBusinesses();
     }
 
-    // פעולה פרטית הבודקת האם קיים תור מאושר בעבר שהלקוח טרם דירג או כתב עליו ביקורת
+    /**
+     * מה הפעולה עושה: מחפשת תורים מאושרים (APPROVED) מהעבר שטרם דורגו (isReviewed == false) כדי להציג למשתמש כרטיס תזכורת לדירוג.
+     * קלט: אין.
+     * פלט: אין (void).
+     */
     private void checkPendingReviews() {
         if (auth.getCurrentUser() == null) return;
 
         final long currentTime = System.currentTimeMillis();
 
-        // שאילתה השולפת תורים מאושרים של המשתמש ששדה הדירוג שלהם מסומן כשלילי (False)
         db.collection("appointments")
                 .whereEqualTo("userId", auth.getCurrentUser().getUid())
                 .whereEqualTo("status", "APPROVED")
@@ -150,15 +144,14 @@ public class CustomerHomeFragment extends Fragment {
                             Appointment app = doc.toObject(Appointment.class);
                             app.setAppointmentId(doc.getId());
 
-                            // בדיקה האם זמן התור המאושר קטן מהזמן הנוכחי (כלומר, הטיפול כבר הסתיים במציאות)
+                            // בדיקה כרונולוגית: האם התור התרחש בעבר (timestamp < currentTime)
                             if (app.getTimestamp() < currentTime) {
-                                showReviewCard(app); // הצגת כרטיס הצעת הדירוג על המסך
+                                showReviewCard(app);
                                 found = true;
-                                break; // עצירת הלולאה - מציגים רק תור אחד בכל פעם לדירוג
+                                break; // מציגים תור אחד בלבד בכל פעם כדי לא להעמיס על הממשק
                             }
                         }
 
-                        // במידה ולא נמצא אף תור שממתין לדירוג, נעלים לחלוטין את כרטיס הדירוג מהמסך
                         if (!found) {
                             cardRateUs.setVisibility(View.GONE);
                         }
@@ -166,7 +159,6 @@ public class CustomerHomeFragment extends Fragment {
                 });
     }
 
-    // פעולה פרטית המציגה את כרטיס הדירוג ומצמידה לו מאזין לפתיחת תיבת הדו שיח
     private void showReviewCard(final Appointment app) {
         cardRateUs.setVisibility(View.VISIBLE);
         tvRateBusinessName.setText("איך היה אצל " + app.getBusinessName() + "?");
@@ -179,7 +171,11 @@ public class CustomerHomeFragment extends Fragment {
         });
     }
 
-    // פעולה פרטית המנפחת ומציגה דיאלוג (AlertDialog) מותאם אישית להזנת חוות דעת ודירוג כוכבים
+    /**
+     * מה הפעולה עושה: מנפחת ומציגה תיבת דו-שיח (AlertDialog) מותאמת אישית, קולטת דירוג תלת-קטגורי, ושומרת מסמך ביקורת חדש ב-Firestore.
+     * קלט: final Appointment app.
+     * פלט: אין (void).
+     */
     private void showAddReviewDialog(final Appointment app) {
         if (getContext() == null) return;
 
@@ -192,7 +188,6 @@ public class CustomerHomeFragment extends Fragment {
             dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         }
 
-        // קישור רכיבי תיבת הדו-שיח מתוך ה-XML המנופח של הדיאלוג
         final RatingBar rbProfessionalism = view.findViewById(R.id.rbProfessionalism);
         final RatingBar rbReliability = view.findViewById(R.id.rbReliability);
         final RatingBar rbPrice = view.findViewById(R.id.rbPrice);
@@ -207,13 +202,12 @@ public class CustomerHomeFragment extends Fragment {
                 float ratingPrice = rbPrice.getRating();
                 String comment = etComment.getText().toString().trim();
 
-                // הגנה: וידוא שהמשתמש הציב דירוג (לפחות כוכב אחד) בכל אחת משלוש הקטגוריות
+                // הגנת קלט: וידוא שבוצע דירוג חיובי (לפחות כוכב אחד) בכל המדדים
                 if (ratingProf == 0 || ratingRel == 0 || ratingPrice == 0) {
                     Toast.makeText(getContext(), "אנא דרג את כל הקטגוריות", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
-                // יצירת מזהה ייחודי עבור מסמך הביקורת החדש
                 final String reviewId = db.collection("reviews").document().getId();
 
                 ReviewModel newReview = new ReviewModel(
@@ -222,12 +216,11 @@ public class CustomerHomeFragment extends Fragment {
                         com.google.firebase.Timestamp.now()
                 );
 
-                // שמירת מסמך הביקורת בענן ועדכון סטטוס התור ל"דורג"
+                // שמירת הביקורת ועדכון דגל הסימון בתור המקורי למניעת הצגה כפולה
                 db.collection("reviews").document(reviewId).set(newReview)
                         .addOnSuccessListener(new OnSuccessListener<Void>() {
                             @Override
                             public void onSuccess(Void aVoid) {
-                                // עדכון שדה הכלת הדירוג בתור המקור על מנת שלא יקפוץ שוב לדירוג במסך הבית
                                 db.collection("appointments").document(app.getAppointmentId())
                                         .update("isReviewed", true);
 
@@ -248,7 +241,11 @@ public class CustomerHomeFragment extends Fragment {
         dialog.show();
     }
 
-    // פעולה פרטית השולפת את שם המשתמש ותמונת הפרופיל הבינארית שלו מתוך אוסף המשתמשים
+    /**
+     * מה הפעולה עושה: שולפת את פרטי הלקוח ומבצעת המרה בינארית של ה-Blob השמור ב-Firestore להצגת תמונת הפרופיל.
+     * קלט: אין.
+     * פלט: אין (void).
+     */
     private void loadUserName() {
         FirebaseUser user = auth.getCurrentUser();
         if (user != null) {
@@ -262,7 +259,6 @@ public class CustomerHomeFragment extends Fragment {
                                     tvWelcome.setText("שלום, " + name);
                                 }
 
-                                // שליפת תמונת הפרופיל המאוחסנת כביטים (Blob) והמרתה לביטמפ חזותי
                                 Blob imageBlob = documentSnapshot.getBlob("profileImageBlob");
                                 if (imageBlob != null) {
                                     byte[] bytes = imageBlob.toBytes();
@@ -275,13 +271,17 @@ public class CustomerHomeFragment extends Fragment {
         }
     }
 
-    // פעולה פרטית המממשת אלגוריתם סינון חכם לשליפת 3 בתי העסק האחרונים ללא כפילויות
+    /**
+     * מה הפעולה עושה: מממשת אלגוריתם סינון ייחודי המאחזר את 15 התורים האחרונים, ומחלץ מתוכם בדיוק 3 בתי עסק שונים ללא כפילויות תצוגה.
+     * קלט: אין.
+     * פלט: אין (void).
+     */
     private void loadRecentBusinesses() {
         if (auth.getCurrentUser() == null) return;
 
-        // פנייה לאוסף התורים, מיון לפי חותם זמן יורד והגבלת השליפה ל-15 מסמכים ראשונים בלבד
         db.collection("appointments")
                 .whereEqualTo("userId", auth.getCurrentUser().getUid())
+                // התיקון כאן: שינוי ל-DESCENDING באותיות גדולות
                 .orderBy("timestamp", Query.Direction.DESCENDING)
                 .limit(15)
                 .get()
@@ -289,19 +289,18 @@ public class CustomerHomeFragment extends Fragment {
                     @Override
                     public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
                         recentList.clear();
-                        // רשימת עזר זמנית לשמירת מזהי העסקים שכבר נתקלנו בהם במהלך הלולאה
-                        List<String> addedBusinessIds = new ArrayList<>();
+                        List<String> addedBusinessIds = new ArrayList<>(); // רשימת מעקב זמנית למניעת כפילויות
 
                         for (QueryDocumentSnapshot doc : queryDocumentSnapshots) {
                             Appointment app = doc.toObject(Appointment.class);
                             String bId = app.getBusinessId();
 
-                            // אלגוריתם מניעת כפילויות: בודק אם מזהה העסק הנוכחי לא נמצא ברשימת העזר
+                            // אלגוריתם מניעת כפילויות: הוספה לרשימה רק אם מזהה העסק מופיע בפעם הראשונה בריצה
                             if (bId != null && !addedBusinessIds.contains(bId)) {
-                                addedBusinessIds.add(bId); // הוספת המזהה לרשימת החסימה
-                                recentList.add(app); // הוספת התור לרשימת התצוגה הסופית
+                                addedBusinessIds.add(bId);
+                                recentList.add(app);
 
-                                // עצירת האלגוריתם ברגע שהגענו בדיוק ל-3 בתי עסק שונים וייחודיים
+                                // עצירה מוחלטת של הלולאה ברגע שהגענו למכסה של 3 עסקים שונים
                                 if (recentList.size() >= 3) {
                                     break;
                                 }
@@ -310,7 +309,6 @@ public class CustomerHomeFragment extends Fragment {
 
                         recentAdapter.notifyDataSetChanged();
 
-                        // ניהול נראות המכולה ב-XML בהתאם לקיום או אי-קיום של עסקים בהיסטוריה
                         if (recentList.isEmpty()) {
                             layoutRecentBusinesses.setVisibility(View.GONE);
                         } else {
@@ -320,7 +318,11 @@ public class CustomerHomeFragment extends Fragment {
                 });
     }
 
-    // פעולה פרטית המקשרת ומנווטת בין הפרגמנטים השונים דרך רכיב ה-BottomNavigationView הראשי
+    /**
+     * מה הפעולה עושה: מתממשקת מול ה-BottomNavigationView של האקטיביטי המארח ומדמה לחיצה חזותית להחלפת מסכים תקינה.
+     * קלט: int navId.
+     * פלט: אין (void).
+     */
     private void navigateTo(int navId) {
         if (getActivity() != null) {
             BottomNavigationView bottomNav = getActivity().findViewById(R.id.bottom_navigation);
@@ -330,7 +332,7 @@ public class CustomerHomeFragment extends Fragment {
         }
     }
 
-    // --- אדפטר פנימי מבוסס מחלקה קלאסית לניהול רשימת בתי העסק האחרונים ---
+    // --- אדפטר פנימי (Adapter) לניהול רשימת בתי העסק האחרונים ---
     class RecentBusinessAdapter extends RecyclerView.Adapter<RecentBusinessAdapter.ViewHolder> {
         private List<Appointment> recentAppointments;
 
@@ -350,7 +352,6 @@ public class CustomerHomeFragment extends Fragment {
             final Appointment app = recentAppointments.get(position);
 
             if (app.getBusinessId() != null) {
-                // שליפת נתוני העסק הספציפי על מנת להציג את שמו ותמונת הלוגו שלו מהענן
                 db.collection("businesses").document(app.getBusinessId()).get()
                         .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                             @Override
@@ -362,7 +363,7 @@ public class CustomerHomeFragment extends Fragment {
                                         app.setBusinessName(name);
                                     }
 
-                                    // שליפת מערך התמונות ופענוח התמונה הראשונה בבלוק לטובת הצגת הלוגו בשורה
+                                    // פיענוח בינארי של הלוגו מתוך מערך הבלובים השמור בענן
                                     List<Blob> imageBlobs = (List<Blob>) ds.get("imageBlobs");
                                     if (imageBlobs != null && !imageBlobs.isEmpty()) {
                                         Blob firstImage = imageBlobs.get(0);
@@ -381,7 +382,6 @@ public class CustomerHomeFragment extends Fragment {
                 holder.tvRecentBusinessName.setText("עסק לא ידוע");
             }
 
-            // הגדרת מאזין לחיצה אנונימי קלאסי למעבר ישיר למסך קביעת תור חוזר לאותו העסק
             holder.btnBookAgain.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -398,6 +398,7 @@ public class CustomerHomeFragment extends Fragment {
             return recentAppointments.size();
         }
 
+        // --- מחזיק רכיבים (ViewHolder) לשורת עסק אחרון בודד ---
         class ViewHolder extends RecyclerView.ViewHolder {
             TextView tvRecentBusinessName;
             ImageView imgBusinessLogo;

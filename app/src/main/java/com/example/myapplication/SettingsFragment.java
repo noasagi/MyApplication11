@@ -24,29 +24,29 @@ import com.google.firebase.firestore.Blob;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
-// הגדרת מחלקת פרגמנט המנהלת את מסך הגדרות ואפשרויות המשתמשת באפליקציה
+// מחלקת פרגמנט המנהלת את מסך הגדרות המשתמש, ניווט לאזורים שונים באפליקציה וביצוע התנתקות מאובטחת
 public class SettingsFragment extends Fragment {
 
-    // הצהרה על רכיבי הממשק הויזואליים של התפריט והפרופיל
     private ImageView imgProfileSmall;
     private TextView tvProfileName;
     private CardView btnEditProfile, btnFavorites, btnHistory, btnMyChats;
     private Button btnLogout;
 
-    // מופעי הגישה לרכיבי האימות ומסד הנתונים של פיירבייס
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
 
+    /**
+     * מה הפעולה עושה: מנפחת (Inflate) את קובץ ה-XML של המסך, מקשרת את הרכיבים החזותיים, ומגדירה את מאזיני הלחיצה לניווט בין המסכים השונים.
+     * קלט: LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState.
+     * פלט: View (תצוגת הפרגמנט המוכנה).
+     */
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        // טעינת וניפוח קובץ ה-XML של מסך ההגדרות
         View view = inflater.inflate(R.layout.fragment_settings, container, false);
 
-        // אתחול מופעי הגישה של שירותי פיירבייס
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
 
-        // קישור רכיבי הגרפיקה מה-XML למשתני המחלקה
         imgProfileSmall = view.findViewById(R.id.imgProfileSmall);
         tvProfileName = view.findViewById(R.id.tvProfileName);
         btnEditProfile = view.findViewById(R.id.btnEditProfile);
@@ -55,9 +55,8 @@ public class SettingsFragment extends Fragment {
         btnMyChats = view.findViewById(R.id.btnMyChats);
         btnLogout = view.findViewById(R.id.btnLogout);
 
-        // --- הגדרת מאזיני לחיצה אנונימיים קלאסיים לניווט ותפעול המסך ---
+        // --- ניהול מערך הניווט (Intent Navigation) באפליקציה ---
 
-        // מאזין למעבר למסך עריכת הפרופיל האישי
         btnEditProfile.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -66,7 +65,6 @@ public class SettingsFragment extends Fragment {
             }
         });
 
-        // מאזין למעבר למסך העסקים המועדפים
         btnFavorites.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -75,7 +73,6 @@ public class SettingsFragment extends Fragment {
             }
         });
 
-        // מאזין למעבר למסך ריכוז ההודעות והצ'אטים של המשתמשת
         btnMyChats.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -84,7 +81,6 @@ public class SettingsFragment extends Fragment {
             }
         });
 
-        // תיקון: מאזין למעבר למסך היסטוריית תורים באמצעות Intent (מאחר ומדובר באקטיביטי)
         btnHistory.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -93,13 +89,17 @@ public class SettingsFragment extends Fragment {
             }
         });
 
-        // מאזין לביצוע התנתקות מהחשבון וניקוי מחסנית המסכים
+        /**
+         * לוגיקת התנתקות מאובטחת:
+         * 1. ניתוק רשמי של ה-Session מול שרת ה-Authentication של פיירבייס.
+         * 2. שימוש בFlags לניקוי ה-Backstack (מחסנית המסכים). הדבר מבטיח שאחרי ההתנתקות, לחיצה על כפתור החזור של הטלפון לא תאפשר כניסה חוזרת למסכים הרגישים.
+         */
         btnLogout.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mAuth.signOut(); // התנתקות רשמית משירות ה-Auth בענן
+                mAuth.signOut();
                 Intent intent = new Intent(getActivity(), LoginActivity.class);
-                // הגדרת דגלים לניקוי כל האקטיביטיז הקודמים מהזיכרון למניעת חזרה לאחור
+                // ניקוי המחסנית והגדרת משימה חדשה (קריטי להגנת פרטיות!)
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(intent);
             }
@@ -108,14 +108,19 @@ public class SettingsFragment extends Fragment {
         return view;
     }
 
+    /**
+     * מה הפעולה עושה: שלב במחזור החיים (Lifecycle) של הפרגמנט. מופעלת בכל פעם שהמסך חוזר לקדמת הבמה.
+     * למה זה קריטי כאן: כאשר המשתמש עובר למסך "עריכת פרופיל", משנה שם או תמונה, ואז חוזר אחורה - מסך ההגדרות לא נוצר מחדש (onCreateView לא רץ), אלא רק חוזר למצב רצה (onResume). קריאה ל-loadUserData כאן מבטיחה שהפרטים החדשים יתעדכנו וישתקפו חזותית מיד!
+     */
     @Override
     public void onResume() {
         super.onResume();
-        // קריאה לפעולת סינכרון וטעינת נתוני המשתמשת בכל פעם שהמסך חוזר לקדמת הבמה
         loadUserData();
     }
 
-    // שליפה ועדכון חזותי של פרטי שם ותמונת המשתמשת המחוברת מתוך מסמך הענן
+    /**
+     * מה הפעולה עושה: שליפה אסינכרונית חד-פעמית של מסמך המשתמש הנוכחי מ-Firestore לצורך הצגת השם המעודכן והמרת ה-Blob הבינארי לתמונת פרופיל מעוגלת/קטנה.
+     */
     private void loadUserData() {
         FirebaseUser user = mAuth.getCurrentUser();
         if (user != null) {
@@ -124,7 +129,6 @@ public class SettingsFragment extends Fragment {
                         @Override
                         public void onSuccess(DocumentSnapshot documentSnapshot) {
                             if (documentSnapshot.exists()) {
-                                // שליפת והצגת שם המשתמשת המעודכן
                                 String name = documentSnapshot.getString("name");
                                 if (name != null && !name.isEmpty()) {
                                     tvProfileName.setText(name);
@@ -132,7 +136,7 @@ public class SettingsFragment extends Fragment {
                                     tvProfileName.setText("שלום אורח");
                                 }
 
-                                // חילוץ תמונת ה-Blob הבינארית, המרתה למערך ביטים והצגתה כ-Bitmap
+                                // חילוץ תמונת ה-Blob, המרתה למערך ביתים ופענוחה ל-Bitmap חזותי
                                 Blob imageBlob = documentSnapshot.getBlob("profileImageBlob");
                                 if (imageBlob != null) {
                                     byte[] bytes = imageBlob.toBytes();
@@ -145,7 +149,7 @@ public class SettingsFragment extends Fragment {
                     .addOnFailureListener(new OnFailureListener() {
                         @Override
                         public void onFailure(@NonNull Exception e) {
-                            // ניהול שגיאות שקט במידת הצורך
+                            // טיפול שקט בשגיאות תקשורת למניעת הפרעה לחוויית המשתמש
                         }
                     });
         }

@@ -16,113 +16,112 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.List;
 import java.util.Locale;
 
-// מחלקת אדפטר (Adapter) המקשרת בין רשימת הנתונים של בתי העסק לבין רכיב התצוגה הממוחזרת (RecyclerView)
 public class BusinessAdapter extends RecyclerView.Adapter<BusinessAdapter.BusinessViewHolder> {
 
-    // משתנה המחזיק את הקשר המסך (Context) לצורך ניפוח XML ופתיחת מסכים חדשים
     private Context context;
-    // רשימה דינמית המכילה את אובייקטי המודל של בתי העסק השונים
     private List<BusinessModel> businessList;
 
-    // פעולה בונה (Constructor) המקבלת את הקשר האקטיביטי ואת רשימת בתי העסק המקורית
+    /**
+     * מה הפעולה עושה: פעולה בונה (Constructor) המאותחלת עם ה-Context של המסך ורשימת בתי העסק.
+     * קלט: Context context (הקשר האקטיביטי), List<BusinessModel> businessList (רשימת נתוני העסקים).
+     * פלט: אין.
+     */
     public BusinessAdapter(Context context, List<BusinessModel> businessList) {
         this.context = context;
         this.businessList = businessList;
     }
 
-    // פונקציה המאפשרת לעדכן ולהחליף את רשימת בתי העסק ברשימה חדשה (למשל לאחר סינון או חיפוש)
+    /**
+     * מה הפעולה עושה: מאפשרת להחליף מחוץ למחלקה את רשימת העסקים הישנה ברשימה מעודכנת.
+     * קלט: List<BusinessModel> list (רשימת בתי העסק החדשה/המסוננת).
+     * פלט: אין (void).
+     */
     public void setBusinesses(List<BusinessModel> list) {
         this.businessList = list;
     }
 
+    /**
+     * מה הפעולה עושה: מייצרת אובייקט ViewHolder חדש ומנפחת עבורו את קובץ ה-XML של העיצוב לכל כרטיסייה ברשימה.
+     * קלט: ViewGroup parent (הרכיב שמכיל את הרשימה), int viewType (סוג התצוגה).
+     * פלט: BusinessViewHolder (מחזיק הרכיבים של הכרטיסייה המנופחת).
+     */
     @NonNull
     @Override
-    // פונקציה המופעלת על ידי המערכת כדי לייצר מבנה גרפי חדש (ViewHolder) עבור פריט ברשימה
     public BusinessViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // טעינה ואינפלציה (Inflation) של קובץ ה-XML המייצג כרטיסיית עסק בודדת
+        // שימוש ב-LayoutInflater כדי לקחת קובץ עיצוב XML סטטי ולהפוך אותו לאובייקט View דינמי בזיכרון
         View view = LayoutInflater.from(context).inflate(R.layout.item_business_card, parent, false);
-        // החזרת מופע ViewHolder חדש המקושר לעיצוב שנטען
         return new BusinessViewHolder(view);
     }
 
+    /**
+     * מה הפעולה עושה: יוצקת (מקשרת) את הנתונים של עסק ספציפי מתוך הרשימה אל תוך רכיבי ה-UI של ה-ViewHolder לפי מיקומו.
+     * קלט: BusinessViewHolder holder (מחזיק הרכיבים של הכרטיסייה הנוכחית), int position (האינדקס של הפריט ברשימה).
+     * פלט: אין (void).
+     */
     @Override
-    // פונקציה המופעלת על ידי המערכת כדי לצקת נתונים מתוך אובייקט במיקום ספציפי אל תוך רכיבי הממשק
     public void onBindViewHolder(@NonNull BusinessViewHolder holder, int position) {
-        // שליפת אובייקט בית העסק הנוכחי מתוך הרשימה על פי המיקום (Position)
+        // שליפת אובייקט הנתונים של בית העסק שנמצא במיקום הנוכחי שרוצים להציג
         BusinessModel business = businessList.get(position);
 
-        // השמת שם בית העסק בתוך רכיב הטקסט התואם
+        // הזרקת הנתונים הבסיסיים (טקסטים) מרכיב המודל אל רכיבי התצוגה הגרפיים
         holder.tvBusinessName.setText(business.getName());
-        // השמת סוג או קטגוריית העסק בתוך רכיב הטקסט התואם
         holder.tvBusinessType.setText(business.getBusinessType());
-        // השמת הפירוט או התיאור של העסק בתוך רכיב הטקסט התואם
         holder.tvBusinessDescription.setText(business.getDescription());
 
-        // --- עדכון מדדי הדירוג והביקורות בממשק ---
-        // שליפת הציון המשוקלל של העסק מתוך האובייקט
+        // בדיקה לוגית של מצב הדירוגים: אם לעסק יש דירוגים, נציג ציון ממוצע.
+        // אם אין (totalReviews הוא 0), נציג חיווי מיוחד של "חדש!" כדי למנוע הצגה של דירוג 0 לא מוצדק.
         float rating = business.getOverallRating();
-        // שליפת כמות המדרגים הכוללת שנתנו ביקורת לעסק
         int totalReviews = business.getTotalReviews();
 
-        // תנאי: אם יש לפחות ביקורת אחת, נציג את הציון המשוקלל לצד כמות המדרגים בסוגריים
         if (totalReviews > 0) {
-            // עיצוב מחרוזת טקסט מוגדרת (למשל: ⭐ 4.8 (12)) עם דיוק של ספרה אחת לאחר הנקודה
+            // String.format מעגל את הציון (rating) לספרה אחת בלבד אחרי הנקודה העשרונית (%.1f)
             holder.tvBusinessRating.setText(String.format(Locale.getDefault(), "⭐ %.1f (%d)", rating, totalReviews));
         } else {
-            // במידה ואין עדיין דירוגים, נציג חיווי גרפי המציין שמדובר בעסק חדש במערכת
             holder.tvBusinessRating.setText("⭐ חדש!");
         }
 
-        // --- טעינה ופיענוח של תמונת בית העסק ---
-        // תנאי בטיחות: מוודאים שקיימות תמונות שמורות בפורמט Blobs עבור בית העסק
+        // לוגיקה לעיבוד תמונה: הנתונים ב-Firestore שמורים כ-Blobs (מערך בייטים גולמי).
+        // המערכת צריכה לקחת את הבייטים האלה ולהפוך אותם בחזרה לאובייקט Bitmap שאנדרואיד מסוגל להציג בתוך ImageView.
         if (business.getImageBlobs() != null && !business.getImageBlobs().isEmpty()) {
-            // שליפת מערך הבייטים (byte[]) מתוך אובייקט ה-Blob הראשון ברשימה
             byte[] bytes = business.getImageBlobs().get(0).toBytes();
-            // המרת מערך הבייטים לאובייקט תמונה של אנדרואיד מסוג Bitmap
             Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-            // הצבת ה-Bitmap בתוך רכיב ה-ImageView בכרטיסייה
             holder.imgBusiness.setImageBitmap(bitmap);
         }
 
-        // --- הגדרת האזנה ללחיצה על הכרטיסייה כולה (מעבר למסך פרטי העסק) ---
-        // שימוש במופע אנונימי קלאסי של View.OnClickListener במקום למדא
+        // הגדרת מאזין לחיצה על כל שטח הכרטיסייה הנוכחית (itemView מייצג את ה-View הראשי של השורה).
+        // בעת לחיצה, המערכת תפתח את מסך פרטי העסק ותעביר אליו את ה-ID שלו כדי שהמסך הבא ידע מה לשלוף.
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // יצירת כוונת (Intent) למעבר מהמסך הנוכחי אל מסך פירוט העסק המורחב
                 Intent intent = new Intent(context, BusinessDetailsActivity.class);
-                // העברת מזהה העסק הייחודי כפרמטר (Extra) כדי שהמסך הבא ידע איזה מידע לשלוף
                 intent.putExtra("BUSINESS_ID", business.getBusinessId());
-                // התחלת האקטיביטי ופתיחת המסך החדש בפועל
                 context.startActivity(intent);
             }
         });
     }
 
+    /**
+     * מה הפעולה עושה: מחזירה את מספר הפריטים הכולל הקיים ברשימת העסקים, כדי שרכיב הרשימה ידע כמה כרטיסיות לייצר.
+     * קלט: אין.
+     * פלט: int (גודל הרשימה).
+     */
     @Override
-    // פונקציה המחזירה למערכת את כמות הפריטים הכוללת הקיימת ברשימת בתי העסק
     public int getItemCount() {
         return businessList.size();
     }
 
-    // תת-מחלקה פנימית וסטטית המייצגת את מחזיק הרכיבים (ViewHolder) של הכרטיסייה
+    // --- תת-מחלקה פנימית: מחזיק הרכיבים של הרשימה (ViewHolder) ---
+    // תפקידה למנוע קריאות חוזרות ונשנות לפקודת findViewById היקרה במשאבים, על ידי שמירת הקישורים לרכיבים פעם אחת בזיכרון.
     public static class BusinessViewHolder extends RecyclerView.ViewHolder {
-        // הצהרה על רכיבי הטקסט והתמונה המרכיבים את עיצוב ה-XML של הכרטיסייה
         TextView tvBusinessName, tvBusinessType, tvBusinessDescription, tvBusinessRating;
         ImageView imgBusiness;
 
-        // פעולה בונה המקבלת את תצוגת הכרטיסייה ומקשרת בין המשתנים לרכיבי ה-XML בפועל
         public BusinessViewHolder(@NonNull View itemView) {
             super(itemView);
-            // קישור משתנה שם העסק לרכיב ה-XML המתאים על פי מזהה
             tvBusinessName = itemView.findViewById(R.id.tvBusinessName);
-            // קישור משתנה סוג העסק לרכיב ה-XML המתאים על פי מזהה
             tvBusinessType = itemView.findViewById(R.id.tvBusinessType);
-            // קישור משתנה תיאור העסק לרכיב ה-XML המתאים על פי מזהה
             tvBusinessDescription = itemView.findViewById(R.id.tvBusinessDescription);
-            // קישור משתנה הדירוג והכוכב לרכיב ה-XML המתאים על פי מזהה
             tvBusinessRating = itemView.findViewById(R.id.tvBusinessRating);
-            // קישור משתנה תמונת העסק לרכיב ה-XML המתאים על פי מזהה
             imgBusiness = itemView.findViewById(R.id.imgBusiness);
         }
     }

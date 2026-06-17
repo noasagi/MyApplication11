@@ -13,163 +13,201 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
-// הגדרת מחלקה מופשטת (Abstract Class) המשמשת כאב טיפוס לכל האקטיביטיז באפליקציה למניעת שכפול קוד
+// הגדרת מחלקה מופשטת (Abstract) המשמשת בסיס ואב-טיפוס לשאר המסכים באפליקציה
 public abstract class BaseActivity extends AppCompatActivity {
 
-    // הצהרה על משתנה מוגן (Protected) המאפשר גישה לעדכון ושליפת נתוני משתמש בכל אקטיביטי יורשת
+    // משתנה מוגן (protected) שיהיה נגיש בכל המסכים שיורשים ממחלקה זו
     protected UserHelper userHelper;
-    // הצהרה על רכיב מערכת של אנדרואיד המנהל ומנטר את מצב החיבוריות והרשתות במכשיר
+
+    // רכיב של אנדרואיד שמנהל ומנטר את מצב החיבוריות והרשת במכשיר
     private ConnectivityManager connectivityManager;
-    // הצהרה על ממשק מאזין (Callback) שתפקידו לקבל אירועים בזמן אמת על שינויים במצב הרשת
+
+    // ממשק מאזין (Callback) שמקבל עדכונים בזמן אמת כשהאינטרנט מתנתק או חוזר
     private ConnectivityManager.NetworkCallback networkCallback;
-    // משתנה בוליאני המשמש כדגל (Flag) כדי לדעת האם כבר זיהינו שהאינטרנט התנתק בעבר (למניעת כפל הודעות)
+
+    // משתנה בוליאני (דגל) שמונע הקפצת הודעות כפולות על ניתוק האינטרנט
     private boolean isNetworkLostAlready = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // שליפת שירות המערכת של אנדרואיד לניהול חיבוריות והצבתו במשתנה connectivityManager
+
+        // שליפת שירות המערכת של אנדרואיד שאחראי על האינטרנט והרשתות במכשיר
         connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        // תנאי: אתחול של אובייקט העזר למשתמש במידה והוא עדיין ריק ולא אותחל קודם לכן
+
+        // אם אובייקט העזר למשתמש עדיין לא נוצר, ניצור אותו כעת עבור המסך הנוכחי
         if (userHelper == null) {
             userHelper = new UserHelper(this);
         }
 
-        // הפעלת בדיקה ידנית ראשונית של מצב האינטרנט מיד עם פתיחת המסך
+        // בדיקה ידנית ראשונית של מצב האינטרנט מיד כשהמסך עולה
         checkCurrentNetworkState();
 
-        // קריאה לפונקציה המבצעת רישום והפעלה של המאזין הדינמי לשינויי רשת
+        // הפעלת מאזין קבוע שישים לב אם האינטרנט מתנתק בזמן שהמשתמש במסך
         registerNetworkCallback();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        // הסרת הרישום של המאזין לרשת כאשר המסך יוצא מטווח הראייה של המשתמש (חוסך משאבים וסוללה)
+
+        // עצירת המאזין כשהמסך נעלם מהעין כדי לחסוך בסוללה ובמשאבי מעבד של המכשיר
         unregisterNetworkCallback();
     }
 
-    // --- מערכת בדיקת וניטור מצב האינטרנט הגלובלית ---
+    // --- מערכת בדיקת וניטור מצב האינטרנט בזמן אמת ---
 
-    // פונקציה המבצעת בדיקה נקודתית חד-פעמית של מצב הרשת הנוכחי במכשיר
+    /**
+     * קלט: אין. | פלט: אין (void).
+     * מה עושה ואיך: מבצעת בדיקה חד-פעמית ומהירה. אם משתמשת במחלקת עזר חיצונית (NetworkUtils)
+     * ומגלה שאין אינטרנט, היא מדליקה את הדגל (isNetworkLostAlready = true) ומקפיצה הודעת אזהרה.
+     */
     private void checkCurrentNetworkState() {
-        // שימוש במחלקת העזר הסטטית NetworkUtils לבדיקה האם האינטרנט זמין כרגע
+        // קריאה לפונקציה סטטית הבודקת האם יש כרגע חיבור רשת זמין
         if (!NetworkUtils.isNetworkAvailable(this)) {
-            // עדכון הדגל למצב אמת המציין כי החיבור לרשת אבד
+
+            // סימון שהאינטרנט אבד כדי שהמאזין ידע ולא יקפיץ הודעה כפולה בהמשך
             isNetworkLostAlready = true;
-            // הצגת הודעה קופצת (Toast) למשתמש המזהירה אותו שאין חיבור תקין לרשת
+
+            // הקפצת הודעת טקסט קצרה (Toast) למשתמש על גבי המסך
             Toast.makeText(this, "אין חיבור לאינטרנט. פעולות מסוימות עלולות לא לעבוד 😕", Toast.LENGTH_LONG).show();
         }
     }
 
-    // פונקציה האחראית להגדיר ולרשום את המאזין הדינמי שמנטר את רשת האינטרנט בזמן אמת
+    /**
+     * קלט: אין. | פלט: אין (void).
+     * מה עושה ואיך: מגדירה דרישת רשת ספציפית (שרשת האינטרנט תהיה עם גישה אמיתית לעולם), מייצרת
+     * אובייקט מאזין אנונימי (NetworkCallback) שמכיל שתי פונקציות: onAvailable (כשחוזר) ו-onLost (כשמתנתק).
+     */
     private void registerNetworkCallback() {
         try {
-            // בניית דרישת רשת מוגדרת: אנו מבקשים להאזין אך ורק לרשתות שיש להן יכולת גישה ממשית לאינטרנט
+            // הגדרת קריטריון: אנו מעוניינים להאזין רק לרשתות שיש להן יכולת גישה לאינטרנט
             NetworkRequest networkRequest = new NetworkRequest.Builder()
                     .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                     .build();
 
-            // יצירת מופע אנונימי קלאסי של מחלקת ה-NetworkCallback
+            // יצירת המאזין האנונימי שיקבל את האירועים ממערכת ההפעלה אנדרואיד
             networkCallback = new ConnectivityManager.NetworkCallback() {
 
                 @Override
-                // פונקציה המופעלת אוטומטית על ידי המערכת ברגע שרשת אינטרנט הופכת לזמינה ותקינה
+                // פונקציה זו רצה אוטומטית כשאנדרואיד מזהה שהמכשיר התחבר מחדש לאינטרנט
                 public void onAvailable(@NonNull Network network) {
                     super.onAvailable(network);
-                    // תנאי: נציג הודעה שהאינטרנט חזר אך ורק אם קודם לכן זיהינו מצב של נתק
+
+                    // נציג הודעה שהאינטרנט חזר רק אם המכשיר באמת היה מנותק קודם לכן
                     if (isNetworkLostAlready) {
-                        // הרצת קוד בתוך תהליך הממשק הראשי (UI Thread) מכיוון שאירוע הרשת מגיע מתהליך רקע
+
+                        // שימוש ב-runOnUiThread חובה! אירוע הרשת מגיע מתהליך רקע, ואסור לעדכן גרפיקה (Toast) משם.
+                        // פקודה זו מעבירה את ביצוע הקוד לתהליך הראשי (UI Thread) שאחראי על המסך.
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                // הצגת הודעת חיווי מהירה למשתמש שהחיבור לרשת האינטרנט חזר בהצלחה
                                 Toast.makeText(BaseActivity.this, "החיבור לאינטרנט חזר 😊", Toast.LENGTH_SHORT).show();
                             }
                         });
-                        // איפוס הדגל בחזרה למצב שקר מכיוון שהאינטרנט כעת מחובר ותקין
+
+                        // איפוס הדגל בחזרה לשקר, כי כעת המצב תקין ומחובר
                         isNetworkLostAlready = false;
                     }
                 }
 
                 @Override
-                // פונקציה המופעלת אוטומטית על ידי המערכת ברגע שרשת האינטרנט מתנתקת לחלוטין
+                // פונקציה זו רצה אוטומטית כשהאינטרנט מתנתק (למשל, עבר למצב טיסה או יצא מטווח ה-Wi-Fi)
                 public void onLost(@NonNull Network network) {
                     super.onLost(network);
-                    // עדכון הדגל למצב אמת המסמן שהחיבור לאינטרנט אבד כעת
+
+                    // סימון שהאינטרנט נעלם
                     isNetworkLostAlready = true;
-                    // מעבר לתהליך ה-UI הראשי לצורך ביצוע שינויים גרפיים והצגת הודעה למשתמש
+
+                    // מעבר לתהליך ה-UI הראשי כדי להציג הודעת אזהרה למשתמש על גבי המסך כשהוא מנסה לעבוד
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            // הצגת הודעת אזהרה למשתמש שאין חיבור לרשת ופעולות באפליקציה עלולות להיכשל
                             Toast.makeText(BaseActivity.this, "אין חיבור לאינטרנט. פעולות מסוימות עלולות לא לעבוד 😕", Toast.LENGTH_LONG).show();
                         }
                     });
                 }
             };
-            // רישום רשמי של המאזין שיצרנו בתוך מנהל הרשתות של מערכת ההפעלה אנדרואיד
+
+            // רישום המאזין שיצרנו בתוך מנהל הרשתות של אנדרואיד כדי שיתחיל לעבוד בפועל
             connectivityManager.registerNetworkCallback(networkRequest, networkCallback);
+
         } catch (Exception e) {
-            // הדפסת עקבות השגיאה במידה ונוצרה חריגה בזמן הרישום של המאזין
+            // הדפסת שגיאה במקלדת (Log) במידה ומשהו נכשל בתהליך הרישום של המאזין
             e.printStackTrace();
         }
     }
 
-    // פונקציה המבצעת ניתוק מבוקר ובטוח של המאזין ממערכת ההפעלה
+    /**
+     * קלט: אין. | פלט: אין (void).
+     * מה עושה ואיך: פונה למנהל הרשת ומבטלת את ההאזנה של ה-NetworkCallback.
+     * זה קורה ב-onStop כדי למנוע "זליגת זיכרון" (Memory Leak) כשהמשתמש עוזב את המסך.
+     */
     private void unregisterNetworkCallback() {
         try {
-            // תנאי בטיחות: מוודאים שגם מנהל הרשת וגם אובייקט המאזין קיימים ואינם מצביעים לערך ריק
+            // בדיקת בטיחות: מוודאים שמנהל הרשת והמאזין בכלל קיימים לפני שמנסים לבטל אותם
             if (connectivityManager != null && networkCallback != null) {
-                // ביטול הרישום של המאזין הספציפי בתוך מנהל הרשתות
+
+                // ניתוק רשמי של המאזין ממערכת ההפעלה
                 connectivityManager.unregisterNetworkCallback(networkCallback);
             }
         } catch (Exception e) {
-            // הדפסת עקבות השגיאה במידה ונוצרה חריגה בזמן ביטול הרישום
             e.printStackTrace();
         }
     }
 
-    // --- הגדרות וניהול סרגלי כלים (Toolbar) ---
+    // --- מערכת ניהול סרגלי כלים (Toolbar) ---
 
-    // פונקציה מוגנת המאפשרת לאקטיביטיז הבנות להגדיר סרגל כלים ראשי במסך
+    /**
+     * קלט: אובייקט Toolbar מה-XML. | פלט: אין (void).
+     * מה עושה ואיך: מקבלת סרגל כלים שעיצבנו ב-XML ומגדירה אותו כסרגל הראשי הרשמי של המסך הנוכחי.
+     */
     protected void setupToolbar(Toolbar toolbar) {
-        // תנאי: אם רכיב ה-Toolbar שהועבר אינו ריק, נגדיר אותו כסרגל הכלים הרשמי של האקטיביטי
         if (toolbar != null) {
+            // הגדרת ה-Toolbar שישמש כ-ActionBar של המסך לצורך הצגת כותרות ותפריטים
             setSupportActionBar(toolbar);
         }
     }
 
-    // פונקציה מוגנת להגדרת סרגל כלים משני הכולל אפשרות להצגת לחצן חץ חזרה מובנה
+    /**
+     * קלט: אובייקט Toolbar, ומשתנה בוליאני showBackButton (האם להציג חץ חזרה). | פלט: אין (void).
+     * מה עושה ואיך: מגדירה את הסרגל, ואם showBackButton הוא true, היא מוסיפה באופן מובנה חץ קטן שפונה שמאלה/ימינה לחזרה למסך הקודם.
+     */
     protected void setupSecondaryToolbar(Toolbar toolbar, boolean showBackButton) {
-        // קריאה לפונקציה הבסיסית להגדרת הסרגל במערכת
+        // שימוש בפונקציה הקודמת כדי להגדיר את הסרגל הבסיסי במערכת
         setupToolbar(toolbar);
 
-        // תנאי: אם המשתמש ביקש להציג כפתור חזרה וסרגל הכלים אכן מאותחל ותקין
+        // אם המשתמש ביקש חץ חזרה, וסרגל הכלים אכן קיים ופועל בהצלחה
         if (showBackButton && getSupportActionBar() != null) {
-            // הפעלת אפשרות התצוגה של כפתור הבית (Home) כחץ חזרה מובנה
+
+            // פקודה המציגה את כפתור ה"בית" המובנה של הסרגל
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            // הגדרה המאפשרת לכפתור הבית לתפקד ולהיראות כחצן ניווט חזרה ברור
+
+            // הפיכת הכפתור הזה ללחיץ ונראה כחץ ניווט לחזרה
             getSupportActionBar().setDisplayShowHomeEnabled(true);
         }
     }
 
-    // --- טיפול וניהול אירועי הלחיצה על חץ הניווט "אחורה" שבסרגל הכלים ---
+    // --- טיפול בלחיצה על חץ החזרה שבסרגל הכלים ---
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // בדיקה: האם המזהה של הפריט שנלחץ בסרגל תואם למזהה המובנה של חץ החזרה (android.R.id.home)
+
+        // בדיקה: האם הפריט שנלחץ בסרגל הוא כפתור החזרה המובנה של אנדרואיד (שמזהה ה-ID שלו הוא קבוע במערכת)
         if (item.getItemId() == android.R.id.home) {
-            // הפעלת פונקציית החזרה המובנית של המכשיר המדמה לחיצה על כפתור החזרה הפיזי
+
+            // קריאה לפונקציה המובנית שמדמה לחיצה על כפתור החזור הפיזי של הטלפון וסוגרת את המסך הנוכחי
             onBackPressed();
-            // החזרת ערך אמת (true) המציין כי טיפלנו באירוע הלחיצה בהצלחה ואין צורך להמשיך הלאה
+
+            // החזרת true כדי לסמן למערכת שטיפלנו בלחיצה הזו ואין צורך להעביר אותה הלאה
             return true;
         }
-        // במידה ונלחץ רכיב אחר, נעביר את הטיפול להמשך המימוש של מחלקת האב
+
+        // אם נלחץ משהו אחר (כמו כפתור תפריט אחר), תן למחלקת האב לטפל בזה כרגיל
         return super.onOptionsItemSelected(item);
     }
 }

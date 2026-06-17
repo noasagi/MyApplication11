@@ -7,6 +7,11 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class ClientMainActivity extends BaseActivity {
 
+    /**
+     * מה הפעולה עושה: מאתחלת את ממשק המשתמש, מקשרת את תפריט הניווט התחתון (BottomNavigationView), ומגדירה את החלפת הפרגמנטים בזמן אמת.
+     * קלט: Bundle savedInstanceState.
+     * פלט: אין.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -14,10 +19,12 @@ public class ClientMainActivity extends BaseActivity {
 
         BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
 
+        // הגדרת מאזין להחלפת מסכים (Fragments) בלחיצה על תפריט הניווט התחתון
         bottomNav.setOnItemSelectedListener(item -> {
             Fragment selectedFragment = null;
             int id = item.getItemId();
 
+            // התאמה בין מזהה הכפתור שנלחץ ב-XML לבין הפרגמנט המתאים לו בזיכרון
             if (id == R.id.nav_customer_home) {
                 selectedFragment = new CustomerHomeFragment();
             } else if (id == R.id.nav_customer_search) {
@@ -28,18 +35,20 @@ public class ClientMainActivity extends BaseActivity {
                 selectedFragment = new SettingsFragment();
             }
 
+            // ביצוע מנגנון החלפת התצוגות (Fragment Transaction) בתוך מכולת התוכן (Fragment Container)
             if (selectedFragment != null) {
                 getSupportFragmentManager().beginTransaction()
                         .replace(R.id.fragment_container, selectedFragment)
                         .commit();
             }
-            return true;
+            return true; // החזרת true מאשרת למערכת לסמן חזותית את הכפתור שנבחר
         });
 
-        // טעינה ראשונית של מסך הבית
+        // מנגנון הגנה וחוויית משתמש (UX): טעינה ראשונית של מסך הבית רק בריצה הראשונה של האקטיביטי
         if (savedInstanceState == null) {
-            getSupportFragmentManager().beginTransaction().replace(R.id.fragment_container,
-                    new CustomerHomeFragment()).commit();
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_container, new CustomerHomeFragment())
+                    .commit();
         }
     }
 }

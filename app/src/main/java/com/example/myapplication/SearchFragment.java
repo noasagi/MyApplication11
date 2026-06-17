@@ -43,62 +43,59 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-// הגדרת מחלקת פרגמנט לחיפוש, סינון ומיון גיאוגרפי של בתי עסק במערכת
+// מחלקת פרגמנט המנהלת את מסך חיפוש בתי העסק, ומבצעת סינון רב-שכבתי דינמי ומיון גיאוגרפי לפי מיקום המשתמש
 public class SearchFragment extends Fragment {
 
-    // הצהרה על רכיבי ממשק המשתמש הויזואליים
     private RecyclerView rvBusinesses;
     private BusinessAdapter businessAdapter;
     private TextView tvEmptyState;
     private SearchView searchView;
     private MaterialButton btnFilter;
 
-    // מופע בסיס הנתונים ורכיב ההאזנה הרציפה לשינויים בענן של פיירסטור
     private FirebaseFirestore db;
-    private ListenerRegistration businessListener;
+    private ListenerRegistration businessListener; // אובייקט לרישום וניתוק המאזין של פיירבייס בזמן אמת
 
-    // רשימות עזר: רשימה מקורית של כל העסקים מול רשימה מסוננת המוצגת בפועל
+    // ניהול שתי רשימות נפרדות בזיכרון לשמירה על יעילות וביצועים (הרשימה המקורית מול הרשימה המסוננת המוצגת)
     private List<BusinessModel> originalList = new ArrayList<>();
     private List<BusinessModel> displayedList = new ArrayList<>();
 
-    // --- פרמטרים ומצבים לניהול הסינונים ---
+    // משתני מצב השומרים את הקריטריונים הנוכחיים של הסינון בכל רגע נתון
     private String currentSearchText = "";
     private String currentCategoryFilter = "הכל";
-    private float maxDistanceKmFilter = 50f; // רדיוס מקסימלי בשימוש גיאוגרפי
-    private float minRatingFilter = 0f;      // ציון דירוג מינימלי לסינון
+    private float maxDistanceKmFilter = 50f;
+    private float minRatingFilter = 0f;
 
-    // רכיבי הגישה לקבלת נתוני מיקום ה-GPS של המכשיר
+    // רכיבי Google Play Services לצורך דגימת ה-GPS של המכשיר
     private FusedLocationProviderClient fusedLocationClient;
     private Location userLocation = null;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 100;
 
+    /**
+     * מה הפעולה עושה: מנפחת את ממשק ה-XML, מאתחלת את ה-RecyclerView והאדפטר, ומפעילה את תהליכי קליטת המידע והמיקום.
+     * קלט: LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState.
+     * פלט: View (תצוגת הפרגמנט המוכנה).
+     */
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        // טעינת וניפוח קובץ ה-XML של מסך החיפוש והסינון
         View view = inflater.inflate(R.layout.fragment_search, container, false);
 
-        // קישור רכיבי הגרפיקה מתוך ה-XML אל משתני המחלקה
         rvBusinesses = view.findViewById(R.id.rvBusinesses);
         tvEmptyState = view.findViewById(R.id.tvEmptyState);
         searchView = view.findViewById(R.id.searchView);
         btnFilter = view.findViewById(R.id.btnFilter);
 
-        // אתחול רכיבי הגישה של פיירבייס ושירותי המיקום של גוגל
         db = FirebaseFirestore.getInstance();
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
 
-        // הגדרת רכיב הרשימה והצמדת האדפטר המרכזי של העסקים
         if (getContext() != null) {
             rvBusinesses.setLayoutManager(new LinearLayoutManager(getContext()));
             businessAdapter = new BusinessAdapter(getContext(), displayedList);
             rvBusinesses.setAdapter(businessAdapter);
         }
 
-        // הגדרת רכיב תיבת החיפוש הטקסטואלי
         setupSearch();
 
-        // הגדרת מאזין לחיצה אנונימי קלאסי לכפתור פתיחת חלון מסנן הפרמטרים
         btnFilter.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -106,55 +103,58 @@ public class SearchFragment extends Fragment {
             }
         });
 
-        // הפעלת מאזין רציני לעדכוני מידע בזמן אמת מהענן
         startListeningForBusinesses();
-
-        // בדיקת הרשאות ודגימת מיקום ה-GPS של המשתמש לצורך חישובי מרחקים
         checkLocationPermissionAndFetch();
 
         return view;
     }
 
-    // פעולה לפתיחת ערוץ האזנה קבוע (Real-time Snapshot) מול אוסף העסקים בענן
+    /**
+     * מה הפעולה עושה: פותחת צינור האזנה קבוע (addSnapshotListener) מול Firestore. כל שינוי בנתוני העסקים בענן מעדכן מיד את הרשימה המקומית ללא צורך בריענון ידני.
+     */
     private void startListeningForBusinesses() {
         businessListener = db.collection("businesses")
                 .addSnapshotListener(new EventListener<QuerySnapshot>() {
                     @Override
                     public void onEvent(@Nullable QuerySnapshot querySnapshot, @Nullable FirebaseFirestoreException e) {
-                        if (e != null) return;
+                        if (e != null) return; // תנאי הגנה במקרה של שגיאת תקשורת
                         if (querySnapshot != null) {
-                            originalList.clear(); // ניקוי הרשימה המקורית למניעת כפילויות
+                            originalList.clear(); // מניעת כפל נתונים בריענון
                             for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
                                 BusinessModel business = doc.toObject(BusinessModel.class);
                                 if (business != null) {
                                     business.setBusinessId(doc.getId());
-                                    originalList.add(business); // הוספת העסק העדכני לארכיון המקומי
+                                    originalList.add(business);
                                 }
                             }
-                            applyFilters(); // הרצת אלגוריתם הסינון והמיון על המידע החדש
+                            applyFilters(); // הפעלת הלוגיקה על המידע החדש שנחת מהענן
                         }
                     }
                 });
     }
 
+    /**
+     * מה הפעולה עושה: מחזור חיים של פרגמנט - מנתקת את המאזין הרישמי של פיירבייס בעת סגירת התצוגה.
+     * למה זה קריטי: מונע זליגת זיכרון (Memory Leak) ובזבוז קריאות מיותרות ומשאבי סוללה ברקע של המכשיר.
+     */
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        // הגנה מפני זליגת זיכרון: ניתוק והסרת מאזין הפיירסטור בעת סגירת התצוגה
         if (businessListener != null) businessListener.remove();
     }
 
-    // בדיקת סטטוס הרשאת גישה למיקום המכשיר ובקשת הרשאה במידת הצורך
+    // בדיקה האם המשתמש אישר לאפליקציה גישה לרכיב המיקום של הטלפון ברמת ה-Runtime
     private void checkLocationPermissionAndFetch() {
         if (getContext() == null) return;
         if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // בקשת הרשאה מפורשת מהמשתמש באמצעות תיבה קופצת של המערכת
             requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
         } else {
-            fetchUserLocationNow(); // אם קיימת הרשאה, ניגש ישירות לדגימת המיקום
+            fetchUserLocationNow(); // ההרשאה כבר קיימת - ניגש ישר לדגום מיקום
         }
     }
 
-    // דגימת מיקום המכשיר הנוכחי והמדויק ברמת דיוק גבוהה (High Accuracy)
+    // דגימת נקודת המיקום הגאוגרפית המדויקת והעדכנית ביותר של הטלפון באמצעות הלוויין
     @SuppressLint("MissingPermission")
     private void fetchUserLocationNow() {
         CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
@@ -163,32 +163,33 @@ public class SearchFragment extends Fragment {
                     @Override
                     public void onSuccess(Location location) {
                         if (location != null) {
-                            userLocation = location; // שמירת אובייקט המיקום שנתקבל מהלוויין
-                            applyFilters(); // עדכון ומיון הרשימה מחדש על בסיס הנקודה הגיאוגרפית
+                            userLocation = location; // שמירת קואורדינטות המשתמש (Latitude & Longitude)
+                            applyFilters(); // ריצה מחדש על אלגוריתם הסינונים והמיון הגיאוגרפי
                         }
                     }
                 });
     }
 
-    // הגדרת מאזין להקלדות טקסט בתוך רכיב ה-SearchView
+    // הגדרת מאזין להקלדות בתוך רכיב החיפוש שמריץ את הסינון בזמן אמת (על כל תו שנכתב או נמחק)
     private void setupSearch() {
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override public boolean onQueryTextSubmit(String query) { return false; }
             @Override public boolean onQueryTextChange(String newText) {
-                currentSearchText = newText; // עדכון מחרוזת הטקסט לחיפוש
-                applyFilters(); // הרצת הסינון מחדש בכל הקלדה של המשתמש
+                currentSearchText = newText;
+                applyFilters();
                 return true;
             }
         });
     }
 
-    // ניפוח והצגת חלון דיאלוג (AlertDialog) מותאם אישית להגדרת מסננים מתקדמים
+    /**
+     * מה הפעולה עושה: מייצרת ומציגה דיאלוג (AlertDialog) מותאם אישית המכיל סליידרים (Sliders) וספינר לבחירת קריטריוני סינון מתקדמים.
+     */
     private void showFilterDialog() {
         if (getContext() == null) return;
 
         View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_filter, null);
 
-        // קישור רכיבי הבחירה והסליידרים מתוך קובץ ה-XML של הדיאלוג
         final Spinner spinnerCategory = dialogView.findViewById(R.id.spinnerDialogCategory);
         final Slider sliderDistance = dialogView.findViewById(R.id.sliderDistance);
         final Slider sliderRating = dialogView.findViewById(R.id.sliderRating);
@@ -196,7 +197,7 @@ public class SearchFragment extends Fragment {
         final TextView tvRatingLabel = dialogView.findViewById(R.id.tvRatingLabel);
         Button btnApplyFilters = dialogView.findViewById(R.id.btnApplyFilters);
 
-        // בניית וניהול רשימת הקטגוריות בתוך רכיב הספינר
+        // טעינת מערך הקטגוריות מקובץ ה-strings.xml והלבשתו על ה-Spinner באמצעות ArrayAdapter
         List<String> categories = new ArrayList<>();
         categories.add("הכל");
         categories.addAll(Arrays.asList(getResources().getStringArray(R.array.business_types)));
@@ -205,14 +206,12 @@ public class SearchFragment extends Fragment {
         spinnerCategory.setAdapter(spinnerAdapter);
         spinnerCategory.setSelection(categories.indexOf(currentCategoryFilter));
 
-        // קביעת ערכים נוכחיים בסליידרים
         sliderDistance.setValue(maxDistanceKmFilter);
         tvDistanceLabel.setText("עד " + (int)maxDistanceKmFilter + " ק\"מ");
 
         sliderRating.setValue(minRatingFilter);
         tvRatingLabel.setText("מדירוג " + minRatingFilter + " ומעלה");
 
-        // הגדרת מאזין שינוי אנונימי קלאסי לסליידר המרחק לעדכון הטקסט בזמן גרירה
         sliderDistance.addOnChangeListener(new Slider.OnChangeListener() {
             @Override
             public void onValueChange(@NonNull Slider slider, float value, boolean fromUser) {
@@ -220,7 +219,6 @@ public class SearchFragment extends Fragment {
             }
         });
 
-        // הגדרת מאזין שינוי אנונימי קלאסי לסליידר הדירוג לעדכון הטקסט בזמן גרירה
         sliderRating.addOnChangeListener(new Slider.OnChangeListener() {
             @Override
             public void onValueChange(@NonNull Slider slider, float value, boolean fromUser) {
@@ -232,7 +230,6 @@ public class SearchFragment extends Fragment {
                 .setView(dialogView)
                 .create();
 
-        // מאזין לחיצה אנונימי קלאסי לכפתור אישור והחלת המסננים על הרשימה
         btnApplyFilters.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -240,13 +237,12 @@ public class SearchFragment extends Fragment {
                 maxDistanceKmFilter = sliderDistance.getValue();
                 minRatingFilter = sliderRating.getValue();
 
-                // במידה ונדרש סינון מרחק אך נתוני ה-GPS טרם נקלטו במכשיר
                 if (maxDistanceKmFilter < 50f && userLocation == null) {
                     checkLocationPermissionAndFetch();
                     Toast.makeText(getContext(), "מאתר מיקום...", Toast.LENGTH_SHORT).show();
                 }
 
-                applyFilters(); // החלת מערכת הסינונים המעודכנת
+                applyFilters();
                 dialog.dismiss();
             }
         });
@@ -254,50 +250,52 @@ public class SearchFragment extends Fragment {
         dialog.show();
     }
 
-    // אלגוריתם מרכזי: סינון משולב רב-שכבתי ומיון גיאוגרפי לפי מרחק משתמש
+    /**
+     * מה הפעולה עושה: אלגוריתם הליבה המשולב. חלק א' - מסנן את העסקים בזיכרון המקומי לפי 4 שכבות (טקסט, קטגוריה, מרחק ודירוג). חלק ב' - ממיין גיאוגרפית את התוצאות מהקרוב לרחוק באמצעות ה-GPS.
+     */
     private void applyFilters() {
-        displayedList.clear(); // ניקוי רשימת התצוגה הנוכחית
+        displayedList.clear(); // ניקוי רשימת התצוגה לפני בנייה מחדש
 
         for (BusinessModel business : originalList) {
 
-            // שכבה 1: סינון טקסט חופשי (התאמה של שם העסק למחרוזת שהוקלדה)
+            // שכבה 1: התאמת טקסט חופשי (חיפוש ללא רגישות לאותיות גדולות/קטנות)
             String bName = business.getName() != null ? business.getName() : "";
             boolean matchesSearch = bName.toLowerCase().contains(currentSearchText.toLowerCase());
 
-            // שכבה 2: סינון קטגוריית העסק (התאמה לסוג העסק שנבחר בספינר)
+            // שכבה 2: סינון קטגוריה
             String bType = business.getBusinessType() != null ? business.getBusinessType() : "";
             boolean matchesCategory = currentCategoryFilter.equals("הכל") || bType.equals(currentCategoryFilter);
 
-            // שכבה 3: חישוב וסינון גיאוגרפי מבוסס קואורדינטות ורדיוס
+            // שכבה 3: חישוב מתמטי וסינון גיאוגרפי מבוסס רדיוס קילומטרים
             boolean matchesDistance = true;
-            if (maxDistanceKmFilter < 50f) { // הערך 50 מסמל אי-הגבלה של מרחק
+            if (maxDistanceKmFilter < 50f) { // 50 ק"מ ומעלה נחשב בקוד כאי-הגבלה של מרחק
                 if (userLocation == null || business.getLatitude() == null || business.getLongitude() == null) {
-                    matchesDistance = false;
+                    matchesDistance = false; // אם אין נתוני מיקום זמינים, לא נציג את העסק תחת סינון מרחק
                 } else {
                     float[] results = new float[1];
-                    // שימוש בפונקציה מתמטית לחישוב המרחק הריאלי במטרים בין שתי נקודות גיאוגרפיות
+                    // פונקציה רשמית של אנדרואיד המחשבת מרחק אווירי במטרים בין שתי נקודות על פני כדור הארץ
                     Location.distanceBetween(userLocation.getLatitude(), userLocation.getLongitude(),
                             business.getLatitude(), business.getLongitude(), results);
 
-                    float distanceInKm = results[0] / 1000f; // המרה של המרחק ממטרים לקילומטרים
+                    float distanceInKm = results[0] / 1000f; // המרת מטרים לקילומטרים
                     if (distanceInKm > maxDistanceKmFilter) matchesDistance = false;
                 }
             }
 
-            // שכבה 4: סינון לפי רמת דירוג כוכבים מספרית
+            // שכבה 4: סינון לפי ציון כוכבים מינימלי
             boolean matchesRating = true;
             float bRating = business.getOverallRating();
             if (bRating < minRatingFilter) {
                 matchesRating = false;
             }
 
-            // הצבה ובדיקה משולבת של כלל תנאי הסינון
+            // אינטגרציה: רק עסק שעמד בהצלחה בכל 4 השכבות, ייכנס לרשימת התצוגה
             if (matchesSearch && matchesCategory && matchesDistance && matchesRating) {
-                displayedList.add(business); // הוספת העסק לרשימה המסוננת רק אם עבר את כל השלבים
+                displayedList.add(business);
             }
         }
 
-        // חלק ב' של האלגוריתם: מיון הרשימה המסוננת מהקרוב ביותר אל הרחוק ביותר
+        // חלק ב': במידה וקיים מיקום GPS למכשיר, נמיין את הרשימה המסוננת באמצעות ממשק Comparator מהקרוב לרחוק
         if (userLocation != null) {
             Collections.sort(displayedList, new Comparator<BusinessModel>() {
                 @Override
@@ -306,22 +304,20 @@ public class SearchFragment extends Fragment {
                     if (b2.getLatitude() == null) return -1;
                     float[] r1 = new float[1], r2 = new float[1];
 
-                    // חישוב מרחק גיאוגרפי עבור העסק הראשון והשני בהשוואה למיקום ה-GPS של המשתמש
                     Location.distanceBetween(userLocation.getLatitude(), userLocation.getLongitude(), b1.getLatitude(), b1.getLongitude(), r1);
                     Location.distanceBetween(userLocation.getLatitude(), userLocation.getLongitude(), b2.getLatitude(), b2.getLongitude(), r2);
 
-                    // השוואה מתמטית בין שני ערכי המרחקים שנתקבלו
-                    return Float.compare(r1[0], r2[0]);
+                    return Float.compare(r1[0], r2[0]); // החזרת תוצאת ההשוואה הגיאוגרפית
                 }
             });
         }
 
-        // עדכון גרפי של הרשימה על גבי מסך המכשיר
+        // עדכון גרפי של ה-RecyclerView (מפעיל את onBindViewHolder של האדפטר מחדש)
         if (businessAdapter != null) {
             businessAdapter.notifyDataSetChanged();
         }
 
-        // ניהול מצבי נראות חזותיים בהתאם לקיומם של עסקים העונים על תנאי הסינון
+        // ניהול מצב מסך ריק (Empty State) במידה ואף עסק לא תאם לקריטריוני החיפוש
         tvEmptyState.setVisibility(displayedList.isEmpty() ? View.VISIBLE : View.GONE);
         rvBusinesses.setVisibility(displayedList.isEmpty() ? View.GONE : View.VISIBLE);
     }

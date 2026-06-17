@@ -71,6 +71,7 @@ public class MyBusinessMainActivity extends BaseActivity {
     private Double businessLat = null;
     private Double businessLon = null;
 
+    // שימוש ב-ActivityResultLauncher מודרני לבחירת מספר תמונות מהגלריה במקביל
     private final ActivityResultLauncher<String> mGetMultipleContent =
             registerForActivityResult(new ActivityResultContracts.GetMultipleContents(), result -> {
                 if (result != null && !result.isEmpty()) {
@@ -79,6 +80,7 @@ public class MyBusinessMainActivity extends BaseActivity {
                 }
             });
 
+    // שימוש ב-ActivityResultLauncher מודרני לצילום תמונה ישירות מהמצלמה
     private final ActivityResultLauncher<Void> mTakePhoto =
             registerForActivityResult(new ActivityResultContracts.TakePicturePreview(), result -> {
                 if (result != null) {
@@ -87,6 +89,11 @@ public class MyBusinessMainActivity extends BaseActivity {
                 }
             });
 
+    /**
+     * מה הפעולה עושה: מאתחלת את רכיבי המסך, מקשרת את סרגל הכלים, מגדירה את תפריט הבחירה הנגלל (Spinner-like AutoCompleteTextView) ומחברת מאזינים לכפתורים.
+     * קלט: Bundle savedInstanceState.
+     * פלט: אין.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -132,7 +139,7 @@ public class MyBusinessMainActivity extends BaseActivity {
         autoBusinessType.setAdapter(adapter);
         autoBusinessType.setOnClickListener(v -> autoBusinessType.showDropDown());
 
-        checkIfUserHasBusiness();
+        checkIfUserHasBusiness(); // שלב א': בדיקה אסינכרונית אם למשתמש המחובר כבר יש עסק קיים במסד
 
         btnChooseImage.setOnClickListener(v -> {
             if (checkStoragePermission()) mGetMultipleContent.launch("image/*");
@@ -145,10 +152,14 @@ public class MyBusinessMainActivity extends BaseActivity {
         });
 
         btnSaveBusiness.setOnClickListener(v -> saveOrUpdateBusiness());
-
         btnDeleteBusiness.setOnClickListener(v -> showDeleteConfirmation());
     }
 
+    /**
+     * מה הפעולה עושה: פונה ל-Firestore ובודקת האם קיים מסמך באוסף businesses שבו שדה ה-ownerId שווה ל-UID של המשתמש המחובר.
+     * קלט: אין.
+     * פלט: אין (void).
+     */
     private void checkIfUserHasBusiness() {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) return;
@@ -167,7 +178,7 @@ public class MyBusinessMainActivity extends BaseActivity {
                         DocumentSnapshot document = queryDocumentSnapshots.getDocuments().get(0);
                         BusinessModel business = document.toObject(BusinessModel.class);
                         if (business != null) {
-                            switchToEditMode(business);
+                            switchToEditMode(business); // העברת המסך למצב עריכת נתונים קיימים
                         }
                     } else {
                         btnDeleteBusiness.setVisibility(View.GONE);
@@ -180,6 +191,11 @@ public class MyBusinessMainActivity extends BaseActivity {
                 });
     }
 
+    /**
+     * מה הפעולה עושה: משנה את מצב המסך למצב עריכה (Edit Mode), מאכלסת את שדות הקלט בנתוני העסק הקיים, ומפענחת את מערך הבלובים (Blob) חזרה לתמונות Bitmap לתצוגה.
+     * קלט: BusinessModel business.
+     * פלט: אין (void).
+     */
     private void switchToEditMode(BusinessModel business) {
         isEditMode = true;
         currentBusinessId = business.getBusinessId();
@@ -208,6 +224,11 @@ public class MyBusinessMainActivity extends BaseActivity {
         }
     }
 
+    /**
+     * מה הפעולה עושה: אוספת את נתוני הממשק, מעבדת ומקטינה את התמונות, מפעילה מנגנון Geocoder ברקע להמרת הכתובת לקואורדינטות, ושומרת/מעדכנת את המסמך ב-Firestore באמצעות SetOptions.merge().
+     * קלט: אין.
+     * פלט: אין (void).
+     */
     private void saveOrUpdateBusiness() {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) {
@@ -237,6 +258,7 @@ public class MyBusinessMainActivity extends BaseActivity {
         String businessIdToSave = (currentBusinessId != null) ? currentBusinessId : UUID.randomUUID().toString();
         String ownerId = user.getUid();
 
+        // הרצת עיבוד תמונות וגיאוקודינג בשרשור נפרד (Thread) למניעת תקיעת ה-UI (ANR - Application Not Responding)
         new Thread(() -> {
             try {
                 List<Blob> imageBlobs = processImages();
@@ -250,6 +272,7 @@ public class MyBusinessMainActivity extends BaseActivity {
                     return;
                 }
 
+                // שימוש ברכיב Geocoder להמרת מחרוזת הכתובת למיקומים גיאוגרפיים (מבוסס רשת)
                 Geocoder geocoder = new Geocoder(MyBusinessMainActivity.this, new Locale("he", "IL"));
                 try {
                     List<Address> addresses = geocoder.getFromLocationName(address + ", ישראל", 1);
@@ -286,7 +309,7 @@ public class MyBusinessMainActivity extends BaseActivity {
                 businessData.put("longitude", businessLon);
 
                 firebaseFirestore.collection("businesses").document(businessIdToSave)
-                        .set(businessData, SetOptions.merge())
+                        .set(businessData, SetOptions.merge()) // מיזוג חכם המונע דריסת שדות אחרים שלא צוינו (כמו דירוגי ממוצעים)
                         .addOnSuccessListener(aVoid -> runOnUiThread(() -> {
                             pd.dismiss();
                             btnSaveBusiness.setEnabled(true);
@@ -323,6 +346,11 @@ public class MyBusinessMainActivity extends BaseActivity {
                 .show();
     }
 
+    /**
+     * מה הפעולה עושה: מוחקת לחלוטין את מסמך בית העסק מ-Firestore ומאפסת את כל רכיבי הממשק למצב התחלתי נקי.
+     * קלט: אין.
+     * פלט: אין (void).
+     */
     private void deleteBusiness() {
         if (currentBusinessId == null) return;
 
@@ -361,6 +389,11 @@ public class MyBusinessMainActivity extends BaseActivity {
                 });
     }
 
+    /**
+     * מה הפעולה עושה: עוברת על כל התמונות שנבחרו (מצלמה וגלריה), קוראת אותן מהמכשיר, דוחסת אותן והופכת אותן לרשימה של אובייקטי Blob הניתנים לשמירה בתוך מסמך פיירסטור.
+     * קלט: אין.
+     * פלט: List<Blob> (רשימת התמונות המכווצות כמערכי בתים) או null במידה והנפח חורג מהמגבלה הכללית.
+     */
     private List<Blob> processImages() {
         List<Blob> imageBlobs = new ArrayList<>();
         long totalBytes = 0;
@@ -388,16 +421,24 @@ public class MyBusinessMainActivity extends BaseActivity {
             return new ArrayList<>();
         }
 
+        // הגנת חומת אש של פיירסטור: מסמך שלם אינו יכול לעלות על 1MB (1024KB), לכן נגביל את התמונות ל-950KB מקסימום
         if (totalBytes > 950 * 1024) return null;
         return imageBlobs;
     }
 
+    /**
+     * מה הפעולה עושה: משנה את גודל התמונה למימדים של 800x800 פיקסלים ודוחסת אותה בפורמט JPEG לאיכות של 70% כדי להקטין דרסטית את משקלה ברשת.
+     * קלט: Bitmap bitmap.
+     * פלט: byte[] (מערך בתים דחוס).
+     */
     private byte[] compressBitmap(Bitmap bitmap) {
         Bitmap scaled = Bitmap.createScaledBitmap(bitmap, 800, 800, true);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         scaled.compress(Bitmap.CompressFormat.JPEG, 70, baos);
         return baos.toByteArray();
     }
+
+    // --- פעולות עזר פרטיות לריענון ויצירת תצוגה מקדימה דינמית לתמונות (UI Previews) ---
 
     private void refreshImagePreviews() {
         previewContainer.removeAllViews();
@@ -422,6 +463,8 @@ public class MyBusinessMainActivity extends BaseActivity {
         else iv.setImageBitmap(bitmap);
         previewContainer.addView(iv);
     }
+
+    // --- ניהול בדיקה ובקשת הרשאות זמן ריצה (Runtime Permissions) מול מערכת ההפעלה אנדרואיד ---
 
     private boolean checkCameraPermission() {
         return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;

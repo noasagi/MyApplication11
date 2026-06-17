@@ -4,36 +4,31 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkCapabilities;
 
-// מחלקת עזר (Utility Class) המכילה פונקציה סטטית לבדיקת מצב חיבור הרשת והאינטרנט במכשיר
 public class NetworkUtils {
 
-    // פונקציה סטטית (ניתנת לקריאה מכל מקום ללא יצירת מופע) הבודקת אם יש כרגע אינטרנט פעיל במכשיר
+    /**
+     * מה הפעולה עושה: פונקציה סטטית (Static Utility) השולפת את מנהל הקישוריות של מערכת ההפעלה, ובודקת האם המכשיר מחובר כעת לרשת אינטרנט פעילה מסוג Wi-Fi או נתונים סלולריים.
+     * קלט: Context context (הקשר המערכת הנדרש לגישה לשירותי מערכת ההפעלה).
+     * פלט: boolean (true אם יש אינטרנט זמין, false אם המכשיר מנותק).
+     */
     public static boolean isNetworkAvailable(Context context) {
 
-        // שליפת מנהל קישוריות הרשת של מערכת ההפעלה (ConnectivityManager) באמצעות ה-Context של האפליקציה
+        // שליפת מנהל קישוריות הרשת הרשמי של מערכת ההפעלה אנדרואיד
         ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
 
-        // תנאי הגנה: מוודאים שמערכת ההפעלה הצליחה לספק את מנהל הקישוריות (אינו Null)
         if (connectivityManager != null) {
-
-            // שליפת מאפייני הרשת (Capabilities) עבור הרשת הפעילה כרגע במכשיר (Active Network)
+            // שליפת מאפייני הרשת (Capabilities) עבור הרשת שנמצאת בשימוש פעיל כרגע
             NetworkCapabilities capabilities = connectivityManager.getNetworkCapabilities(connectivityManager.getActiveNetwork());
 
-            // תנאי: מוודאים שקיימת רשת פעילה ושנשלפו המאפיינים שלה בהצלחה
             if (capabilities != null) {
-
-                // בדיקה א': האם הרשת הפעילה הנוכחית מבוססת על חיבור אלחוטי (Wi-Fi)
+                // בדיקת פולימורפיזם של סוגי המדיה: האם החיבור מבוסס Wi-Fi או תשתית סלולרית (Cellular)
                 if (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-                    return true; // יש אינטרנט פעיל - החזרת אמת
-
-                    // בדיקה ב': במידה ואין Wi-Fi, האם הרשת הפעילה מבוססת על תשתית סלולרית (Cellular Data)
+                    return true;
                 } else if (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
-                    return true; // יש אינטרנט פעיל - החזרת אמת
+                    return true;
                 }
             }
         }
-
-        // במידה ולא נמצאה אף רשת פעילה, או שהמכשיר במצב טיסה/מנותק - הפונקציה תחזיר שקר
-        return false;
+        return false; // אין חיבור רשת זמין במכשיר
     }
 }

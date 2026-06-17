@@ -38,50 +38,41 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-// הגדרת מחלקת מסך פרטי העסק, היורשת מ-BaseActivity
 public class BusinessDetailsActivity extends BaseActivity {
 
-    // הצהרה על רכיבי תצוגת הטקסט עבור פרטי המידע של העסק
     private TextView tvName, tvType, tvPhone, tvDescription, tvAddress;
-    // הצהרה על שלושת רכיבי מדדי הדירוג הגרפיים (RatingBar) המציגים ממוצעי ביקורות
     private RatingBar rbAvgProfessionalism, rbAvgReliability, rbAvgPrice;
-    // הצהרה על מכולה אנכית (LinearLayout) המשמשת כגלריית תמונות דינמית
     private LinearLayout galleryContainer;
-    // הצהרה על לחצן צף להוספה או הסרה של העסק מרשימת המועדפים
     private FloatingActionButton btnFavorite;
-    // הצהרה על לחצני הפעולה המקשרים לאפליקציות חיצוניות ומסכים פנימיים
     private Button btnWhatsApp, btnWaze, btnBookAppointment, btnAppChat;
 
-    // רכיבי הגישה המרכזיים של פיירסטור ומערכת ניהול המשתמשים
     private FirebaseFirestore db;
     private FirebaseAuth auth;
-    // משתני מחרוזת ומודל להחזקת המזהה והנתונים של העסק הנוכחי המציג במסך
     private String currentBusinessId;
     private BusinessModel currentBusiness;
-    // משתנה בוליאני המציין האם העסק הנוכחי מסומן כמועדף אצל המשתמש המחובר
     private boolean isFavorite = false;
 
-    // רכיבי רשימת הביקורות והמתאם המותאם אישית המחובר אליה
     private RecyclerView rvReviews;
     private ReviewAdapter reviewAdapter;
     private List<ReviewModel> reviewsList;
 
+    /**
+     * מה הפעולה עושה: מאתחלת את רכיבי המסך, מחברת את רשימת הביקורות, שולפת את מזהה העסק שקיבלה ומפעילה מאזיני נתונים ולחיצות.
+     * קלט: Bundle savedInstanceState.
+     * פלט: אין.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // טעינת וחיבור קובץ ה-XML של עיצוב מסך פרטי העסק
         setContentView(R.layout.activity_business_details);
 
-        // חיבור וקישור סרגל הכלים העליון של המסך
         Toolbar toolbar = findViewById(R.id.toolbar);
         setupSecondaryToolbar(toolbar, true);
 
-        // ביטול כותרת ברירת המחדל של סרגל הכלים במידה והוא קיים לקוד
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayShowTitleEnabled(false);
         }
 
-        // קישור משתני הרכיבים לרכיבים הויזואליים מתוך קובץ ה-XML
         tvName = findViewById(R.id.tvDetailName);
         tvType = findViewById(R.id.tvDetailType);
         tvPhone = findViewById(R.id.tvDetailPhone);
@@ -99,29 +90,25 @@ public class BusinessDetailsActivity extends BaseActivity {
         btnBookAppointment = findViewById(R.id.btnBookAppointment);
         btnAppChat = findViewById(R.id.btnAppChat);
 
-        // קישור והגדרת מנהל פריסה אנכי לרשימת חוות הדעת והביקורות
+        // אתחול והגדרת רשימת הביקורות בצורה אנכית
         rvReviews = findViewById(R.id.rvReviewsList);
         rvReviews.setLayoutManager(new LinearLayoutManager(this));
         reviewsList = new ArrayList<>();
         reviewAdapter = new ReviewAdapter(reviewsList);
         rvReviews.setAdapter(reviewAdapter);
 
-        // קבלת מופעי הגישה אל בסיס הנתונים ומערכת האימות
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
-        // שליפת מזהה העסק הספציפי שהועבר באמצעות ה-Intent מהמסך הקודם
+
+        // שליפת מזהה העסק שהועבר במסך הקודם על מנת לדעת איזה מידע לטעון
         currentBusinessId = getIntent().getStringExtra("BUSINESS_ID");
 
         if (currentBusinessId != null) {
-            // האזנה אקטיבית ורציפה לשינויים במסמך העסק בענן
             listenToBusinessData(currentBusinessId);
-            // בדיקה ראשונית האם העסק מסומן כמועדף בתיקיית המשתמש המחובר
             checkIfFavorite();
-            // טעינה והאזנה לרשימת הביקורות שנכתבו על עסק זה
             loadReviews(currentBusinessId);
         }
 
-        // הגדרת מאזין לחיצה אנונימי קלאסי לכפתור המועדפים
         btnFavorite.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -129,7 +116,6 @@ public class BusinessDetailsActivity extends BaseActivity {
             }
         });
 
-        // הגדרת מאזין לחיצה אנונימי קלאסי לכפתור מעבר למסך קביעת תור
         btnBookAppointment.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -140,7 +126,6 @@ public class BusinessDetailsActivity extends BaseActivity {
             }
         });
 
-        // הגדרת מאזין לחיצה אנונימי קלאסי לכפתור פתיחת הצ'אט הפנימי באפליקציה
         btnAppChat.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -148,7 +133,6 @@ public class BusinessDetailsActivity extends BaseActivity {
             }
         });
 
-        // הגדרת מאזין לחיצה אנונימי קלאסי לכפתור פתיחת אפליקציית WhatsApp
         btnWhatsApp.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -156,7 +140,6 @@ public class BusinessDetailsActivity extends BaseActivity {
             }
         });
 
-        // הגדרת מאזין לחיצה אנונימי קלאסי לכפתור הניווט באמצעות אפליקציית Waze
         btnWaze.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -165,17 +148,19 @@ public class BusinessDetailsActivity extends BaseActivity {
         });
     }
 
-    // פעולה פרטית המגדירה מאזין קבוע (נוטיפייר) המעדכן את המסך מיידית בכל שינוי דאטה בענן
+    /**
+     * מה הפעולה עושה: מאזינה בזמן אמת לשינויים במסמך העסק הספציפי ומעדכנת את התצוגה בכל שינוי בבסיס הנתונים.
+     * קלט: String businessId.
+     * פלט: אין (void).
+     */
     private void listenToBusinessData(String businessId) {
         db.collection("businesses").document(businessId)
                 .addSnapshotListener(new EventListener<DocumentSnapshot>() {
                     @Override
                     public void onEvent(@Nullable DocumentSnapshot doc, @Nullable FirebaseFirestoreException e) {
                         if (doc != null && doc.exists()) {
-                            // המרת מסמך הפיירסטור ישירות לאובייקט מסוג מודל עסק
                             currentBusiness = doc.toObject(BusinessModel.class);
                             if (currentBusiness != null) {
-                                // קריאה לפעולת עדכון הרכיבים הויזואליים על המסך
                                 updateUI(currentBusiness);
                             }
                         }
@@ -183,7 +168,11 @@ public class BusinessDetailsActivity extends BaseActivity {
                 });
     }
 
-    // פעולה פרטית המקבלת את מודל העסק ומזריקה את ערכיו לתוך רכיבי ממשק המשתמש
+    /**
+     * מה הפעולה עושה: מזריקה את פרטי העסק וממוצעי הדירוגים לתוך רכיבי התצוגה ובונה מחדש את גלריית התמונות.
+     * קלט: BusinessModel business.
+     * פלט: אין (void).
+     */
     private void updateUI(BusinessModel business) {
         tvName.setText(business.getName());
         tvType.setText(business.getBusinessType());
@@ -191,40 +180,46 @@ public class BusinessDetailsActivity extends BaseActivity {
         tvDescription.setText(business.getDescription());
         tvAddress.setText(business.getAddress() != null ? business.getAddress() : "לא צוינה כתובת");
 
-        // עדכון גרפי של שלושת מדדי הדירוג השונים (מקצועיות, אמינות ומחיר)
         rbAvgProfessionalism.setRating(business.getAvgProfessionalism());
         rbAvgReliability.setRating(business.getAvgReliability());
         rbAvgPrice.setRating(business.getAvgPrice());
 
-        // ניקוי הגלריה הישנה לפני טעינת והוספת התמונות המעודכנות
+        // ניקוי הגלריה הישנה קריטי כדי למנוע שכפול תמונות בכל פעם שהנתונים מתעדכנים
         galleryContainer.removeAllViews();
         if (business.getImageBlobs() != null) {
-            // מעבר בלולאה על רשימת הביטים של התמונות המאוחסנות במסמך העסק
             for (Blob blob : business.getImageBlobs()) {
                 addImageToGallery(blob);
             }
         }
     }
 
-    // פעולה פרטית המעבדת אובייקט Blob של תמונה, הופכת אותו לביטמפ ומזריקה אותו לתצוגה
+    /**
+     * מה הפעולה עושה: מקבלת אובייקט תמונה בינארי (Blob), הופכת אותו ל-Bitmap ומייצרת ImageView באופן דינמי לתוך הגלריה.
+     * קלט: Blob blob.
+     * פלט: אין (void).
+     */
     private void addImageToGallery(Blob blob) {
-        // המרת המבנה של פיירבייס למערך של בייטים גולמיים
         byte[] bytes = blob.toBytes();
-        // פענוח והמרת מערך הבייטים לאובייקט תמונה מסוג Bitmap הניתן להצגה בנייטיב
         Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+
+        // יצירת רכיב תמונה בצורה תכנותית (ולא דרך XML) כדי לאפשר כמות תמונות דינמית ומשתנה
         ImageView imageView = new ImageView(this);
-        // הגדרת מאפייני פריסה דינמיים לתמונה: רוחב מלא וגובה קבוע של 600 פיקסלים
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 600);
-        params.setMargins(0, 0, 0, 30); // הוספת מרווח תחתון בין תמונה לתמונה
+        params.setMargins(0, 0, 0, 30);
+
         imageView.setLayoutParams(params);
-        imageView.setScaleType(ImageView.ScaleType.CENTER_CROP); // חיתוך ומרכוז אופטימלי של התמונה
+        imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
         imageView.setImageBitmap(bitmap);
-        // הוספה פיזית של רכיב התמונה החדש אל תוך מכולת הגלריה ב-XML
+
         galleryContainer.addView(imageView);
     }
 
-    // פעולה פרטית הטוענת ומאזינה בזמן אמת לכל הביקורות המשויכות לעסק זה בסדר יורד
+    /**
+     * מה הפעולה עושה: מאזינה בזמן אמת לאוסף הביקורות של העסק ומסדרת אותן לפי הזמן שלהן מהחדש לישן.
+     * קלט: String businessId.
+     * פלט: אין (void).
+     */
     private void loadReviews(String businessId) {
         db.collection("reviews")
                 .whereEqualTo("businessId", businessId)
@@ -234,54 +229,63 @@ public class BusinessDetailsActivity extends BaseActivity {
                     public void onEvent(@Nullable QuerySnapshot querySnapshot, @Nullable FirebaseFirestoreException e) {
                         if (querySnapshot != null) {
                             reviewsList.clear();
-                            // ריצה בלולאה על כל מסמכי הביקורות שנמצאו תחת הסינון
                             for (DocumentSnapshot doc : querySnapshot) {
                                 ReviewModel review = doc.toObject(ReviewModel.class);
                                 if (review != null) reviewsList.add(review);
                             }
-                            // הודעה למתאם הרשימה לבצע ריענון ויזואלי של שורות הביקורות במסך
                             reviewAdapter.notifyDataSetChanged();
                         }
                     }
                 });
     }
 
-    // פעולה פרטית המחשבת את מזהה חדר הצ'אט הייחודי ופותחת את מסך הדו-שיח הפנימי
+    /**
+     * מה הפעולה עושה: מייצרת מזהה חדר ייחודי המשלב את הלקוח ובעל העסק, ופותחת את מסך השיחה (ChatActivity).
+     * קלט: אין.
+     * פלט: אין (void).
+     */
     private void openChat() {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null || currentBusiness == null) return;
-        // יצירת מזהה חדר צ'אט ייחודי המורכב מ-UID הלקוח ומ-UID בעל העסק מופרדים בקו תחתון
+
+        // בניית מזהה חדר ייחודי קבוע (UID_לקוח + UID_בעלים) כדי ששני הצדדים יגיעו תמיד לאותו החדר בדיוק
         String chatRoomId = user.getUid() + "_" + currentBusiness.getOwnerId();
         Intent intent = new Intent(this, ChatActivity.class);
         intent.putExtra("chatRoomId", chatRoomId);
         startActivity(intent);
     }
 
-    // פעולה פרטית הבודקת האם קיים מסמך לעסק הנוכחי תחת אוסף המועדפים של המשתמש בענן
+    /**
+     * מה הפעולה עושה: בודקת ב-Firestore האם העסק הנוכחי נמצא תחת תת-אוסף המועדפים (favorites) של המשתמש.
+     * קלט: אין.
+     * פלט: אין (void).
+     */
     private void checkIfFavorite() {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) return;
+
         db.collection("users").document(user.getUid()).collection("favorites").document(currentBusinessId)
                 .get().addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
                     @Override
                     public void onSuccess(DocumentSnapshot doc) {
-                        // אם המסמך קיים – העסק מועדף (true), אחרת לא (false)
                         isFavorite = doc.exists();
-                        // קריאה לפעולה המשנה את מראה האייקון של הכוכב בהתאם
                         updateFavoriteIcon();
                     }
                 });
     }
 
-    // פעולה פרטית המוסיפה או מסירה את העסק מאוסף המועדפים האישי של המשתמש
+    /**
+     * מה הפעולה עושה: משנה את מצב המועדף (Toggle): מוחקת את העסק מהמועדפים אם היה קיים, או יוצרת מסמך חדש אם לא.
+     * קלט: אין.
+     * פלט: אין (void).
+     */
     private void toggleFavorite() {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) return;
-        // יצירת הפנייה מדויקת למיקום מסמך המועדף הספציפי בתוך אוסף המשתמש
+
         DocumentReference favRef = db.collection("users").document(user.getUid()).collection("favorites").document(currentBusinessId);
 
         if (isFavorite) {
-            // אם העסק כבר היה מועדף, נמחק את המסמך שלו מהענן
             favRef.delete().addOnSuccessListener(new OnSuccessListener<Void>() {
                 @Override
                 public void onSuccess(Void aVoid) {
@@ -290,10 +294,10 @@ public class BusinessDetailsActivity extends BaseActivity {
                 }
             });
         } else {
-            // אם העסק לא היה מועדף, ניצור מפת נתונים ונשמור מסמך חדש בענן עבורו
             Map<String, Object> data = new HashMap<>();
             data.put("businessId", currentBusinessId);
             data.put("name", currentBusiness.getName());
+
             favRef.set(data).addOnSuccessListener(new OnSuccessListener<Void>() {
                 @Override
                 public void onSuccess(Void aVoid) {
@@ -304,40 +308,43 @@ public class BusinessDetailsActivity extends BaseActivity {
         }
     }
 
-    // פעולה פרטית האחראית על החלפת המראה החזותי של כפתור הכוכב (מלא / ריק)
+    /**
+     * מה הפעולה עושה: מעדכנת את האייקון הגרפי של לחצן המועדפים (כוכב מלא או ריק) בהתאם למצב הנוכחי בזיכרון.
+     * קלט: אין.
+     * פלט: אין (void).
+     */
     private void updateFavoriteIcon() {
-        btnFavorite.setImageTintList(null); // ביטול גוון אוטומטי לטובת הצבע המקורי של המשאב
+        btnFavorite.setImageTintList(null);
         if (isFavorite) {
-            btnFavorite.setImageResource(android.R.drawable.btn_star_big_on); // הגדרת תמונת כוכב מלא וצהוב
+            btnFavorite.setImageResource(android.R.drawable.btn_star_big_on);
         } else {
-            btnFavorite.setImageResource(android.R.drawable.star_off); // הגדרת תמונת כוכב ריק ואפור
+            btnFavorite.setImageResource(android.R.drawable.star_off);
         }
     }
 
-    // פעולה פרטית המכינה ומקשרת את המשתמש ישירות לשיחת WhatsApp מול בעל העסק
+    /**
+     * מה הפעולה עושה: מנקה ומסדרת את מספר הטלפון לפורמט בינלאומי, ומפעילה כוונת (Intent) לפתיחת שיחה מול העסק ב-WhatsApp.
+     * קלט: אין.
+     * פלט: אין (void).
+     */
     private void openWhatsApp() {
         if (currentBusiness == null || currentBusiness.getPhone() == null || currentBusiness.getPhone().isEmpty()) {
             Toast.makeText(this, "מספר טלפון לא זמין", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // ניקוי מחרוזת הטלפון מכל תו שאינו ספרה (רווחים, מקפים וכו') בעזרת ביטוי רגולרי
+        // שימוש בביטוי רגולרי (\\D) כדי למחוק את כל התווים שאינם ספרות ולהימנע משגיאות חיוג
         String phone = currentBusiness.getPhone().replaceAll("\\D", "");
 
-        // התאמת הקידומת לפורמט בינלאומי: החלפת ה-0 הראשון בקידומת המדינה של ישראל (972)
         if (phone.startsWith("0")) {
             phone = "972" + phone.substring(1);
         }
 
-        // ניסוח הודעת הפתיחה המוכנת מראש שתופיע בתיבת הטקסט של המשתמשת בוואטסאפ
         String message = "שלום, הגעתי דרך אפליקציית JOBSY. אשמח לקבל פרטים נוספים!";
-        // קידוד מחרוזת ההודעה לפורמט URL תקני כדי למנוע קריסות או בעיות עם תווים מיוחדים ורווחים
         String encodedMessage = Uri.encode(message);
 
         try {
-            // יצירת כוונת (Intent) להצגת תוכן חזותי חיצוני
             Intent intent = new Intent(Intent.ACTION_VIEW);
-            // הגדרת כתובת ה-API הרשמית של וואטסאפ המשלבת את מספר הטלפון והטקסט המקודד
             intent.setData(Uri.parse("https://wa.me/" + phone + "?text=" + encodedMessage));
             startActivity(intent);
         } catch (Exception e) {
@@ -345,32 +352,32 @@ public class BusinessDetailsActivity extends BaseActivity {
         }
     }
 
-    // פעולה פרטית המייצרת כוונת ניווט ייעודית ומפעילה את אפליקציית Waze במכשיר
+    /**
+     * מה הפעולה עושה: בונה כתובת URI מבוססת קואורדינטות או כתובת טקסטואלית, ומפעילה כוונת חיצונית לפתיחת אפליקציית Waze.
+     * קלט: אין.
+     * פלט: אין (void).
+     */
     private void openWaze() {
         if (currentBusiness == null) return;
 
         String uriString;
 
-        // עדיפות ראשונה: ניווט מדויק ומבוסס נקודות ציון (קו אורך ורוחב מספריים) מתוך המודל
+        // עדיפות עליונה לניווט לפי קואורדינטות גיאוגרפיות מדויקות, ובמידה ואין - ניווט לפי כתובת טקסט
         if (currentBusiness.getLatitude() != null && currentBusiness.getLongitude() != null) {
             uriString = "waze://?ll=" + currentBusiness.getLatitude() + "," + currentBusiness.getLongitude() + "&navigate=yes";
-        }
-        // עדיפות שנייה: ניווט מבוסס חיפוש טקסטואלי של כתובת המגורים/עסק של בעל המקצוע
-        else if (currentBusiness.getAddress() != null && !currentBusiness.getAddress().isEmpty()) {
+        } else if (currentBusiness.getAddress() != null && !currentBusiness.getAddress().isEmpty()) {
             uriString = "waze://?q=" + Uri.encode(currentBusiness.getAddress()) + "&navigate=yes";
-        }
-        else {
+        } else {
             Toast.makeText(this, "לא הוגדר מיקום לעסק זה", Toast.LENGTH_SHORT).show();
             return;
         }
 
         try {
-            // הפעלת אפליקציית Waze החיצונית באמצעות שליחת הקישור הפרוטוקולי המיוחד
             Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uriString));
             startActivity(intent);
         } catch (Exception e) {
             try {
-                // מנגנון הגנה: אם וויז לא מותקנת, נקפיץ למשתמש ישירות את עמוד ההורדה שלה בחנות האפליקציות Play Store
+                // מנגנון גיבוי: אם האפליקציה לא מותקנת, המשתמש מועבר ישירות לחנות להורדת Waze
                 Intent playStoreIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=com.waze"));
                 startActivity(playStoreIntent);
             } catch (Exception ex) {

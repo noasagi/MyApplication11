@@ -28,38 +28,33 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-// הגדרת מחלקת אקטיביטי לניהול ותצוגת מסך הצ'אט בזמן אמת
 public class ChatActivity extends AppCompatActivity {
 
-    // הצהרה על רכיב הרשימה הממוחזרת להצגת שרשור ההודעות
     private RecyclerView recyclerViewChat;
-    // הצהרה על רכיב תיבת קלט הטקסט להקלדת ההודעה החדשה
     private EditText etMessageInput;
-    // הצהרה על רכיב לחצן שליחת ההודעה
     private Button btnSendMessage;
 
-    // הצהרה על המתאם המותאם אישית (Adapter) ועל רשימת אובייקטי ההודעות
     private MessageAdapter messageAdapter;
     private List<Message> messageList;
 
-    // הצהרה על רכיבי הגישה של פיירסטור ומערכת ניהול המשתמשים
     private FirebaseFirestore db;
     private FirebaseAuth refAuth;
-    // משתני מחרוזת לשמירת מזהה המשתמש הנוכחי ומזהה חדר הצ'אט הספציפי
     private String currentUserId;
     private String chatRoomId;
 
+    /**
+     * מה הפעולה עושה: מאתחלת את רכיבי המערכת, מחלצת את מזהה החדר מה-Intent, ומגדירה LayoutManager ייעודי לצ'אט (הערמה מלמטה למעלה).
+     * קלט: Bundle savedInstanceState.
+     * פלט: אין.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // טעינת וחיבור קובץ ה-XML של עיצוב מסך הצ'אט
         setContentView(R.layout.activity_chat);
 
-        // אתחול וקבלת המופע הנוכחי של פיירסטור ואימות פיירבייס
         db = FirebaseFirestore.getInstance();
         refAuth = FirebaseAuth.getInstance();
 
-        // הגנה: בדיקה האם קיים משתמש מחובר למערכת, אם לא - המסך נסגר מיידית
         if (refAuth.getCurrentUser() != null) {
             currentUserId = refAuth.getCurrentUser().getUid();
         } else {
@@ -68,30 +63,25 @@ public class ChatActivity extends AppCompatActivity {
             return;
         }
 
-        // חילוץ מזהה חדר הצ'אט שהועבר בתוך ה-Intent מהמסך הקודם
+        // חילוץ מזהה חדר השיחה הייחודי שהועבר במסך הקודם
         chatRoomId = getIntent().getStringExtra("chatRoomId");
-        // ברירת מחדל לבדיקות מקומיות במקרה שלא הועבר מזהה חדר
         if (chatRoomId == null) {
-            chatRoomId = "test_room_123";
+            chatRoomId = "test_room_123"; // הגנת ברירת מחדל
         }
 
-        // קישור משתני הרכיבים לרכיבים הגרפיים האמיתיים מתוך קובץ ה-XML
         recyclerViewChat = findViewById(R.id.recyclerViewChat);
         etMessageInput = findViewById(R.id.etMessageInput);
         btnSendMessage = findViewById(R.id.btnSendMessage);
 
-        // אתחול רשימת ההודעות הדינמית ויצירת מופע של המתאם המותאם אישית
         messageList = new ArrayList<>();
         messageAdapter = new MessageAdapter(messageList, currentUserId);
 
-        // הגדרת מנהל פריסה אנכי (LinearLayoutManager) עבור רכיב הרשימה
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
-        // הגדרת תכונה הגורמת להודעות להיערם ולהתחיל מתחתית המסך כלפי מעלה (מתאים למסכי שיחה)
+        // תכונה קריטית למסכי צ'אט: גורמת לרשימה להיערך ולהתחיל מתחתית המסך כלפי מעלה
         layoutManager.setStackFromEnd(true);
         recyclerViewChat.setLayoutManager(layoutManager);
         recyclerViewChat.setAdapter(messageAdapter);
 
-        // הגדרת מאזין לחיצה אנונימי קלאסי לכפתור שליחת ההודעה
         btnSendMessage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -99,48 +89,44 @@ public class ChatActivity extends AppCompatActivity {
             }
         });
 
-        // הפעלת פעולת ההאזנה הרציפה לקבלת הודעות חדשות בזמן אמת מהענן
+        // הפעלת צינור ההאזנה להודעות נכנסות/יוצאות בזמן אמת
         listenForMessages();
     }
 
-    // פעולה פרטית האחראית על בניית אובייקט ההודעה, יצירת חדר הצ'אט ושמירת הנתונים בענן
+    /**
+     * מה הפעולה עושה: קוראת את קלט הטקסט, מייצרת אובייקטים של הודעה וחדר, ומבצעת כתיבה דו-שלבית מול Firestore (עדכון החדר הראשי -> הוספת ההודעה לתת-האוסף).
+     * קלט: אין.
+     * פלט: אין (void).
+     */
     private void sendMessage() {
-        // קריאת הטקסט מתיבת הקלט וניקוי רווחים מיותרים מהקצוות
         String text = etMessageInput.getText().toString().trim();
-        // הגנה: מניעת שליחה של הודעה ריקה
-        if (text.isEmpty()) {
-            return;
-        }
+        if (text.isEmpty()) return; // הגנה מפני שליחת מחרוזת ריקה
 
-        // יצירת חותם זמן עדכני של פיירבייס המבוסס על תאריך ושעת המכשיר הנוכחיים
         Timestamp now = new Timestamp(new Date());
-        // יצירת מופע חדש של מודל הודעה עם מזהה השולח, הטקסט וזמן השליחה
         Message message = new Message(currentUserId, text, now);
 
-        // פיצול מזהה חדר הצ'אט באמצעות קו תחתון כדי לחלץ את מזהי המשתתפים בשיחה
+        // לוגיקת חילוץ מזהי המשתתפים מתוך מחרוזת מזהה החדר (למשל: "clientUID_businessUID")
         String[] ids = chatRoomId.split("_");
         String clientId = ids.length > 0 ? ids[0] : "";
         String businessId = ids.length > 1 ? ids[1] : "";
 
-        // יצירת אובייקט מודל עבור חדר הצ'אט המרכז את פרטי החדר העדכניים וההודעה האחרונה
         ChatRoomModel roomModel = new ChatRoomModel(
                 chatRoomId, clientId, "לקוח/ה", businessId, text, now
         );
 
-        // שלב א': כתיבה ועדכון של מסמך חדר הצ'אט הראשי באוסף הכללי של פיירסטור
+        // שלב א': כתיבה/עדכון של מסמך חדר הצ'אט הראשי באוסף הכללי לצורך הצגת הודעה אחרונה בתפריט השיחות
         db.collection("ChatRooms").document(chatRoomId).set(roomModel)
                 .addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void aVoid) {
-                        // שלב ב': רק לאחר הצלחת יצירת/עדכון החדר הראשי, נכנסים לתת-אוסף פנימי ומוסיפים את מסמך ההודעה
+                        // שלב ב': רק לאחר שהחדר הראשי מעודכן, מוסיפים את מסמך ההודעה לתוך תת-האוסף המקונן (Messages)
                         db.collection("ChatRooms").document(chatRoomId)
                                 .collection("Messages")
                                 .add(message)
                                 .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
                                     @Override
                                     public void onSuccess(DocumentReference documentReference) {
-                                        // ניקוי תיבת קלט הטקסט על המסך עם סיום השליחה המוצלחת
-                                        etMessageInput.setText("");
+                                        etMessageInput.setText(""); // ניקוי התיבה מיד עם השליחה
                                     }
                                 })
                                 .addOnFailureListener(new OnFailureListener() {
@@ -158,35 +144,32 @@ public class ChatActivity extends AppCompatActivity {
                     }
                 });
     }
-
-    // פעולה פרטית הפותחת ערוץ האזנה רציף (צינור נתונים) לקבלת הודעות המשויכות לחדר זה
+    /**
+     * מה הפעולה עושה: פותחת מאזין SnapshotListener לתת-האוסף של ההודעות, ממיינת אותן כרונולוגית, ומבצעת גלילה אוטומטית להודעה האחרונה בכל עדכון.
+     * קלט: אין.
+     * פלט: אין (void).
+     */
     private void listenForMessages() {
+        // פנייה לתת-האוסף הפנימי ומיון ההודעות מהישנה ביותר (למעלה) לחדישה ביותר (למטה)
         db.collection("ChatRooms").document(chatRoomId)
                 .collection("Messages")
-                .orderBy("timestamp", Query.Direction.ASCENDING) // מיון כרונולוגי מהישן ביותר לחדיש ביותר
+                .orderBy("timestamp", Query.Direction.ASCENDING)
                 .addSnapshotListener(new EventListener<QuerySnapshot>() {
                     @Override
                     public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
-                        // הגנה: במידה ונוצרה שגיאה בתקשורת או בהרשאות מול הענן - נעצור את הפעולה
-                        if (error != null) {
-                            return;
-                        }
+                        if (error != null) return;
 
-                        // בדיקה שאכן התקבלו נתונים תקינים מתוך הענן
                         if (value != null) {
-                            // ניקוי רשימת ההודעות המקומית בזיכרון כדי למנוע כפילויות של מידע ישן וחדש במסך
-                            messageList.clear();
-                            // מעבר בלולאה מובנית על כל מסמכי ההודעות שהתקבלו מהשאילתה בענן
+                            messageList.clear(); // ניקוי הרשימה המקומית בזיכרון למניעת כפילויות תצוגה
                             for (QueryDocumentSnapshot doc : value) {
-                                // המרת מסמך הנתונים הגולמי מהפיירסטור ישירות לאובייקט מסוג מחלקת ההודעה
                                 Message message = doc.toObject(Message.class);
                                 messageList.add(message);
                             }
 
-                            // עדכון המתאם (Adapter) על כך שחלו שינויים במקור הנתונים כדי שיצייר את רכיבי השיחה מחדש
+                            // התיקון כאן: שימוש בשם המשתנה הנכון שהוגדר בראש המחלקה!
                             messageAdapter.notifyDataSetChanged();
 
-                            // מנגנון גלילה אוטומטי: אם קיימות הודעות בשיחה, נבצע גלילה של הרשימה ישירות למיקום ההודעה האחרונה
+                            // מנגנון חווית משתמש (UX): גלילה אוטומטית ממוקדת של ה-RecyclerView אל ההודעה האחרונה שהתקבלה בשרשרת
                             if (messageList.size() > 0) {
                                 recyclerViewChat.scrollToPosition(messageList.size() - 1);
                             }
